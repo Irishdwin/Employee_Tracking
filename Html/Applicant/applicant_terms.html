@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Terms & Conditions - Onazul</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body{
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #0056b3 0%, #003366 100%);
+            min-height: 100vh;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding: 1.25rem;
+        }
+        .terms-panel{
+            width: 100%;
+            max-width: 720px;
+            background:#fff;
+            border-radius: 18px;
+            box-shadow: 0 18px 55px rgba(0,0,0,0.22);
+            overflow:hidden;
+        }
+        .terms-body{
+            padding: 28px 26px 22px;
+        }
+        .terms-title{
+            font-weight: 1000;
+            color: #0f172a;
+            font-size: 34px;
+            line-height: 1.05;
+            text-align:center;
+            margin-bottom: 10px;
+        }
+        .terms-sub{
+            text-align:center;
+            color: #0f172a;
+            font-weight: 800;
+            font-size: 16px;
+            margin-bottom: 18px;
+        }
+        .email-highlight{
+            font-weight: 1000;
+            color: #0b4db3;
+            text-decoration: underline;
+        }
+        .terms-list{
+            margin-top: 10px;
+            display:flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .terms-item{
+            display:flex;
+            gap: 12px;
+            align-items:flex-start;
+            padding: 14px 14px;
+            border: 1px solid rgba(15,23,42,0.08);
+            border-radius: 14px;
+            background: #fff;
+        }
+        .check-badge{
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #0b6bcb;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            color:#fff;
+            font-weight: 900;
+            flex: 0 0 28px;
+            margin-top: 2px;
+        }
+        .terms-item input[type="checkbox"]{
+            margin-top: 4px;
+            width: 18px;
+            height: 18px;
+            accent-color: #d6336c;
+        }
+        .terms-item label{
+            color: #0f172a;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+        .btn-magenta{
+            background: #d6336c;
+            border: none;
+            color:#fff;
+            font-weight: 1000;
+            border-radius: 14px;
+            padding: 14px 16px;
+        }
+        .btn-magenta:hover{
+            filter: brightness(1.03);
+        }
+        .btn-outline-soft{
+            border-radius: 14px;
+            padding: 14px 16px;
+            font-weight: 900;
+            border: 1px solid rgba(15,23,42,0.12);
+            background: rgba(15,23,42,0.04);
+            color: #0f172a;
+            text-decoration:none;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .btn-disabled{
+            opacity: 0.6;
+            cursor:not-allowed;
+        }
+        .terms-actions{
+            display:grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 18px;
+        }
+        @media (max-width: 576px){
+            .terms-title{ font-size: 26px; }
+            .terms-body{ padding: 22px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="terms-panel">
+        <div class="terms-body">
+            <div class="terms-title">Register a new account?</div>
+            <div class="terms-sub">
+                We didn't find an account for <span class="email-highlight" id="termsEmail">user@example.com</span>
+            </div>
+
+            <div class="terms-list">
+                <div class="terms-item">
+                    <input type="checkbox" id="chkTerms" />
+                    <label for="chkTerms">
+                        By registering, I agree to the <a href="#" onclick="event.preventDefault();">Collection Notice</a> and
+                        <a href="#" onclick="event.preventDefault();">Privacy Policy</a>.
+                        If I'm below 18 years old, I have parental consent for Onazul to process my data.
+                    </label>
+                </div>
+
+                <div class="terms-item">
+                    <input type="checkbox" id="chkCareerAdvice" />
+                    <label for="chkCareerAdvice">
+                        I also agree to receive career advice / newsletters and related updates from Onazul.
+                        I can unsubscribe at any time.
+                    </label>
+                </div>
+            </div>
+
+            <div class="terms-actions">
+                <button type="button" class="btn-magenta btn-lg btn-disabled" id="btnRegisterNewAccount" disabled>
+                    Register new account
+                </button>
+
+                <a class="btn-outline-soft" href="../../Html/Applicant/applicant_landing.html" id="btnBackToSignIn">
+                    Back to sign in
+                </a>
+            </div>
+
+            <div class="text-muted small mt-2" id="termsError" style="display:none; font-weight:900; color:#b91c1c;">
+                Please check the required boxes before continuing.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            var qs = window.location.search || '';
+            try {
+                var oauthParams = new URLSearchParams(qs);
+                if (oauthParams.get('code')) {
+                    window.location.replace(new URL('applicant_google_callback.html' + qs, window.location.href).href);
+                    return;
+                }
+            } catch (e1) {}
+
+            function getQueryParam(name) {
+                try {
+                    return new URLSearchParams(window.location.search).get(name) || '';
+                } catch (e) {
+                    return '';
+                }
+            }
+
+            // Route guard: signed-in applicants skip steps they already completed (main-window email flow).
+            fetch('../../Api/Applicant/get_profile_status.php', { credentials: 'include', headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.json().catch(function () { return null; }); })
+                .then(function (d) {
+                    if (!d || !d.success || !d.logged_in) return;
+                    if (d.profile_completed) {
+                        window.location.replace(new URL('../../Html/Applicant/applicant_landing.html', window.location.href).href);
+                        return;
+                    }
+                    if ((d.profile_status >= 1 || d.registration_terms_accepted) && !d.profile_completed) {
+                        window.location.replace(new URL('applicant_profile_master.html#profile', window.location.href).href);
+                    }
+                })
+                .catch(function () {});
+
+            var state = {
+                email: getQueryParam('email'),
+                uid: getQueryParam('uid'),
+                sig: getQueryParam('sig')
+            };
+
+            var emailEl = document.getElementById('termsEmail');
+            if (emailEl && state.email) emailEl.textContent = state.email;
+
+            var chkTerms = document.getElementById('chkTerms');
+            var chkCareer = document.getElementById('chkCareerAdvice');
+            var btnRegister = document.getElementById('btnRegisterNewAccount');
+            var termsError = document.getElementById('termsError');
+
+            function syncBtn() {
+                var enabled = !!(chkTerms && chkCareer && chkTerms.checked && chkCareer.checked);
+                btnRegister.disabled = !enabled;
+                if (!enabled) btnRegister.classList.add('btn-disabled');
+                else btnRegister.classList.remove('btn-disabled');
+            }
+
+            if (chkTerms) chkTerms.addEventListener('change', syncBtn);
+            if (chkCareer) chkCareer.addEventListener('change', syncBtn);
+            syncBtn();
+
+            var API_TERMS = (function () {
+                try {
+                    return new URL('../../Api/Applicant/accept_applicant_registration_terms.php', window.location.href).href;
+                } catch (e) {
+                    return '../../Api/Applicant/accept_applicant_registration_terms.php';
+                }
+            })();
+
+            var API_TERMS_PAYLOAD = (function () {
+                try {
+                    return new URL('../../Api/Applicant/get_applicant_terms_payload.php', window.location.href).href;
+                } catch (e2) {
+                    return '../../Api/Applicant/get_applicant_terms_payload.php';
+                }
+            })();
+
+            function ensureTermsPayload() {
+                if (state.email && state.uid && state.sig) {
+                    return Promise.resolve(true);
+                }
+                return fetch(API_TERMS_PAYLOAD, { credentials: 'include', headers: { Accept: 'application/json' } })
+                    .then(function (r) {
+                        return r.text().then(function (t) {
+                            var data = null;
+                            try { data = t ? JSON.parse(t) : null; } catch (e3) { data = null; }
+                            return { ok: r.ok, data: data };
+                        });
+                    })
+                    .then(function (res) {
+                        var d = res.data;
+                        if (res.ok && d && d.success && d.email && d.user_id && d.sig) {
+                            state.email = d.email;
+                            state.uid = String(d.user_id);
+                            state.sig = d.sig;
+                            if (emailEl) emailEl.textContent = state.email;
+                            return true;
+                        }
+                        return false;
+                    })
+                    .catch(function () { return false; });
+            }
+
+            ensureTermsPayload();
+
+            btnRegister.addEventListener('click', function () {
+                if (!chkTerms.checked || !chkCareer.checked) {
+                    termsError.style.display = 'block';
+                    return;
+                }
+                termsError.style.display = 'none';
+                btnRegister.disabled = true;
+                btnRegister.classList.add('btn-disabled');
+                btnRegister.textContent = 'Saving…';
+
+                ensureTermsPayload().then(function (ok) {
+                    if (!ok || !state.email || !state.uid || !state.sig) {
+                        termsError.textContent = 'Your session is missing registration data. Close this window and sign in again, or open the link from your email.';
+                        termsError.style.display = 'block';
+                        btnRegister.disabled = false;
+                        btnRegister.classList.remove('btn-disabled');
+                        btnRegister.textContent = 'Register new account';
+                        return;
+                    }
+
+                    var payload = {
+                        email: state.email,
+                        user_id: parseInt(state.uid, 10),
+                        sig: state.sig
+                    };
+                    fetch(API_TERMS, {
+                        credentials: 'include',
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify(payload)
+                    })
+                        .then(function (r) {
+                            return r.text().then(function (t) {
+                                var data = null;
+                                try { data = t ? JSON.parse(t) : null; } catch (e4) { data = null; }
+                                return { ok: r.ok, data: data };
+                            });
+                        })
+                        .then(function (res) {
+                            if (!res.ok || !res.data || !res.data.success) {
+                                var msg = (res.data && res.data.message) ? res.data.message : 'Could not save. Please try again.';
+                                if (res.data && res.data.message === 'Unauthorized') {
+                                    msg = 'Could not verify your account. Close this window and sign in again.';
+                                }
+                                termsError.textContent = msg;
+                                termsError.style.display = 'block';
+                                btnRegister.disabled = false;
+                                btnRegister.classList.remove('btn-disabled');
+                                btnRegister.textContent = 'Register new account';
+                                return;
+                            }
+                            try {
+                                if (window.opener && !window.opener.closed) {
+                                    window.opener.location.href = new URL(
+                                        'Html/Applicant/applicant_profile_master.html#profile',
+                                        window.opener.location.href
+                                    ).href;
+                                }
+                            } catch (e5) {}
+                            window.setTimeout(function () {
+                                try { window.close(); } catch (e6) {}
+                                try {
+                                    if (!window.closed) {
+                                        window.location.href = 'applicant_profile_master.html#profile';
+                                    }
+                                } catch (e7) {}
+                            }, 80);
+                        })
+                        .catch(function () {
+                            termsError.textContent = 'Network error. Please try again.';
+                            termsError.style.display = 'block';
+                            btnRegister.disabled = false;
+                            btnRegister.classList.remove('btn-disabled');
+                            btnRegister.textContent = 'Register new account';
+                        });
+                });
+            });
+        })();
+    </script>
+</body>
+</html>
+

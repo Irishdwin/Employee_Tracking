@@ -1,0 +1,1991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Onazul Workforce Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../Css/ow_widgets.css">
+    <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css">
+    <link rel="stylesheet" href="../../Css/ow_collapsible_sidebar.css">
+    <style>
+        :root {
+            --brand-primary: #0056b3;
+            --brand-dark: #003366;
+            --sidebar-bg: #003366;
+            --sidebar-width: 240px;
+        }
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            background-color: #f5f7fb;
+        }
+        .layout-wrapper { display: flex; min-height: 100vh; }
+        #sidebar .sidebar-nav { list-style: none; }
+        #main-content,
+        #main-content-area {
+            flex: 1;
+            min-width: 0;
+        }
+        .dashboard-section { display: none !important; }
+        .dashboard-section.active { display: block !important; }
+        .topbar-title { font-size: 1.4rem; font-weight: 600; color: #1f2933; }
+        .topbar-subtitle { font-size: 0.9rem; color: #6b7280; }
+        .kpi-card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+        }
+        .kpi-icon-wrapper {
+            width: 44px; height: 44px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0, 86, 179, 0.1);
+            color: var(--brand-primary);
+        }
+        .kpi-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; font-weight: 600; }
+        .kpi-value { font-size: 1.5rem; font-weight: 700; color: #111827; }
+        .card-table { border: none; border-radius: 0.75rem; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); }
+        .card-table .card-header { background: #fff; border-bottom: 1px solid #e5e7eb; font-weight: 600; padding: 1rem 1.25rem; }
+        .table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; }
+        .btn-logout { color: #e2e8f0; }
+        .btn-logout:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .user-topbar { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+        .user-dropdown-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0.25rem 0.5rem; border-radius: 0.6rem; }
+        .user-dropdown-toggle:hover { background: rgba(0, 86, 179, 0.07); }
+        .user-avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(0, 86, 179, 0.12);
+            color: var(--brand-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        .user-name-top { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #main-sidebar .sidebar-link.active,
+        #sidebar .sidebar-link.active {
+            background: linear-gradient(to right, #0284c7, #0369a1);
+            color: #fff !important;
+            box-shadow: 0 4px 14px rgba(3, 105, 161, 0.35);
+        }
+        /* Command Center layout (no Tailwind CDN — production-safe) */
+        .cc-layout { display: flex; min-height: 100vh; background: #f8fafc; }
+        #main-sidebar.cc-sidebar,
+        #sidebar.cc-sidebar {
+            display: flex; flex-direction: column;
+            background: #0f172a; color: #e2e8f0;
+            border-right: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+        }
+        .cc-sidebar-brand { padding: 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .cc-sidebar-brand .cc-kicker { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #94a3b8; }
+        .cc-sidebar-brand .cc-sidebar-title { margin-top: 0.25rem; font-size: 1.125rem; font-weight: 700; line-height: 1.25; color: #fff; }
+        #main-sidebar .sidebar-nav,
+        #sidebar .sidebar-nav { flex: 1; overflow-y: auto; padding: 0.75rem 0.5rem; margin: 0; }
+        #main-sidebar .sidebar-nav li,
+        #sidebar .sidebar-nav li { margin: 0; }
+        #main-sidebar .sidebar-link:not(.active),
+        #sidebar .sidebar-link:not(.active) { color: #cbd5e1 !important; border-radius: 0.5rem; }
+        #main-sidebar .sidebar-link:not(.active):hover,
+        #sidebar .sidebar-link:not(.active):hover { background: #1e293b !important; color: #fff !important; }
+        li.cc-nav-divider,
+        li.sidebar-section-label { padding: 0.75rem 0.5rem 0.25rem; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; list-style: none; }
+        .dashboard-shell,
+        .cc-main-wrap { min-height: 100vh; display: flex; flex-direction: column; flex: 1; min-width: 0; }
+        .cc-header {
+            position: sticky; top: 0; z-index: 30;
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+            padding: 0.75rem 1.5rem; background: #fff; border-bottom: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+        .cc-header-title { font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 0; }
+        .cc-header-actions { display: flex; align-items: center; gap: 1rem; }
+        .cc-notif-btn { position: relative; border: 0; background: transparent; border-radius: 0.5rem; padding: 0.5rem; color: #475569; cursor: pointer; }
+        .cc-notif-btn:hover { background: #f1f5f9; }
+        #owNotifBellBtn [data-global-notif-badge],
+        #owNotifBellBtn #globalNotifBadge,
+        #ccNotifBtn [data-global-notif-badge] {
+            background: #ef4444 !important;
+            color: #fff !important;
+            border-color: #fff !important;
+        }
+        .cc-notif-dot { position: absolute; right: 0.35rem; top: 0.35rem; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; box-shadow: 0 0 0 2px #fff; }
+        .cc-profile-name { font-size: 0.875rem; font-weight: 600; line-height: 1.2; color: #0f172a; }
+        .cc-profile-role { font-size: 0.75rem; color: #64748b; }
+        .cc-avatar {
+            width: 2.5rem; height: 2.5rem; border-radius: 50%; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.875rem; font-weight: 700; color: #fff; background: #0A2A5E; box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .table-sss thead th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        .table-sss tbody td { font-size: 0.875rem; vertical-align: middle; }
+        #deductionPageAlert { margin-bottom: 1rem; }
+        .cc-main-inner { flex: 1; background: #f8fafc; padding: 1.5rem; }
+        .cc-overview-title { font-size: 1.5rem; font-weight: 700; color: #0f172a; margin: 0; }
+        .cc-overview-sub { margin-top: 0.25rem; font-size: 0.875rem; color: #64748b; }
+        .cc-kpi-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+        @media (min-width: 576px) { .cc-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1280px) { .cc-kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+        .cc-kpi-card {
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem;
+            padding: 1.25rem; background: #fff; border: 1px solid #f1f5f9; border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .cc-kpi-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b; margin: 0; }
+        .cc-kpi-value { margin-top: 0.25rem; font-size: 1.5rem; font-weight: 700; color: #0f172a; }
+        .cc-kpi-icon { width: 2.75rem; height: 2.75rem; flex-shrink: 0; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; }
+        .cc-kpi-icon.sky { background: #e0f2fe; color: #0284c7; }
+        .cc-kpi-icon.emerald { background: #d1fae5; color: #059669; }
+        .cc-kpi-icon.amber { background: #fef3c7; color: #d97706; }
+        .cc-kpi-icon.violet { background: #ede9fe; color: #7c3aed; }
+        .cc-two-col { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+        @media (min-width: 992px) { .cc-two-col { grid-template-columns: repeat(2, 1fr); } }
+        .cc-panel { background: #fff; border: 1px solid #f1f5f9; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .cc-panel h2 { font-size: 1.125rem; font-weight: 600; color: #0f172a; margin: 0 0 1.25rem 0; display: flex; align-items: center; gap: 0.5rem; }
+        .cc-icon-orange { color: #f97316; }
+        #ccActivityList.cc-activity-root { list-style: none; padding: 0; margin: 0; }
+        .cc-activity-item { display: flex; gap: 0.75rem; padding-bottom: 1.25rem; }
+        .cc-activity-item:last-child { padding-bottom: 0; }
+        .cc-activity-dot-wrap { display: flex; flex-direction: column; align-items: center; padding-top: 0.15rem; }
+        .cc-activity-dot { width: 10px; height: 10px; border-radius: 50%; background: #0ea5e9; flex-shrink: 0; }
+        .cc-activity-line { margin-top: 0.25rem; flex: 1; min-height: 1rem; width: 2px; background: #e2e8f0; }
+        .cc-activity-body { min-width: 0; flex: 1; }
+        .cc-activity-msg { font-size: 0.875rem; color: #1e293b; margin: 0; }
+        .cc-activity-time { font-size: 0.75rem; color: #64748b; margin: 0.25rem 0 0 0; }
+        .cc-alerts-stack { display: flex; flex-direction: column; gap: 0.75rem; }
+        .cc-alert { border-radius: 0.5rem; padding: 0.75rem 1rem; border: 1px solid; }
+        .cc-alert-warn { background: #fef2f2; border-color: #fecaca; color: #7f1d1d; }
+        .cc-alert-notice { background: #fffbeb; border-color: #fde68a; color: #78350f; }
+        .cc-alert-info { background: #f0f9ff; border-color: #bae6fd; color: #0c4a6e; }
+        .cc-alert-title { font-weight: 700; font-size: 0.75rem; letter-spacing: 0.03em; text-transform: uppercase; }
+        .cc-alert-msg { margin: 0.35rem 0 0 0; font-size: 0.875rem; }
+        /* Sidebar notification badge (Messenger-style red pill) */
+        #main-sidebar .sidebar-link .sidebar-nav-badge,
+        #sidebar .sidebar-link .sidebar-nav-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.125rem;
+            height: 1.125rem;
+            padding: 0 0.35rem;
+            margin-left: auto;
+            border-radius: 999px;
+            background: #ef4444 !important;
+            color: #fff !important;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 1;
+            text-align: center;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 2px #0f172a;
+        }
+        #main-sidebar .sidebar-link.active .sidebar-nav-badge,
+        #sidebar .sidebar-link.active .sidebar-nav-badge {
+            background: #ef4444 !important;
+            color: #fff !important;
+            box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.35);
+        }
+        #documentPreviewModal { z-index: 1060 !important; }
+        #documentPreviewModal .modal-dialog { max-width: min(960px, 96vw); }
+        #documentPreviewFrame {
+            width: 100%;
+            height: min(70vh, 720px);
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+        #documentPreviewImage {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+        .company-name-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        /* Notifications SPA */
+        .admin-notif-unread { border-left: 3px solid #0d6efd !important; }
+        #adminNotifList .list-group-item.active { background: #e8f0fe; border-color: #b6d4fe; }
+        /* Floating messenger */
+        .admin-msgr-fab {
+            position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 1050;
+            width: 3.5rem; height: 3.5rem; border-radius: 50%; border: 0;
+            background: linear-gradient(135deg, #0056b3, #0284c7);
+            color: #fff; box-shadow: 0 8px 24px rgba(0, 86, 179, 0.45);
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .admin-msgr-fab:hover { transform: scale(1.05); color: #fff; }
+        .admin-msgr-fab[aria-expanded="true"] { background: #003366; }
+        .admin-msgr-badge {
+            position: absolute; top: -2px; right: -2px; min-width: 1.1rem; height: 1.1rem;
+            padding: 0 0.3rem; border-radius: 999px; background: #ef4444; color: #fff;
+            font-size: 0.65rem; font-weight: 700; line-height: 1.1rem; text-align: center;
+            box-shadow: 0 0 0 2px #fff;
+        }
+        .admin-msgr-panel {
+            position: fixed; right: 1.5rem; bottom: 5.5rem; z-index: 1049;
+            width: min(920px, calc(100vw - 2rem)); height: min(560px, calc(100vh - 7rem));
+            display: none; flex-direction: column; overflow: hidden;
+            border-radius: 0.85rem; border: 1px solid #e2e8f0;
+            background: #fff; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+        }
+        .admin-msgr-panel.is-open { display: flex; }
+        .admin-msgr-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.75rem 1rem; background: #003366; color: #fff;
+        }
+        .admin-msgr-body { display: flex; flex: 1; min-height: 0; }
+        .admin-msgr-sidebar {
+            width: 280px; flex-shrink: 0; border-right: 1px solid #e2e8f0;
+            display: flex; flex-direction: column; min-height: 0; background: #f8fafc;
+        }
+        .admin-msgr-search-wrap { padding: 0.75rem; border-bottom: 1px solid #e2e8f0; }
+        .admin-msgr-contacts { flex: 1; overflow-y: auto; padding: 0.35rem; }
+        .admin-msgr-contact {
+            display: flex; align-items: center; gap: 0.65rem; width: 100%;
+            border: 0; background: transparent; border-radius: 0.5rem;
+            padding: 0.55rem 0.5rem; text-align: left; transition: background 0.15s;
+        }
+        .admin-msgr-contact:hover, .admin-msgr-contact.is-active,
+        .messenger-contact:hover, .messenger-contact.is-active { background: #e0f2fe; }
+        .messenger-contacts-empty, .admin-msgr-empty { font-size: 0.85rem; color: #64748b; text-align: center; padding: 1rem; margin: 0; }
+        .messenger-contact-avatar, .admin-msgr-avatar {
+            width: 2.25rem; height: 2.25rem; border-radius: 50%; flex-shrink: 0;
+            background: #0ea5e9; color: #fff; font-size: 0.75rem; font-weight: 700;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .messenger-contact-text, .admin-msgr-contact-text { min-width: 0; }
+        .messenger-contact-name, .admin-msgr-contact-name { display: block; font-size: 0.875rem; font-weight: 600; color: #0f172a; }
+        .messenger-contact-meta, .admin-msgr-contact-meta { display: block; font-size: 0.7rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+        .messenger-contact {
+            display: flex; align-items: center; gap: 0.65rem; width: 100%;
+            border: 0; background: transparent; border-radius: 0.5rem;
+            padding: 0.55rem 0.5rem; text-align: left; transition: background 0.15s;
+        }
+        .admin-msgr-chat { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+        .admin-msgr-chat-head { padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; }
+        .admin-msgr-messages { flex: 1; overflow-y: auto; padding: 1rem; background: #f1f5f9; }
+        .admin-msgr-bubble { max-width: 85%; margin-bottom: 0.65rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; }
+        .admin-msgr-bubble.is-in { background: #fff; border: 1px solid #e2e8f0; margin-right: auto; }
+        .admin-msgr-bubble.is-out { background: #dbeafe; border: 1px solid #bfdbfe; margin-left: auto; }
+        .admin-msgr-bubble-meta { font-size: 0.7rem; font-weight: 600; color: #64748b; margin-bottom: 0.15rem; }
+        .admin-msgr-footer { display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid #e2e8f0; }
+        .admin-msgr-empty, .admin-msgr-placeholder { font-size: 0.85rem; color: #64748b; text-align: center; padding: 1rem; margin: 0; }
+        @media (max-width: 768px) {
+            .admin-msgr-panel { width: calc(100vw - 1rem); right: 0.5rem; height: calc(100vh - 6rem); }
+            .admin-msgr-sidebar { width: 100%; max-height: 40%; border-right: 0; border-bottom: 1px solid #e2e8f0; }
+            .admin-msgr-body { flex-direction: column; }
+        }
+        .agreement-needed-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: #ef4444;
+            flex-shrink: 0;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        }
+        tr.needs-agreement-row > td:first-child {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.06) 0%, transparent 100%);
+        }
+        #viewJorDetailsModal .modal-content {
+            border: none;
+            border-radius: 0.85rem;
+            box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+        }
+        #viewJorDetailsModal .jor-details-header {
+            background: linear-gradient(135deg, #003366 0%, #0056b3 100%);
+            color: #fff;
+            border-bottom: none;
+            padding: 1.25rem 1.5rem;
+        }
+        #viewJorDetailsModal .jor-details-header .modal-title {
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        #viewJorDetailsModal .jor-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem 1.25rem;
+            margin-top: 0.75rem;
+        }
+        #viewJorDetailsModal .jor-meta-item label {
+            display: block;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            opacity: 0.82;
+            margin-bottom: 0.15rem;
+        }
+        #viewJorDetailsModal .jor-meta-item span {
+            font-size: 0.92rem;
+            font-weight: 600;
+        }
+        #viewJorDetailsModal .jor-details-table thead th {
+            background: #f8fafc;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            white-space: nowrap;
+        }
+        #viewJorDetailsModal .jor-details-table tbody td {
+            vertical-align: middle;
+            font-size: 0.9rem;
+        }
+        #viewJorDetailsModal .jor-worker-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.55rem;
+            border-radius: 999px;
+            background: rgba(0, 86, 179, 0.08);
+            color: #0056b3;
+            font-weight: 600;
+            font-size: 0.82rem;
+        }
+    </style>
+    <script>window.REQUIRED_ROLE = 'Admin';</script>
+    <script>
+        window.SKIP_HR_DASHBOARD_NAV = true;
+        window.SKIP_HR_DASHBOARD_OVERVIEW_LINKS = true;
+        window.SKIP_HR_DASHBOARD_LOGOUT = true;
+        window.HIRE_APPLICANT_API = '../../Api/Admin/process_hire.php';
+    </script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+</head>
+<body class="bg-light">
+<div id="sidebar-overlay" aria-hidden="true"></div>
+<div id="dashboard-wrapper" class="cc-layout layout-wrapper">
+    <aside id="main-sidebar" class="cc-sidebar" aria-label="Main navigation">
+        <div class="cc-sidebar-brand sidebar-brand-block">
+            <div class="cc-kicker sidebar-brand-text">Onazul Workforce Suite</div>
+            <div class="cc-sidebar-title sidebar-brand-text">Command Center</div>
+            <div class="sidebar-brand-compact" aria-hidden="true">O</div>
+        </div>
+        <div class="sidebar-nav-scroll">
+        <ul class="sidebar-nav">
+            <li>
+                <a href="#section-overview" class="sidebar-link active d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-overview">
+                    <i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-user-management" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-user-management">
+                    <i class="bi bi-people"></i><span class="sidebar-label">User Management</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-clients" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-clients" title="Client companies needing a service agreement">
+                    <i class="bi bi-building"></i><span class="flex-grow-1 sidebar-label">Client Companies</span>
+                    <span class="sidebar-nav-badge d-none" id="adminClientsNoAgreementBadge" aria-label="Companies needing service agreement">0</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-agreements" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-agreements" title="Active agreements expiring within 15 days">
+                    <i class="bi bi-file-earmark-text"></i><span class="flex-grow-1 sidebar-label">Service Agreements</span>
+                    <span class="sidebar-nav-badge d-none" id="adminServiceAgreementsExpiringBadge" aria-label="Service agreements expiring within 15 days">0</span>
+                </a>
+            </li>
+            <li>
+                <a href="payroll_approvals.html" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" title="Payroll batches awaiting your approval">
+                    <i class="bi bi-cash-coin"></i><span class="flex-grow-1 sidebar-label">Payroll Approvals</span>
+                    <span class="sidebar-nav-badge d-none" id="adminPayrollPendingBadge" aria-label="Payroll runs pending approval">0</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-deduction-settings" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-deduction-settings" title="SSS, PhilHealth, and Pag-IBIG deduction configuration">
+                    <i class="bi bi-table"></i><span class="sidebar-label">Deduction Settings</span>
+                </a>
+            </li>
+            <li>
+                <a href="../../Api/Admin/reports.php" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none">
+                    <i class="bi bi-graph-up"></i><span class="sidebar-label">Reports</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-logs" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-logs" title="Audit trail and system logs">
+                    <i class="bi bi-journal-text"></i><span class="sidebar-label">System Logs</span>
+                </a>
+            </li>
+            <li class="cc-nav-divider sidebar-section-label">HR &amp; workforce</li>
+            <li>
+                <a href="#section-job-orders" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-job-orders" title="Team Lead requests waiting to be posted">
+                    <i class="bi bi-briefcase"></i><span class="flex-grow-1 sidebar-label">Job Orders</span>
+                    <span class="sidebar-nav-badge d-none" id="hrJobOrdersBadge" aria-label="Job orders to post">0</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-applicant-review" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-applicant-review" title="Applications pending review or interview">
+                    <i class="bi bi-person-badge"></i><span class="flex-grow-1 sidebar-label">Applicant Review</span>
+                    <span class="sidebar-nav-badge d-none" id="adminApplicantReviewBadge" aria-label="Applications needing HR review">0</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-deployments" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-deployments">
+                    <i class="bi bi-geo-alt"></i><span class="sidebar-label">Deployments</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-applicant-contracts" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-applicant-contracts" title="Approved applicants missing employment contract">
+                    <i class="bi bi-file-earmark-ruled"></i><span class="flex-grow-1 sidebar-label">Applicant Contracts</span>
+                    <span class="sidebar-nav-badge d-none" id="adminApplicantContractsBadge" aria-label="Applicants needing contract upload">0</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-employee-conversion" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-employee-conversion" title="Approved applicants with contract ready to hire">
+                    <i class="bi bi-person-check"></i><span class="flex-grow-1 sidebar-label">Employee Conversion</span>
+                    <span class="sidebar-nav-badge d-none" id="adminEmployeeConversionBadge" aria-label="Applicants ready to hire">0</span>
+                </a>
+            </li>
+        </ul>
+        </div>
+        <div class="sidebar-user-block">
+            <div class="sidebar-user-details px-3 py-3">
+                <div class="cc-profile-name sidebar-label" id="sidebarUserName">System Admin</div>
+                <div class="cc-profile-role sidebar-label small text-white-50" id="sidebarUserRole">Superuser</div>
+            </div>
+            <div class="sidebar-user-compact">
+                <span class="sidebar-initial-avatar" id="sidebarUserInitialCompact">SA</span>
+            </div>
+        </div>
+    </aside>
+
+    <div class="dashboard-shell cc-main-wrap">
+        <header id="top-navbar" class="cc-header">
+            <div class="top-navbar-start">
+                <button type="button" id="hamburger-toggle" class="hamburger-toggle-btn" aria-label="Toggle sidebar menu" aria-controls="main-sidebar" aria-expanded="false">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+                <h1 class="cc-header-title mb-0">Command Center</h1>
+            </div>
+            <div class="cc-header-actions">
+                <button type="button" class="cc-notif-btn position-relative" id="owNotifBellBtn" aria-label="Notifications" title="View notifications">
+                    <i class="bi bi-bell fs-5"></i>
+                    <span id="globalNotifBadge"
+                          data-global-notif-badge
+                          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-light d-none"
+                          style="font-size:0.65rem; min-width:1.1rem;"
+                          aria-hidden="true">0</span>
+                </button>
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center gap-2 gap-sm-3 text-decoration-none dropdown-toggle" id="userDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="cc-profile-text d-none d-sm-block text-end">
+                            <div class="cc-profile-name" id="ccUserName">System Admin</div>
+                            <div class="cc-profile-role" id="ccUserRole">Superuser</div>
+                        </div>
+                        <span class="cc-avatar" id="ccUserAvatar">SA</span>
+                        <span class="user-name-top d-sm-none" id="userNameTop">User</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><a class="dropdown-item" href="#section-profile" id="menuProfile" data-show-section="section-profile">Profile</a></li>
+                        <li><a class="dropdown-item" href="#" id="menuSystemSettings">System Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content-area" class="cc-main-inner">
+            <!-- Section: Overview (Dashboard) -->
+            <div id="section-overview" class="dashboard-section active">
+                <div class="mb-4">
+                    <h1 class="cc-overview-title">System Overview</h1>
+                    <p class="cc-overview-sub mb-0">Superuser Command Center — global system status and pending authorizations.</p>
+                </div>
+
+                <div class="cc-kpi-grid">
+                    <div class="cc-kpi-card">
+                        <div class="min-w-0">
+                            <p class="cc-kpi-label">Active Clients</p>
+                            <p class="cc-kpi-value mb-0" id="ccKpiClients">–</p>
+                        </div>
+                        <div class="cc-kpi-icon sky"><i class="bi bi-building"></i></div>
+                    </div>
+                    <div class="cc-kpi-card">
+                        <div class="min-w-0">
+                            <p class="cc-kpi-label">Total Deployed Employees</p>
+                            <p class="cc-kpi-value mb-0" id="ccKpiDeployed">–</p>
+                        </div>
+                        <div class="cc-kpi-icon emerald"><i class="bi bi-people"></i></div>
+                    </div>
+                    <div class="cc-kpi-card">
+                        <div class="min-w-0">
+                            <p class="cc-kpi-label">Pending Payroll Approvals</p>
+                            <p class="cc-kpi-value mb-0" id="ccKpiPayroll">–</p>
+                        </div>
+                        <div class="cc-kpi-icon amber"><i class="bi bi-ui-checks"></i></div>
+                    </div>
+                    <div class="cc-kpi-card">
+                        <div class="min-w-0">
+                            <p class="cc-kpi-label">Pending Quitclaims</p>
+                            <p class="cc-kpi-value mb-0" id="ccKpiQuitclaims">–</p>
+                        </div>
+                        <div class="cc-kpi-icon violet"><i class="bi bi-journal-text"></i></div>
+                    </div>
+                </div>
+
+                <div class="cc-two-col">
+                    <div class="cc-panel">
+                        <h2><span class="cc-icon-orange"><i class="bi bi-activity"></i></span> Recent System Activity</h2>
+                        <ul id="ccActivityList" class="cc-activity-root">
+                            <li class="text-secondary small py-2">Loading…</li>
+                        </ul>
+                    </div>
+                    <div class="cc-panel">
+                        <h2><span class="cc-icon-orange"><i class="bi bi-bell"></i></span> System Alerts</h2>
+                        <div id="ccAlertsList" class="cc-alerts-stack">
+                            <p class="text-secondary small mb-0">Loading…</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: System Audit Logs -->
+            <div id="section-logs" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="topbar-title mb-1">System Audit Logs</h1>
+                        <p class="topbar-subtitle mb-0">System activity trail and operation audit logs.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-success" id="btnExportAuditLogs">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
+                    </button>
+                </div>
+                
+                <div class="card mb-3 border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <input type="text" id="logSearchInput" class="form-control form-control-sm" placeholder="Search user, action, IP...">
+                            </div>
+                            <div class="col-md-2">
+                                <select id="logModuleFilter" class="form-select form-select-sm">
+                                    <option value="">All Modules</option>
+                                    <option value="Auth">Auth</option>
+                                    <option value="Applicant">Applicant</option>
+                                    <option value="Employee">Employee</option>
+                                    <option value="Payroll">Payroll</option>
+                                    <option value="Job Order">Job Order</option>
+                                    <option value="Company">Company</option>
+                                    <option value="Service Agreement">Service Agreement</option>
+                                    <option value="Settings">Settings</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <select id="logActionFilter" class="form-select form-select-sm">
+                                    <option value="">All Actions</option>
+                                    <option value="Login">Login</option>
+                                    <option value="Logout">Logout</option>
+                                    <option value="Create">Create</option>
+                                    <option value="Update">Update</option>
+                                    <option value="Delete">Delete</option>
+                                    <option value="Approve">Approve</option>
+                                    <option value="Export">Export</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <input type="date" id="logStartDate" class="form-control form-control-sm" title="Start Date">
+                            </div>
+                            <div class="col-md-2">
+                                <input type="date" id="logEndDate" class="form-control form-control-sm" title="End Date">
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-primary btn-sm w-100" id="btnFilterLogs">Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card card-table">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Module</th>
+                                        <th>Action</th>
+                                        <th>Description</th>
+                                        <th>Ref ID</th>
+                                        <th>IP Address</th>
+                                        <th>OS / Browser</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogsTableBody">
+                                    <tr><td colspan="9" class="text-center text-muted py-4">Loading logs…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3" id="logsPagination"></div>
+                </div>
+            </div>
+
+            <!-- Section: My Account -->
+            <div id="section-profile" class="dashboard-section d-none" aria-labelledby="profile-section-title">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                    <div>
+                        <h1 id="profile-section-title" class="cc-overview-title mb-1">My Account</h1>
+                        <p class="cc-overview-sub mb-0">Your signed-in administrator profile and account details.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="btnBackToDashboard" data-show-section="section-overview">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                    </button>
+                </div>
+
+                <div id="userProfileCard" class="cc-panel">
+                    <h2 class="h5 mb-4"><span class="cc-icon-orange"><i class="bi bi-person-circle"></i></span> Account Details</h2>
+                    <dl class="row g-4 mb-0">
+                        <div class="col-md-6 col-lg-4">
+                            <dt class="text-secondary small text-uppercase fw-semibold mb-1">Full name</dt>
+                            <dd id="upcFullName" class="mb-0 fs-6 fw-semibold text-dark">—</dd>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <dt class="text-secondary small text-uppercase fw-semibold mb-1">Email</dt>
+                            <dd id="upcEmail" class="mb-0 fs-6 fw-semibold text-dark">—</dd>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <dt class="text-secondary small text-uppercase fw-semibold mb-1">Role</dt>
+                            <dd id="upcRole" class="mb-0 fs-6 fw-semibold text-dark">—</dd>
+                        </div>
+                        <div class="col-12 col-lg-8">
+                            <dt class="text-secondary small text-uppercase fw-semibold mb-1">Address</dt>
+                            <dd id="upcAddress" class="mb-0 fs-6 fw-semibold text-dark">—</dd>
+                        </div>
+                        <div class="col-md-6 col-lg-4">
+                            <dt class="text-secondary small text-uppercase fw-semibold mb-1">Position</dt>
+                            <dd id="upcPosition" class="mb-0 fs-6 fw-semibold text-dark">—</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Section: Notifications -->
+            <div id="notifications-section" class="dashboard-section d-none" aria-labelledby="notifications-section-title">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                    <div>
+                        <h1 id="notifications-section-title" class="cc-overview-title mb-1">Notifications</h1>
+                        <p class="cc-overview-sub mb-0">System alerts, messages, and workflow updates for your account.</p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-show-section="section-overview">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                    </button>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="owChkUnread">
+                        <label class="form-check-label small text-secondary" for="owChkUnread">Unread only</label>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="owBtnRefreshNotif">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="owBtnMarkAll">Mark all as read</button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-white fw-semibold">Inbox</div>
+                            <div id="owNotifList" class="list-group list-group-flush ow-notif-inbox" style="max-height: 520px; overflow-y: auto;" role="list" aria-label="Notification inbox">
+                                <div class="list-group-item text-muted small py-4 text-center">Loading…</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-header bg-white fw-semibold">Details</div>
+                            <div class="card-body" id="owNotifDetails">
+                                <p class="text-muted mb-0">Select a notification to view details.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: User Management (embedded) -->
+            <div id="section-user-management" class="dashboard-section d-none">
+                <div class="card card-table">
+                    <div class="card-body p-0">
+                        <iframe
+                            src="user_management.html?embedded=1"
+                            style="width:100%;height:78vh;border:0;"
+                            title="User Management"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Client Companies -->
+            <div id="section-clients" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="topbar-title mb-1">Client Companies</h1>
+                        <p class="topbar-subtitle mb-0">Register and manage client companies. <span class="text-muted small"><span class="agreement-needed-dot d-inline-block align-middle me-1"></span> = needs service agreement upload</span></p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btnAddClientSection">
+                        <i class="bi bi-plus-lg me-1"></i>Add Client
+                    </button>
+                </div>
+                <div class="card card-table">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Contact Person</th>
+                                        <th>Contact Number</th>
+                                        <th>Industry</th>
+                                        <th>Payroll Type</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="companiesTableBody">
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Service Agreements -->
+            <div id="section-agreements" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="topbar-title mb-1">Service Agreements</h1>
+                        <p class="topbar-subtitle mb-0">Upload signed Service Agreements.</p>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btnUploadAgreementSection">
+                        <i class="bi bi-upload me-1"></i>Upload Agreement
+                    </button>
+                </div>
+                <div class="card card-table">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Contract No.</th>
+                                        <th>Client Company</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Status</th>
+                                        <th>Document</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="agreementsTableBody">
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Job Orders -->
+            <div id="section-job-orders" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <div class="page-header-title">Job Orders</div>
+                        <div class="page-header-subtitle">Create Job Orders. Requires an active Service Agreement with uploaded signed document for the selected client.</div>
+                    </div>
+                    <button class="btn btn-primary" id="btnCreateJobOrder"><i class="bi bi-plus-circle me-1"></i> Create Job Order</button>
+                </div>
+                <div id="noAgreementBlock" class="alert alert-warning validation-block">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Job Order creation blocked.</strong> No active Service Agreement with uploaded signed document exists for the selected client.
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span><i class="bi bi-inbox me-2"></i>Job Order Requests from Team Leads</span>
+                        <select id="requestFilter" class="form-select form-select-sm" style="width: auto;">
+                            <option value="">All</option>
+                            <option value="Pending" selected>Pending</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead><tr><th>Requested By</th><th>Client</th><th>Position</th><th>Workers</th><th>Location</th><th>Schedule</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody id="requestsBody">
+                                    <tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead><tr><th>Client</th><th>Position</th><th>Workers</th><th>Deployment Site</th><th>Work Schedule</th><th>Request Date</th></tr></thead>
+                                <tbody id="ordersBody">
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Applicant Review -->
+            <div id="section-applicant-review" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <div class="page-header-title">Applicant Review</div>
+                        <div class="page-header-subtitle">Review applications, schedule interviews, and manage endorsements</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <select id="filterStatus" class="form-select" style="max-width: 260px;">
+                            <option value="">All Status</option>
+                            <option value="Applied">Applied</option>
+                            <option value="Scheduled for Interview">Scheduled for Interview</option>
+                            <option value="Endorsed to Client">Endorsed to Client</option>
+                            <option value="Approved by Company">Approved by Company</option>
+                            <option value="Hired">Hired</option>
+                            <option value="Rejected">Declined</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>Applicant</th>
+                                    <th>Position</th>
+                                    <th>Company</th>
+                                    <th>Applied Date</th>
+                                    <th>Status</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody id="applicationsBody">
+                                    <tr><td colspan="7" class="text-center text-muted py-4">Loading applications...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Deployments -->
+            <div id="section-deployments" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <div class="page-header-title">Deployments</div>
+                        <div class="page-header-subtitle">Assign employees to Client Company, site, and Team Lead</div>
+                    </div>
+                    <button class="btn btn-primary" id="btnAddDeployment"><i class="bi bi-plus-circle me-1"></i> Assign Employee</button>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Company</th>
+                                    <th>Position</th>
+                                    <th>Site</th>
+                                    <th>Team Lead</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody id="deploymentsBody">
+                                    <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Applicant Contracts (embedded) -->
+            <div id="section-applicant-contracts" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <div class="page-header-title">Applicant Contracts</div>
+                        <div class="page-header-subtitle">Upload, lookup, and open contract files (open / expiring / expired)</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body" style="padding:0;">
+                        <iframe
+                            id="adminApplicantContractsIframe"
+                            title="Applicant Contracts"
+                            src="../HR/applicant_contracts.html?embedded=1"
+                            style="width:100%; min-height:680px; height:70vh; border:0; background:#fff;"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Employee Conversion (embedded) -->
+            <div id="section-employee-conversion" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <div class="page-header-title">Employee Conversion</div>
+                        <div class="page-header-subtitle">Convert approved applicants with a contract on file to employees</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-body" style="padding:0;">
+                        <iframe
+                            id="adminEmployeeConversionIframe"
+                            title="Employee Conversion"
+                            src="../HR/employee_conversion.html?embedded=1"
+                            style="width:100%; min-height:680px; height:70vh; border:0; background:#fff;"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section: Deduction Settings -->
+            <div id="section-deduction-settings" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <h1 class="topbar-title mb-1">Deduction Settings</h1>
+                        <p class="topbar-subtitle mb-0">Configure SSS contribution brackets and government deduction multipliers for payroll computation.</p>
+                    </div>
+                </div>
+
+                <div id="deductionPageAlert" class="alert d-none" role="alert"></div>
+
+                <div class="card card-table mb-4">
+                    <div class="card-header">
+                        <h2 class="h6 mb-0"><i class="bi bi-percent me-2 text-primary"></i>PhilHealth &amp; Pag-IBIG Rates</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="govRatesForm">
+                            <div class="row g-3">
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label" for="philhealthEePct">PhilHealth Employee Share (%)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="philhealthEePct" min="0" max="100" step="0.0001" required>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label" for="philhealthErPct">PhilHealth Employer Share (%)</label>
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="philhealthErPct" min="0" max="100" step="0.0001" required>
+                                        <span class="input-group-text">%</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label" for="pagibigEeFixed">Pag-IBIG Employee Fixed Deduction</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₱</span>
+                                        <input type="number" class="form-control" id="pagibigEeFixed" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <label class="form-label" for="pagibigErFixed">Pag-IBIG Employer Fixed Contribution</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₱</span>
+                                        <input type="number" class="form-control" id="pagibigErFixed" min="0" step="0.01" required>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary" id="btnSaveGovRates">
+                                    <i class="bi bi-save me-1"></i>Save Government Rates
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card card-table">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h2 class="h6 mb-0"><i class="bi bi-table me-2 text-primary"></i>SSS Rate Tiers (2025)</h2>
+                            <small class="text-muted">15% total rate — Regular SS up to ₱20,000 MSC; MPF on excess up to ₱35,000.</small>
+                        </div>
+                        <button type="button" class="btn btn-success btn-sm" id="btnOpenAddSss">
+                            <i class="bi bi-plus-circle me-1"></i>Add New Bracket
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sss align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th>Compensation Range</th>
+                                    <th class="text-end">MSC</th>
+                                    <th class="text-end">SS ER</th>
+                                    <th class="text-end">SS EE</th>
+                                    <th class="text-end">MPF ER</th>
+                                    <th class="text-end">MPF EE</th>
+                                    <th class="text-end">EC ER</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-center">Year</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody id="sssBracketsBody">
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">Loading SSS brackets…</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Edit SSS Bracket Modal -->
+<div class="modal fade" id="editSssModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit SSS Bracket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSssForm">
+                    <input type="hidden" id="editSssId">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Salary Minimum (PHP)</label>
+                            <input type="number" name="salary_min" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Salary Maximum (PHP)</label>
+                            <input type="number" name="salary_max" class="form-control" min="0" step="0.01" placeholder="Leave blank for open-ended">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Monthly Salary Credit (MSC)</label>
+                            <input type="number" name="monthly_salary_credit" class="form-control" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary w-100 btn-auto-compute-sss" data-form="editSssForm">
+                                <i class="bi bi-calculator me-1"></i>Auto-compute from MSC (2025 rules)
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Regular SS — Employer</label>
+                            <input type="number" name="regular_ss_er" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Regular SS — Employee</label>
+                            <input type="number" name="regular_ss_ee" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">EC — Employer</label>
+                            <input type="number" name="ec_er" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">MPF — Employer</label>
+                            <input type="number" name="mpf_er" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">MPF — Employee</label>
+                            <input type="number" name="mpf_ee" class="form-control" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveEditSss">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add SSS Bracket Modal -->
+<div class="modal fade" id="addSssModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New SSS Bracket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSssForm">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Salary Minimum (PHP)</label>
+                            <input type="number" name="salary_min" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Salary Maximum (PHP)</label>
+                            <input type="number" name="salary_max" class="form-control" min="0" step="0.01" placeholder="Leave blank for open-ended">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Monthly Salary Credit (MSC)</label>
+                            <input type="number" name="monthly_salary_credit" class="form-control" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="button" class="btn btn-outline-secondary w-100 btn-auto-compute-sss" data-form="addSssForm">
+                                <i class="bi bi-calculator me-1"></i>Auto-compute from MSC (2025 rules)
+                            </button>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Regular SS — Employer</label>
+                            <input type="number" name="regular_ss_er" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Regular SS — Employee</label>
+                            <input type="number" name="regular_ss_ee" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">EC — Employer</label>
+                            <input type="number" name="ec_er" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">MPF — Employer</label>
+                            <input type="number" name="mpf_er" class="form-control" min="0" step="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">MPF — Employee</label>
+                            <input type="number" name="mpf_ee" class="form-control" min="0" step="0.01" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="btnSaveAddSss">Add Bracket</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div class="modal fade" id="modalEditClient" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Client Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditClient">
+                    <input type="hidden" name="company_id" id="editCompanyId">
+                    <div class="mb-3">
+                        <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" id="editCompanyName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="address" id="editAddress" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact Number</label>
+                        <input type="text" class="form-control" name="contact_number" id="editContactNumber" placeholder="+639123456789">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Industry</label>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" name="industry" id="editIndustrySelect">
+                                <option value="">Select industry</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="btnAddIndustryEdit" title="Add new industry">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payroll Type <span class="text-danger">*</span></label>
+                        <select class="form-select" name="payroll_type" id="editPayrollType" required>
+                            <option value="B">Type B (11–25 / 26–10)</option>
+                            <option value="A">Type A (1–15 / 16–end)</option>
+                        </select>
+                        <div class="form-text">Determines this company's payroll cutoff, release date, and which statutory deductions apply each cutoff.</div>
+                    </div>
+                    <div id="editCurrentTeamLeadCard" class="card border-primary-subtle bg-light mb-3 d-none">
+                        <div class="card-body py-2 px-3 small">
+                            <div class="fw-semibold mb-1">Current Team Lead</div>
+                            <div id="editCurrentTeamLeadBody" class="text-muted mb-0"></div>
+                        </div>
+                    </div>
+                    <div class="border rounded p-3 mb-3 bg-light" id="editTeamLeadCreateBlock">
+                        <div class="fw-semibold mb-2" id="editTeamLeadCreateTitle">Team Lead account <span class="text-danger">*</span></div>
+                        <p class="small text-muted mb-3" id="editTeamLeadCreateHint">Creates a Team Lead user linked to this company. Enter a valid Gmail address.</p>
+                        <div class="mb-2">
+                            <label class="form-label">Full name</label>
+                            <input type="text" class="form-control" name="tl_full_name" id="editTlFullName" placeholder="e.g. Juan Dela Cruz" autocomplete="name">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Gmail (login)</label>
+                            <input type="email" class="form-control" name="tl_email" id="editTlEmail" placeholder="teamlead@gmail.com" autocomplete="off">
+                            <small class="text-muted d-block mt-1">Must be a valid Gmail address.</small>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" name="tl_password" id="editTlPassword" minlength="8" placeholder="At least 8 characters" autocomplete="new-password">
+                                <button type="button" class="btn btn-outline-secondary" data-toggle-password data-target="editTlPassword" aria-label="Show password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <ul class="small mb-2 ps-3" id="editTlPasswordChecklist">
+                            <li id="editTlRuleLen" class="text-muted">At least 8 characters</li>
+                            <li id="editTlRuleUpper" class="text-muted">At least 1 uppercase letter</li>
+                            <li id="editTlRuleLower" class="text-muted">At least 1 lowercase letter</li>
+                            <li id="editTlRuleNumber" class="text-muted">At least 1 number</li>
+                            <li id="editTlRuleSpecial" class="text-muted">At least 1 special character</li>
+                        </ul>
+                        <div class="mb-0">
+                            <label class="form-label">Confirm password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" name="tl_password_confirm" id="editTlPasswordConfirm" minlength="8" autocomplete="new-password">
+                                <button type="button" class="btn btn-outline-secondary" data-toggle-password data-target="editTlPasswordConfirm" aria-label="Show password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-text" id="editTlPasswordConfirmHint">Re-enter the same password.</div>
+                    </div>
+                    <hr class="my-3">
+                    <div id="editAgreementSection">
+                        <h6 class="fw-semibold mb-2"><i class="bi bi-file-earmark-text me-1"></i>Service Agreement</h6>
+                        <div id="editAgreementNeedsBanner" class="alert alert-warning py-2 small mb-3 d-none">
+                            <span class="agreement-needed-dot d-inline-block align-middle me-1"></span>
+                            This company needs a signed service agreement before job orders can be created.
+                        </div>
+                        <div id="editAgreementCurrent" class="card border-success-subtle bg-light mb-3 d-none">
+                            <div class="card-body py-2 px-3 small" id="editAgreementCurrentBody"></div>
+                        </div>
+                        <div id="editAgreementUploadPanel">
+                            <p class="small text-muted mb-2" id="editAgreementUploadHint">Upload the signed service agreement for this company.</p>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Contract Number</label>
+                                    <input type="text" class="form-control" id="editAgreementContractNumber" placeholder="e.g. SA-2026-001">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" id="editAgreementStatus">
+                                        <option value="Active">Active</option>
+                                        <option value="Expired">Expired</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Contract Type</label>
+                                    <select class="form-select" id="editAgreementContractType">
+                                        <option value="Open" selected>Open (No Expiration)</option>
+                                        <option value="Expiring">Has Expiration</option>
+                                    </select>
+                                    <div class="form-text">Select "Has Expiration" only if this contract genuinely ends on a fixed date.</div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Contract Start Date</label>
+                                    <input type="date" class="form-control" id="editAgreementStartDate">
+                                </div>
+                                <div class="col-md-6 mb-3" id="editAgreementEndDateWrap">
+                                    <label class="form-label">Contract End Date</label>
+                                    <input type="date" class="form-control" id="editAgreementEndDate">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" id="editAgreementNotes" rows="2"></textarea>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label">Signed Document (PDF, JPG, PNG)</label>
+                                <input type="file" class="form-control" id="editAgreementSignedDoc" accept=".pdf,.jpg,.jpeg,.png">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitEditClient">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Service Agreement Preview Modal -->
+<div class="modal fade" id="agreementPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="agreementPreviewTitle">Service Agreement Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <iframe
+                    id="agreementPreviewFrame"
+                    title="Service Agreement Document Preview"
+                    style="display:none;width:100%;height:70vh;border:1px solid #e5e7eb;border-radius:0.5rem;"
+                ></iframe>
+                <img
+                    id="agreementPreviewImage"
+                    alt="Service Agreement Image Preview"
+                    style="display:none;max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:0.5rem;"
+                >
+                <div id="agreementPreviewEmpty" class="alert alert-info d-none mb-0">
+                    Preview is not available for this file type. Please use download instead.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="agreementPreviewDownload" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-download me-1"></i>Download / Open File
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal fade" id="modalAddClient" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Register Client Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAddClient">
+                    <div class="mb-3">
+                        <label class="form-label">Company Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Address</label>
+                        <textarea class="form-control" name="address" rows="2"></textarea>
+                    </div>
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="fw-semibold mb-2">New Team Lead account <span class="text-danger">*</span></div>
+                        <p class="small text-muted mb-3">Creates a Team Lead user linked to this company. Enter a valid Gmail address.</p>
+                        <div class="mb-2">
+                            <label class="form-label">Full name</label>
+                            <input type="text" class="form-control" name="tl_full_name" id="addTlFullName" required placeholder="e.g. Juan Dela Cruz" autocomplete="name">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Gmail (login)</label>
+                            <input type="email" class="form-control" name="tl_email" id="addTlEmail" required placeholder="teamlead@gmail.com" autocomplete="off">
+                            <small class="text-muted d-block mt-1" id="addTlEmailCheckStatus">Must be a valid Gmail address unique across the system.</small>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" name="tl_password" id="addTlPassword" required minlength="8" placeholder="At least 8 characters" autocomplete="new-password">
+                                <button type="button" class="btn btn-outline-secondary" data-toggle-password data-target="addTlPassword" aria-label="Show password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <ul class="small mb-2 ps-3" id="addTlPasswordChecklist">
+                            <li id="addTlRuleLen" class="text-muted">At least 8 characters</li>
+                            <li id="addTlRuleUpper" class="text-muted">At least 1 uppercase letter</li>
+                            <li id="addTlRuleLower" class="text-muted">At least 1 lowercase letter</li>
+                            <li id="addTlRuleNumber" class="text-muted">At least 1 number</li>
+                            <li id="addTlRuleSpecial" class="text-muted">At least 1 special character</li>
+                        </ul>
+                        <div class="mb-0">
+                            <label class="form-label">Confirm password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" name="tl_password_confirm" id="addTlPasswordConfirm" required minlength="8" autocomplete="new-password">
+                                <button type="button" class="btn btn-outline-secondary" data-toggle-password data-target="addTlPasswordConfirm" aria-label="Show password">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-text" id="addTlPasswordConfirmHint">Re-enter the same password.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="contact_number" id="addContactNumber" required value="+63" autocomplete="tel">
+                        <div class="form-text">Format: +63 followed by 10 digits starting with 9 (e.g., +639123456789)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Industry</label>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" name="industry" id="industrySelect">
+                                <option value="">Select industry</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="btnAddIndustry" title="Add new industry">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payroll Type <span class="text-danger">*</span></label>
+                        <select class="form-select" name="payroll_type" id="addPayrollType" required>
+                            <option value="B" selected>Type B (11–25 / 26–10)</option>
+                            <option value="A">Type A (1–15 / 16–end)</option>
+                        </select>
+                        <div class="form-text">Determines this company's payroll cutoff, release date, and which statutory deductions apply each cutoff.</div>
+                    </div>
+                    <hr class="my-3">
+                    <div id="addAgreementSection">
+                        <h6 class="fw-semibold mb-2"><i class="bi bi-file-earmark-text me-1"></i>Service Agreement <span class="text-danger">*</span></h6>
+                        <p class="small text-muted mb-3">Contract number will be auto-generated by the system (SA-YYYY-000001).</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" name="agreement_status" id="addAgreementStatus">
+                                    <option value="Active" selected>Active</option>
+                                    <option value="Expired">Expired</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contract Type</label>
+                                <select class="form-select" name="agreement_contract_type" id="addAgreementContractType">
+                                    <option value="Open" selected>Open (No Expiration)</option>
+                                    <option value="Expiring">Has Expiration</option>
+                                </select>
+                                <div class="form-text">Most agreements are open-ended. Select "Has Expiration" only if this client's contract genuinely ends on a fixed date.</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Contract Start Date <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" name="agreement_start_date" id="addAgreementStartDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3" id="addAgreementEndDateWrap">
+                                <label class="form-label">Contract End Date</label>
+                                <input type="date" class="form-control" name="agreement_end_date" id="addAgreementEndDate">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Signed Document (PDF, JPG, PNG) <span class="text-danger">*</span></label>
+                                <input type="file" class="form-control" name="signed_document" id="addAgreementSignedDoc" accept=".pdf,.jpg,.jpeg,.png" required>
+                            </div>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label">Notes</label>
+                            <textarea class="form-control" name="agreement_notes" id="addAgreementNotes" rows="2"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitClient">Register Client</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Industry Modal -->
+<div class="modal fade" id="modalAddIndustry" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Industry</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAddIndustry">
+                    <label class="form-label">Industry Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="name" id="industryNameInput" required>
+                </form>
+                <div class="small text-muted mt-2">This will appear in the Industry dropdown.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveIndustry">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Agreement Modal -->
+<div class="modal fade" id="modalUploadAgreement" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Service Agreement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formUploadAgreement">
+                    <div class="mb-3">
+                        <label class="form-label">Client Company <span class="text-danger">*</span></label>
+                        <select class="form-select" name="client_company_id" required id="agreementClientSelect">
+                            <option value="">Select company</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contract Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" name="contract_number" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contract Start Date <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" name="contract_start_date" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contract End Date</label>
+                            <input type="date" class="form-control" name="contract_end_date">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            <option value="Active">Active</option>
+                            <option value="Expired">Expired</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" name="notes" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Signed Document (PDF, JPG, PNG) <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" name="signed_document" accept=".pdf,.jpg,.jpeg,.png" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitAgreement">Upload Agreement</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Job Order Modal -->
+<div class="modal fade" id="createJobOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Create Job Order</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="createJOAlert" class="alert d-none"></div>
+                <form id="createJobOrderForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Client Company *</label>
+                            <select name="company_id" class="form-select" required id="joCompanySelect"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Service Agreement *</label>
+                            <select name="service_agreement_id" class="form-select" required id="joAgreementSelect">
+                                <option value="">Select client first</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Position / Role *</label>
+                            <input type="text" name="position" class="form-control" placeholder="e.g. Warehouse Staff" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Number of Required Workers *</label>
+                            <input type="number" name="required_count" class="form-control" min="1" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deployment Site</label>
+                        <input type="text" name="deployment_site" class="form-control" placeholder="Work location address">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Work Schedule</label>
+                        <select name="work_schedule" class="form-select" id="joWorkScheduleSelect">
+                            <option value="">Select schedule</option>
+                            <option value="Mon-Fri 8AM-5PM">Mon–Fri 8AM–5PM</option>
+                            <option value="Mon-Sat 8AM-5PM">Mon–Sat 8AM–5PM</option>
+                            <option value="Morning Shift (6AM-2PM)">Morning Shift (6AM–2PM)</option>
+                            <option value="Mid Shift (2PM-10PM)">Mid Shift (2PM–10PM)</option>
+                            <option value="Night Shift (10PM-6AM)">Night Shift (10PM–6AM)</option>
+                            <option value="Rotating">Rotating</option>
+                            <option value="Flexible">Flexible</option>
+                            <option value="Other">Other (specify below)</option>
+                        </select>
+                        <input type="text" name="work_schedule_other" class="form-control mt-2" id="joWorkScheduleOther" placeholder="Custom schedule (if Other selected)" style="display: none;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Request Date</label>
+                        <input type="text" class="form-control" id="joRequestDateDisplay" readonly placeholder="Set when created">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitJobOrder">Create Job Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View JOR Details Modal -->
+<div class="modal fade" id="viewJorDetailsModal" tabindex="-1" aria-labelledby="viewJorDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header jor-details-header">
+                <div class="w-100">
+                    <h5 class="modal-title mb-0" id="viewJorDetailsModalLabel">Job Order Request Details</h5>
+                    <div class="jor-meta-grid">
+                        <div class="jor-meta-item">
+                            <label>JOR ID</label>
+                            <span id="viewJorMetaId">—</span>
+                        </div>
+                        <div class="jor-meta-item">
+                            <label>Client Company</label>
+                            <span id="viewJorMetaCompany">—</span>
+                        </div>
+                        <div class="jor-meta-item">
+                            <label>Team Lead</label>
+                            <span id="viewJorMetaLead">—</span>
+                        </div>
+                        <div class="jor-meta-item">
+                            <label>Date Submitted</label>
+                            <span id="viewJorMetaDate">—</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="viewJorDetailsBody">
+                <p class="text-muted small mb-3 d-none" id="viewJorMetaRemarks"></p>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 jor-details-table">
+                        <thead>
+                            <tr>
+                                <th>Position Title</th>
+                                <th>Category</th>
+                                <th>Required Workers</th>
+                                <th>Deployment Site / Campus</th>
+                                <th>Work Schedule</th>
+                            </tr>
+                        </thead>
+                        <tbody id="viewJorDetailsTableBody">
+                            <tr><td colspan="5" class="text-center text-muted py-4">Loading details…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Preview</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hire Applicant Modal -->
+<div class="modal fade" id="hireApplicantModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Hire &amp; Salary Configuration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="hireApplicantAlert" class="alert d-none"></div>
+                <p class="small text-muted mb-3" id="hireApplicantSummary">Convert this applicant to an employee, configure payroll rates, and create their deployment.</p>
+                <form id="hireApplicantForm">
+                    <input type="hidden" id="hireApplicationId" value="">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">Government IDs</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="hireSssNumber">SSS Number *</label>
+                            <input type="text" id="hireSssNumber" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="hirePhilhealthNumber">PhilHealth Number *</label>
+                            <input type="text" id="hirePhilhealthNumber" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="hirePagibigNumber">Pag-IBIG Number *</label>
+                            <input type="text" id="hirePagibigNumber" class="form-control" required>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">Salary Configuration</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="hireDailyRate">Daily Rate (PHP) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" id="hireDailyRate" class="form-control" min="0.01" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-text">Hourly (÷8) and monthly credit (×26) are computed automatically.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="hireAllowance">Monthly Allowance (PHP)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" id="hireAllowance" class="form-control" min="0" step="0.01" value="0" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label text-muted small mb-1">Computed Hourly Rate</label>
+                            <div class="form-control bg-light" id="hireHourlyRatePreview" aria-live="polite">—</div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label text-muted small mb-1">Computed Monthly Salary Credit</label>
+                            <div class="form-control bg-light" id="hireMonthlyCreditPreview" aria-live="polite">—</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitHireApplicant">
+                    <i class="bi bi-person-check me-1"></i>Hire Applicant
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Application Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reviewAlert" class="alert d-none"></div>
+                <div id="reviewContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Applicant Document Preview Modal (nested above review modal) -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewTitle" aria-hidden="true" data-bs-backdrop="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentPreviewTitle">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="documentPreviewFrame" title="Document preview" style="display:none;"></iframe>
+                <img id="documentPreviewImage" alt="Document preview" style="display:none;" class="d-block mx-auto">
+                <div id="documentPreviewEmpty" class="alert alert-info d-none mb-0">
+                    Preview is not available for this file type. Use Download / Open File.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="documentPreviewDownload" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-download me-1"></i>Download / Open File
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Deployment Modal -->
+<div class="modal fade" id="addDeploymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Assign Employee to Deployment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="addDeploymentAlert" class="alert d-none"></div>
+                <form id="addDeploymentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Employee *</label>
+                        <select name="employee_id" class="form-select" required id="selEmployee"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Client Company *</label>
+                        <select name="company_id" class="form-select" required id="selCompany"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Position *</label>
+                        <input type="text" name="position" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Site / Location</label>
+                        <input type="text" name="location" class="form-control" placeholder="Work site address">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Team Lead</label>
+                        <select name="team_lead_id" class="form-select" id="selTeamLead">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date *</label>
+                            <input type="date" name="start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitDeployment">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="../../Js/Shared/ow_job_categories.js"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
+<script>
+    (function () {
+        function initials(name) {
+            if (!name) return 'U';
+            var parts = String(name).trim().split(/\s+/).filter(Boolean);
+            var a = parts[0] ? parts[0].charAt(0) : '';
+            var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+            return (a + b).toUpperCase() || 'U';
+        }
+
+        fetch('../../Api/Login/check_session.php', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.success) return;
+                var fullName = data.full_name || data.fullName || 'User';
+                var ini = initials(fullName);
+                var nameEl = document.getElementById('userNameTop');
+                var ccName = document.getElementById('ccUserName');
+                var ccAv = document.getElementById('ccUserAvatar');
+                if (nameEl) nameEl.textContent = fullName;
+                if (ccName) ccName.textContent = fullName;
+                if (ccAv) ccAv.textContent = ini;
+            })
+            .catch(function () {});
+
+        function bindComingSoon(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                alert('This feature is not available yet.');
+            });
+        }
+        bindComingSoon('menuSystemSettings');
+
+        var logoutEl = document.getElementById('menuLogout');
+        if (logoutEl) {
+            logoutEl.addEventListener('click', function (e) {
+                e.preventDefault();
+                var doLogout = function () {
+                    fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'same-origin' })
+                        .then(function () { window.location.href = '/Employee_Tracking/index.html'; })
+                        .catch(function () { window.location.href = '/Employee_Tracking/index.html'; });
+                };
+                if (typeof window.showLogoutConfirm === 'function') {
+                    window.showLogoutConfirm(doLogout);
+                } else {
+                    doLogout();
+                }
+            });
+        }
+    })();
+</script>
+<!-- Floating Messenger -->
+<button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger" aria-expanded="false" aria-controls="owMessengerPanel">
+    <i class="bi bi-chat-dots fs-4"></i>
+    <span id="globalMessageBadge"
+          data-global-message-badge
+          class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-light d-none"
+          style="font-size:0.65rem; min-width:1.1rem;"
+          aria-hidden="true">0</span>
+</button>
+<div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+    <div class="ow-msgr-header">
+        <span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span>
+        <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose" aria-label="Close messenger">&times;</button>
+    </div>
+    <div class="ow-msgr-body">
+        <aside class="ow-msgr-sidebar">
+            <div class="ow-msgr-search-wrap">
+                <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off" aria-label="Search contacts">
+            </div>
+            <div class="admin-msgr-contacts" id="owMessengerContacts">
+                <p class="admin-msgr-empty">Loading contacts…</p>
+            </div>
+        </aside>
+        <div class="admin-msgr-chat">
+            <div class="admin-msgr-chat-head">
+                <div class="fw-semibold" id="owMessengerChatTitle">Messenger</div>
+                <div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div>
+            </div>
+            <div class="admin-msgr-messages" id="owMessengerMessages">
+                <p class="admin-msgr-placeholder">Select a contact to start chatting.</p>
+            </div>
+            <form class="admin-msgr-footer ow-msgr-compose" id="owMessengerComposeForm" autocomplete="off">
+                <input type="text" class="form-control form-control-sm" id="owMessengerInput" placeholder="Type a message…" autocomplete="off" aria-label="Message text" disabled>
+                <button type="submit" class="btn btn-primary btn-sm" id="owMessengerSend" aria-label="Send message" disabled>
+                    <i class="bi bi-send"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.ADMIN_WS_URL = window.ADMIN_WS_URL || 'ws://127.0.0.1:8080';
+    window.OW_WS_ENABLED = window.OW_WS_ENABLED === true;
+</script>
+<script src="../../Js/Shared/ow_collapsible_sidebar.js"></script>
+<script src="../../Js/Admin/admin_sidebar_badges.js"></script>
+<script src="../../Js/Shared/hydrate_user_profile.js"></script>
+<script src="../../Js/HR/hr_dashboard.js"></script>
+<script src="../../Js/Admin/admin_unread_indicators.js"></script>
+<script src="../../Js/Shared/messenger_rbac.js"></script>
+<script src="../../Js/Shared/ow_system_events.js"></script>
+<script src="../../Js/Shared/ow_notifications.js"></script>
+<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Admin/admin_system_events.js"></script>
+<script src="../../Js/Admin/admin_dashboard.js"></script>
+<script src="../../Js/Admin/admin_deductions_config.js"></script>
+<script src="../../Js/Shared/profile_view_switch.js"></script>
+<!-- View Client Company Details Modal -->
+<div class="modal fade" id="viewClientModal" tabindex="-1" aria-labelledby="viewClientModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow-lg rounded-2xl">
+        <div class="modal-header bg-slate-900 text-white rounded-t-2xl py-3 px-4">
+          <h5 class="modal-title font-bold text-base flex items-center gap-2" id="viewClientModalTitle">
+            <i class="bi bi-building text-blue-400"></i> Client Company Details
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4" id="viewClientModalBody">
+          <div class="text-center text-slate-500 py-6">
+            <div class="spinner-border spinner-border-sm me-2 text-blue-600" role="status"></div>Loading company details...
+          </div>
+        </div>
+        <div class="modal-footer bg-slate-50 rounded-b-2xl py-2 px-4">
+          <button type="button" class="btn btn-secondary text-sm font-semibold" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</body>
+</html>

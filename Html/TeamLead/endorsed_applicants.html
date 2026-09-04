@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Endorsed Applicants - Onazul Team Lead</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --brand-primary: #0056b3; --sidebar-bg: #003366; --sidebar-width: 240px; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f5f7fb; }
+        .layout-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff; position: fixed; inset: 0 0 0 0; z-index: 1030; }
+        .sidebar-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.12); }
+        .sidebar-nav { list-style: none; padding: 0; margin: 0; padding-bottom: 4rem; }
+        .sidebar-link { display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1.2rem; color: #e2e8f0; text-decoration: none; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .sidebar-link.active { background: linear-gradient(to right, #0072ff, #00c6ff); color: #fff; }
+        .main-content { flex: 1; margin-left: var(--sidebar-width); padding: 1.25rem 1.75rem; }
+        .page-header-title { font-size: 1.4rem; font-weight: 600; color: #1f2933; }
+        .badge-status { font-size: 0.75rem; }
+        .user-topbar { display: flex; justify-content: flex-end; align-items: center; gap: 0.25rem; margin-bottom: 1rem; }
+        .user-dropdown-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0.25rem 0.5rem; border-radius: 0.6rem; text-decoration: none; color: inherit; }
+        .user-dropdown-toggle:hover { background: rgba(0, 86, 179, 0.07); }
+        .user-avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(0, 86, 179, 0.12);
+            color: var(--brand-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        .user-name-top { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sidebar-link { position: relative; }
+        .sidebar-nav-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 1.125rem; height: 1.125rem; padding: 0 0.35rem; margin-left: auto;
+            border-radius: 999px; background: #ef4444 !important; color: #fff !important;
+            font-size: 0.65rem; font-weight: 700; line-height: 1; flex-shrink: 0;
+            box-shadow: 0 0 0 2px var(--sidebar-bg);
+        }
+    </style>
+    <script>window.REQUIRED_ROLE = 'TeamLead';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+    <script src="../../Js/Shared/hydrate_user_profile.js"></script>
+</head>
+<body>
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header"><span>Onazul Team Lead</span></div>
+        <ul class="sidebar-nav mt-2">
+            <li><a href="team_lead_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span class="flex-grow-1">Dashboard</span><span class="sidebar-nav-badge d-none" id="tlDashboardBadge" aria-label="Team members absent today">0</span></a></li>
+            <li><a href="endorsed_applicants.html" class="sidebar-link active"><i class="bi bi-person-check"></i><span class="flex-grow-1">Endorsed Applicants</span><span class="sidebar-nav-badge d-none" id="tlEndorsedBadge" aria-label="Endorsed applicants awaiting decision">0</span></a></li>
+            <li><a href="request_job_order.html" class="sidebar-link"><i class="bi bi-clipboard-plus"></i><span class="flex-grow-1">Request Job Order</span><span class="sidebar-nav-badge d-none" id="tlJobOrdersBadge" aria-label="New job order updates">0</span></a></li>
+            <li><a href="../Applicant/inbox.html" class="sidebar-link"><i class="bi bi-chat-dots"></i><span class="flex-grow-1">Messages (HR)</span><span class="sidebar-nav-badge d-none" id="tlMessagesBadge" aria-label="Unread messages">0</span></a></li>
+        </ul>
+        <div class="sidebar-footer" style="position:absolute;bottom:0;padding:1rem;font-size:0.75rem;opacity:0.7;"><div id="tlName">Team Lead</div></div>
+    </aside>
+    <main class="main-content">
+        <div class="user-topbar">
+            <div class="dropdown me-2">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle text-dark position-relative" id="tlNotifBell" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                    <i class="bi bi-bell fs-5"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="tlNotifBadge" style="display:none;font-size:0.6rem;">0</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:300px;max-height:320px;overflow-y:auto;">
+                    <li><h6 class="dropdown-header mb-0">Notifications</h6></li>
+                    <li><div id="tlNotifList" class="px-2 small">Loading…</div></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-center small" href="../notifications.html">View all</a></li>
+                </ul>
+            </div>
+            <div class="dropdown">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle" id="userDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="user-avatar-circle" id="userAvatarCircle">U</span>
+                    <span class="user-name-top" id="userNameTop">User</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="team_lead_dashboard.html#section-profile" id="menuProfile">Profile</a></li>
+                    <li><a class="dropdown-item" href="#" id="menuSystemSettings">System Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+            <div>
+                <div class="page-header-title">Endorsed Applicants</div>
+                <div class="text-muted small">Review endorsed applicants and record the client decision.</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Position</th>
+                            <th>Client</th>
+                            <th>Endorsed Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="endorsedBody">
+                        <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
+<script src="../../Js/team_lead_notifications.js"></script>
+<script>
+    (function () {
+        function initials(name) {
+            if (!name) return 'U';
+            var parts = String(name).trim().split(/\s+/).filter(Boolean);
+            var a = parts[0] ? parts[0].charAt(0) : '';
+            var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+            return (a + b).toUpperCase() || 'U';
+        }
+        fetch('../../Api/Login/check_session.php', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.success) return;
+                var fullName = data.full_name || data.fullName || 'User';
+                var nameEl = document.getElementById('userNameTop');
+                var avatarEl = document.getElementById('userAvatarCircle');
+                var footEl = document.getElementById('tlName');
+                if (nameEl) nameEl.textContent = fullName;
+                if (avatarEl) avatarEl.textContent = initials(fullName);
+                if (footEl) footEl.textContent = fullName;
+            })
+            .catch(function () {});
+        function bindComingSoon(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                alert('This feature is not available yet.');
+            });
+        }
+        bindComingSoon('menuSystemSettings');
+        var logoutEl = document.getElementById('menuLogout');
+        if (logoutEl) {
+            logoutEl.addEventListener('click', function (e) {
+                e.preventDefault();
+                var doLogout = function () {
+                    fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'same-origin' })
+                        .then(function () { window.location.href = '/Employee_Tracking/index.html'; })
+                        .catch(function () { window.location.href = '/Employee_Tracking/index.html'; });
+                };
+                if (typeof window.showLogoutConfirm === 'function') window.showLogoutConfirm(doLogout);
+                else doLogout();
+            });
+        }
+    })();
+
+    const API = '../../Api/TeamLead/endorsed_applicants.php';
+
+    function statusBadge(status) {
+        const map = { 'Pending': 'secondary', 'Approved': 'success', 'Rejected': 'danger' };
+        const key = status || 'Pending';
+        return '<span class="badge badge-status bg-' + (map[key] || 'secondary') + '">' + key + '</span>';
+    }
+
+    function loadEndorsed() {
+        fetch(API, { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                const tbody = document.getElementById('endorsedBody');
+                if (!data.success || !data.applications || data.applications.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No endorsed applicants at this time.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.applications.map(app => {
+                    const status = app.client_status || 'Pending';
+                    const canAct = status === 'Pending';
+                    return `
+                        <tr>
+                            <td><strong>${escapeHtml(app.applicant_name)}</strong><br><small class="text-muted">${escapeHtml(app.email || '')}</small></td>
+                            <td>${escapeHtml(app.position)}</td>
+                            <td>${escapeHtml(app.company_name)}</td>
+                            <td>${app.endorsed_date || '–'}</td>
+                            <td>${statusBadge(status)}</td>
+                            <td>
+                                ${canAct ? `
+                                    <button class="btn btn-success btn-sm me-1" onclick="submitDecision(${app.application_id}, 'Approved')">
+                                        <i class="bi bi-check-lg"></i> Accept
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="submitDecision(${app.application_id}, 'Rejected')">
+                                        <i class="bi bi-x-lg"></i> Reject
+                                    </button>
+                                ` : '<span class="text-muted small">No actions</span>'}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            })
+            .catch(() => {
+                document.getElementById('endorsedBody').innerHTML =
+                    '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load endorsed applicants.</td></tr>';
+            });
+    }
+
+    function submitDecision(appId, decision) {
+        const note = prompt('Optional: add a short note for this decision (leave blank for none).');
+        fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ application_id: appId, decision: decision, comment: note || '' })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Decision saved.');
+                loadEndorsed();
+                if (window.TeamLeadSidebarBadges) TeamLeadSidebarBadges.poll('../../Api/Common/realtime_counters.php');
+            } else {
+                alert(data.message || 'Failed to save decision.');
+            }
+        })
+        .catch(() => alert('Network error while saving decision.'));
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text == null ? '' : text;
+        return div.innerHTML;
+    }
+
+    loadEndorsed();
+    window.setInterval(loadEndorsed, 12000);
+</script>
+<script src="../../Js/TeamLead/team_lead_sidebar_badges.js"></script>
+<script>
+    if (window.TeamLeadSidebarBadges) {
+        TeamLeadSidebarBadges.init('../../Api/Common/realtime_counters.php', 10000);
+    }
+</script>
+</body>
+</html>
+

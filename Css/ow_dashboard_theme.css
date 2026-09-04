@@ -1,0 +1,243 @@
+/**
+ * Onazul Workforce — unified dashboard theme (Admin Command Center palette).
+ * Link on every role dashboard for consistent colors.
+ */
+:root {
+  --ow-brand-primary: #0056b3;
+  --ow-brand-dark: #003366;
+  --ow-sidebar-bg: #0f172a;
+  --ow-sidebar-hover: #1e293b;
+  --ow-sidebar-text: #cbd5e1;
+  --ow-sidebar-text-muted: #94a3b8;
+  --ow-nav-active-start: #0284c7;
+  --ow-nav-active-end: #0369a1;
+  --ow-surface: #f8fafc;
+  --ow-surface-alt: #f5f7fb;
+  --ow-header-bg: #ffffff;
+  --ow-header-border: #e2e8f0;
+  --ow-text-primary: #0f172a;
+  --ow-text-secondary: #64748b;
+  --ow-text-muted: #6b7280;
+  --ow-avatar-bg: #0a2a5e;
+  --ow-accent: #0284c7;
+  --ow-accent-dark: #0369a1;
+  --ow-accent-orange: #f97316;
+  --ow-accent-orange-dark: #ea580c;
+  --ow-card-border: #f1f5f9;
+  --ow-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --ow-sidebar-width: 240px;
+  /* Bootstrap dashboard aliases */
+  --brand-primary: var(--ow-brand-primary);
+  --sidebar-bg: var(--ow-sidebar-bg);
+  --sidebar-width: var(--ow-sidebar-width);
+}
+
+/* ---- Base ---- */
+body.ow-dashboard,
+.ow-dashboard body {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--ow-surface-alt);
+  color: var(--ow-text-primary);
+}
+
+/* ---- Bootstrap sidebar layout (HR, Applicant, …) ---- */
+.ow-dashboard .layout-wrapper {
+  display: flex;
+  min-height: 100vh;
+}
+
+.ow-dashboard #sidebar,
+.ow-dashboard .sidebar,
+.ow-dashboard .ow-sidebar {
+  width: var(--ow-sidebar-width);
+  background: var(--ow-sidebar-bg);
+  color: #fff;
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 1030;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+}
+
+.ow-dashboard .sidebar-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ow-dashboard .sidebar-nav {
+  list-style: none;
+  padding: 0.75rem 0.5rem;
+  margin: 0;
+  flex: 1;
+}
+
+.ow-dashboard .sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  color: var(--ow-sidebar-text) !important;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ow-dashboard .sidebar-link:hover {
+  background: var(--ow-sidebar-hover) !important;
+  color: #fff !important;
+}
+
+.ow-dashboard .sidebar-link.active {
+  background: linear-gradient(to right, var(--ow-nav-active-start), var(--ow-nav-active-end)) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(3, 105, 161, 0.35);
+}
+
+.ow-dashboard #main-content,
+.ow-dashboard .main-content {
+  flex: 1;
+  margin-left: var(--ow-sidebar-width);
+  padding: 1.25rem 1.75rem;
+  background: var(--ow-surface);
+  min-height: 100vh;
+}
+
+.ow-dashboard .sidebar-footer {
+  padding: 1rem;
+  font-size: 0.75rem;
+  color: var(--ow-sidebar-text-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ---- Typography & cards ---- */
+.ow-dashboard .page-header-title,
+.ow-dashboard .topbar-title,
+.ow-text-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--ow-text-primary);
+}
+
+.ow-dashboard .page-header-subtitle,
+.ow-dashboard .topbar-subtitle,
+.ow-text-subtitle {
+  font-size: 0.9rem;
+  color: var(--ow-text-secondary);
+}
+
+.ow-dashboard .stat-card,
+.ow-dashboard .kpi-card,
+.ow-dashboard .card-table,
+.ow-dashboard .ow-panel {
+  border: 1px solid var(--ow-card-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--ow-card-shadow);
+  background: #fff;
+}
+
+.ow-dashboard .dashboard-section { display: none; }
+.ow-dashboard .dashboard-section.active { display: block; }
+
+/* ---- Top bar / profile ---- */
+.ow-dashboard .user-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.ow-dashboard .user-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.6rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ow-dashboard .user-dropdown-toggle:hover {
+  background: rgba(0, 86, 179, 0.07);
+}
+
+.ow-dashboard .user-avatar-circle,
+.ow-dashboard .ow-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--ow-avatar-bg);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.ow-dashboard .topbar-notif-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 0.5rem;
+  border: 1px solid var(--ow-header-border);
+  background: var(--ow-header-bg);
+  color: var(--ow-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ow-dashboard .topbar-notif-btn:hover {
+  background: var(--ow-surface);
+}
+
+.ow-dashboard .user-name-top {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sidebar count badges (Admin-style pill) */
+#main-sidebar .sidebar-link .sidebar-nav-badge,
+#sidebar .sidebar-link .sidebar-nav-badge,
+#main-sidebar .nav-item .sidebar-nav-badge,
+#sidebar .nav-item .sidebar-nav-badge,
+.ow-dashboard .sidebar-nav-badge,
+.ow-dashboard #main-sidebar .sidebar-link .sidebar-nav-badge,
+.ow-dashboard #sidebar .sidebar-link .sidebar-nav-badge,
+.ow-dashboard #main-sidebar .nav-item .sidebar-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 0.35rem;
+  margin-left: auto;
+  border-radius: 999px;
+  background: #ef4444 !important;
+  color: #fff !important;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--ow-sidebar-bg, #0f172a);
+}
+
+/* Tailwind sidebar nav helpers */
+.ow-nav-active {
+  background: linear-gradient(to right, var(--ow-nav-active-start), var(--ow-nav-active-end)) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(3, 105, 161, 0.35);
+}
+
+.ow-nav-inactive {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.ow-nav-inactive:hover {
+  background: var(--ow-sidebar-hover) !important;
+  color: #fff !important;
+}

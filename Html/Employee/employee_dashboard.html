@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Dashboard — Onazul Manpower Services</title>
+  <meta name="description" content="Employee dashboard — smart calendar, attendance, payroll, and leave."[cite: 25] />
+  <script src="../../Js/Shared/ow_tailwind_cdn_warn_shim.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../../Js/Shared/ow_tailwind_theme.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: OW_TAILWIND_BRAND.colors,
+          boxShadow: OW_TAILWIND_BRAND.boxShadow,
+          fontFamily: OW_TAILWIND_BRAND.fontFamily,
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; }
+   
+    .emp-top-navbar.navbar-dark { background: transparent; }
+    .emp-top-navbar .emp-navbar-shell {
+      width: 100%;
+      max-width: 80rem;
+      margin-inline: auto;
+    }
+    .emp-top-navbar .navbar-brand {
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .emp-top-navbar .emp-navbar-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      column-gap: 1rem;
+      row-gap: 0.35rem;
+    }
+    .emp-top-navbar .navbar-brand-wrapper { grid-column: 1; justify-self: start; }
+    .emp-top-navbar .navbar-nav-center {
+      grid-column: 2;
+      justify-self: center;
+      display: flex;
+      justify-content: center;
+    }
+    .emp-top-navbar .navbar-icons-right {
+      grid-column: 3;
+      justify-self: end;
+    }
+    @media (max-width: 991.98px) {
+      .emp-top-navbar .emp-navbar-shell {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+      }
+      .emp-top-navbar .navbar-brand-wrapper { grid-column: 1; grid-row: 1; }
+      .emp-top-navbar .navbar-icons-right { grid-column: 2; grid-row: 1; }
+      .emp-top-navbar .navbar-nav-center {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: center;
+      }
+    }
+    .emp-top-navbar .emp-nav-link {
+      color: rgba(255, 255, 255, 0.88) !important;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      font-size: 0.875rem;
+      padding: 0.45rem 0.75rem !important;
+    }
+    .emp-top-navbar .emp-nav-link:hover,
+    .emp-top-navbar .emp-nav-link:focus {
+      color: #fff !important;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .emp-top-navbar .emp-nav-link.active {
+      color: #fdba74 !important;
+    }
+    .emp-top-navbar .emp-notif-btn {
+      color: rgba(255, 255, 255, 0.9);
+      border: 0;
+      background: transparent;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.55rem;
+      line-height: 1;
+    }
+    .emp-top-navbar .emp-notif-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .emp-top-navbar .emp-profile-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border: 0;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.2rem 0.45rem 0.2rem 0.2rem;
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+    .emp-top-navbar .emp-profile-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+    .emp-top-navbar .emp-profile-initial {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      font-weight: 700;
+      background: #ea580c;
+      color: #fff;
+    }
+    .emp-tab-panel.hidden { display: none !important; }
+    .payslip-header {
+      background: linear-gradient(135deg, #0A2A5E 0%, #1e4a8a 100%);
+      color: #fff;
+      border-radius: 0.75rem 0.75rem 0 0;
+      padding: 1.5rem;
+    }
+    .payslip-net-box {
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+      border: 2px solid #fdba74;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .payslip-line { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px dashed #e2e8f0; font-size: 0.9rem; }
+    .payslip-line:last-child { border-bottom: 0; }
+    /*
+     * The payslip modal intentionally does NOT use .modal-dialog-scrollable
+     * (no internal scrollbar inside the card). Instead, the whole modal card
+     * (header + body + footer together) scrolls with the page/backdrop when
+     * it's taller than the viewport — the mouse wheel moves the entire
+     * payslip up/down, so all of it is always reachable without a cramped
+     * inner scroll region. This is Bootstrap's default modal behavior once
+     * .modal-dialog-scrollable is removed: .modal itself is the scrolling
+     * container (overflow-y: auto), not .modal-body.
+     */
+    @media print {
+      body * { visibility: hidden; }
+      #payslipPrintArea, #payslipPrintArea * { visibility: visible; }
+      #payslipPrintArea { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
+  <script>window.REQUIRED_ROLE = 'Employee';</script>
+  <script src="../../Js/Shared/role_guard.js"></script>
+  <script src="../../Js/Shared/hydrate_user_profile.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../Css/ow_widgets.css">
+  <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css">
+  <script src="../../Js/Shared/profile_view_switch.js"></script>
+</head>
+<body class="min-h-screen bg-brand-surface text-slate-800 antialiased">
+
+  <header class="sticky top-0 z-50 border-bottom border-white border-opacity-10 bg-brand-sidebar text-white shadow-md">
+    <nav class="navbar navbar-expand-lg navbar-dark emp-top-navbar px-3 px-lg-4 py-2" aria-label="Primary">
+      <div class="container-fluid emp-navbar-shell">
+
+        <!-- 1. LEFT — Branding -->
+        <div class="navbar-brand-wrapper flex-shrink-0 d-flex align-items-center gap-3">
+          <a class="navbar-brand mb-0 fw-bold text-white" href="#">Onazul Manpower Services</a>
+          <div class="text-orange-200 small fw-semibold d-none d-xl-block font-mono" id="philippine-live-clock">
+            <i class="bi bi-clock me-1"></i><span>Loading PST...</span>
+          </div>
+        </div>
+
+        <!-- 2. CENTER — Navigation links -->
+        <div class="navbar-nav-center">
+          <ul class="navbar-nav flex-row align-items-center gap-1 gap-lg-3 mb-0">
+            <li class="nav-item">
+              <a class="nav-link emp-nav-link active" href="#" data-emp-tab="section-emp-dashboard" aria-current="page">Dashboard</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link emp-nav-link" href="#" data-emp-tab="section-emp-timesheet">Timesheet</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link emp-nav-link" href="#" data-emp-tab="section-emp-payroll">Payroll</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link emp-nav-link" href="#" data-emp-tab="section-emp-payroll-history">Payroll History</a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- 3. RIGHT — Notification + profile -->
+        <div class="navbar-icons-right d-flex align-items-center gap-2 gap-lg-3">
+          <button type="button" id="owNotifBellBtn" class="emp-notif-btn position-relative" aria-label="Notifications">
+            <i class="bi bi-bell fs-5" aria-hidden="true"></i>
+            <span class="ow-notif-badge d-none" aria-hidden="true">0</span>
+          </button>
+
+          <div class="dropdown position-relative">
+            <button
+              type="button"
+              id="profile-menu-btn"
+              class="emp-profile-btn"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="profile-dropdown"
+            >
+              <span id="profile-initial" data-user-initials class="emp-profile-initial">…</span>
+              <i class="bi bi-chevron-down text-white-50" aria-hidden="true"></i>
+              <span class="visually-hidden">Open profile menu</span>
+            </button>
+
+            <div
+              id="profile-dropdown"
+              class="invisible position-absolute end-0 mt-2 w-100 origin-top-right scale-95 opacity-0 transition duration-150 ease-out"
+              style="min-width: min(100vw - 2rem, 18rem); z-index: 1050;"
+              role="menu"
+              aria-labelledby="profile-menu-btn"
+              hidden
+            >
+              <div class="overflow-hidden rounded-xl bg-white text-slate-800 shadow-dropdown ring-1 ring-slate-200/80">
+                <div class="border-bottom border-light px-4 py-3">
+                  <p id="profile-name-role" class="mb-0 small fw-semibold text-dark">Loading…</p>
+                </div>
+                <div class="row g-2 border-bottom border-light px-3 py-3 mx-0">
+                  <div class="col-6">
+                    <div class="rounded bg-light px-2 py-3 text-center border">
+                      <p id="empMenuLeaveCredits" class="mb-0 fs-4 fw-bold text-brand-navy">—</p>
+                      <p class="mb-0 mt-1 text-uppercase fw-bold text-muted" style="font-size: 10px; letter-spacing: 0.04em;">Leave Credits</p>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="rounded bg-light px-2 py-3 text-center border">
+                      <p id="empMenuHoursWeek" class="mb-0 fs-4 fw-bold text-brand-navy">—</p>
+                      <p class="mb-0 mt-1 text-uppercase fw-bold text-muted" style="font-size: 10px; letter-spacing: 0.04em;">Hours This Week</p>
+                    </div>
+                  </div>
+                </div>
+                <ul class="list-unstyled mb-0 py-1 small">
+                  <li><a href="#section-profile" id="menu-profile-link" data-show-section="section-profile" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Profile</a></li>
+                  <li><a href="employee_profile_documents.html" id="menu-documents-link" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Documents</a></li>
+                  <li class="border-top"><a href="#" data-logout class="d-block px-4 py-2 text-decoration-none text-danger fw-medium" role="menuitem">Logout</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div id="section-dashboard-main">
+    <div id="section-emp-dashboard" class="emp-tab-panel">
+    <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">Employee Dashboard</h1>
+    <p class="mt-1 text-sm text-slate-600">Welcome, <span data-user-field="full_name">Employee</span>.</p>
+
+    <!-- Section: Management modules (overview) -->
+    <section class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3" aria-label="Management modules">
+      <article class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+        <h2 class="text-lg font-bold text-brand-navy">Current Deployment Profile</h2>
+        <dl class="mt-4 space-y-3 text-sm">
+          <div><dt class="text-xs font-semibold uppercase text-slate-500">Client</dt><dd id="empDeploymentCompany" class="font-semibold">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-500">Site</dt><dd id="empDeploymentSite" class="font-semibold">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-500">Schedule</dt><dd id="empDeploymentSchedule" class="font-semibold">—</dd></div>
+        </dl>
+        <button type="button" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2">
+          Message Team Lead
+        </button>
+      </article>
+
+      <article class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+        <h2 class="text-lg font-bold text-brand-navy">Kinsenas Payroll</h2>
+        <div class="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+          <p id="empPayrollNextPayday" class="text-sm font-bold text-brand-navy">Next Payday: —</p>
+          <p id="empPayrollCutoff" class="mt-1 text-xs text-slate-600">Cutoff period: —</p>
+        </div>
+        <div class="mt-4">
+          <p class="text-xs font-semibold uppercase text-slate-500 mb-1">Payroll Status</p>
+          <span id="empDashboardPayrollStatus" class="inline-block rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">Pending</span>
+        </div>
+        <button type="button" id="btnGoPayrollTab" data-emp-tab="section-emp-payroll" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark">
+          View Payroll &amp; Payslip
+        </button>
+      </article>
+
+      <article class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+        <h2 class="text-lg font-bold text-brand-navy">Leave Management</h2>
+        <p id="empLeaveCredits" class="mt-4 text-4xl font-bold tabular-nums text-brand-navy">—</p>
+        <p class="text-xs font-semibold uppercase text-slate-500">Leave credits</p>
+        <button type="button" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2">
+          File Leave Request
+        </button>
+      </article>
+
+      <article id="documents-card" class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100 lg:col-span-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-lg font-bold text-brand-navy">My Documents</h2>
+          <span id="documents-count" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">0 documents</span>
+        </div>
+        <ul id="documents-list" class="mt-4 space-y-2 text-sm">
+          <li class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">No documents found.</li>
+        </ul>
+      </article>
+
+      <article class="rounded-2xl border border-amber-200 bg-amber-50/80 p-6 shadow-card ring-1 ring-amber-100 lg:col-span-3">
+        <h2 class="text-lg font-bold text-brand-navy">Exit Portal</h2>
+        <p class="mt-2 text-sm font-medium text-amber-900">30 Working Days Notice Required</p>
+        <button type="button" class="mt-4 rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-950 shadow-sm transition hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2">
+          Initiate Formal Resignation
+        </button>
+      </article>
+    </section>
+    </div><!-- /section-emp-dashboard -->
+
+    <!-- Timesheet Tab -->
+    <div id="section-emp-timesheet" class="emp-tab-panel hidden">
+      <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">Timesheet</h1>
+      <p class="mt-1 text-sm text-slate-600">Daily duty logs, attendance status, and calendar view.</p>
+
+      <section id="empAttendanceCard" class="mt-8 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-100 sm:p-6" aria-labelledby="emp-attendance-heading">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="emp-attendance-heading" class="text-lg font-bold text-brand-navy">Today&apos;s Attendance Status</h2>
+          <p id="empAttendanceLastSync" class="text-xs text-slate-500">Syncing…</p>
+        </div>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Date</p>
+            <p id="empTodayDate" class="mt-1 text-sm font-bold text-brand-navy">—</p>
+          </div>
+          <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+            <p class="mt-2"><span id="empTodayStatusBadge" class="badge rounded-pill bg-light text-dark border">No record</span></p>
+          </div>
+          <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Time In</p>
+            <p id="empTodayTimeIn" class="mt-1 text-sm font-bold text-brand-navy">—</p>
+          </div>
+          <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Break</p>
+            <p id="empTodayBreak" class="mt-1 text-sm font-bold text-brand-navy">—</p>
+          </div>
+          <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Time Out / Total Hours</p>
+            <p id="empTodayTimeOut" class="mt-1 text-sm font-bold text-brand-navy">—</p>
+            <p id="empTodayHours" class="text-xs text-slate-600">—</p>
+            <p id="empTodayUndertime" class="text-xs font-semibold text-amber-700 mt-0.5 hidden">—</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-8 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-100 sm:p-6" aria-labelledby="calendar-hub-heading">
+        <h2 id="calendar-hub-heading" class="text-lg font-bold text-brand-navy">Smart Calendar</h2>
+        <div class="mt-6 flex flex-col gap-6 lg:flex-row">
+          <div class="w-full lg:w-2/3 lg:shrink-0 lg:pr-2">
+            <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-slate-600 sm:text-sm">
+              <span><span class="mr-1 inline-block h-3 w-3 rounded-sm bg-green-500 align-middle"></span> Present</span>
+              <span><span class="mr-1 inline-block h-3 w-3 rounded-sm bg-red-500 align-middle"></span> Absent</span>
+              <span><span class="mr-1 inline-block h-3 w-3 rounded-sm bg-gray-200 align-middle ring-1 ring-slate-300"></span> Rest Day</span>
+              <span><span class="mr-1 inline-block h-3 w-3 rounded-sm bg-yellow-400 align-middle"></span> Late</span>
+              <span><span class="mr-1 inline-block h-3 w-3 rounded-sm bg-violet-500 align-middle"></span> On Leave</span>
+            </div>
+            <div class="mb-3 flex items-center justify-between">
+              <button type="button" id="cal-prev" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Previous month">&larr;</button>
+              <p id="calendar-month-label" class="text-sm font-semibold text-brand-navy sm:text-base"></p>
+              <button type="button" id="cal-next" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50" aria-label="Next month">&rarr;</button>
+            </div>
+            <div class="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold uppercase tracking-wide text-slate-500 sm:gap-2 sm:text-sm">
+              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div id="calendar-grid" class="mt-2 grid grid-cols-7 gap-1.5 sm:gap-2" role="grid" aria-label="Monthly attendance calendar"></div>
+          </div>
+          <aside class="w-full rounded-xl border border-slate-100 bg-slate-50/50 p-4 lg:w-1/3 lg:shrink-0" aria-live="polite">
+            <div id="detail-panel" class="min-h-[280px]">
+              <p class="text-sm text-slate-500">Select a date on the calendar.</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="mt-8 rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-100 sm:p-6">
+        <h2 class="text-lg font-bold text-brand-navy">Daily Timesheet Logs</h2>
+        <p class="mt-1 text-sm text-slate-600">Total hours = Clock Out − Clock In − Break duration. Status: Present (≥8 hrs), Late (after shift start), Absent (no record on work day).</p>
+        <div class="mt-4 overflow-x-auto rounded-xl border border-slate-100">
+          <table class="table table-sm table-striped align-middle mb-0 text-sm">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Time In</th>
+                <th>Break</th>
+                <th>Time Out</th>
+                <th>Total Hours</th>
+                <th>Late / Undertime</th>
+              </tr>
+            </thead>
+            <tbody id="empTimesheetLogsBody">
+              <tr><td colspan="7" class="text-center text-muted py-3">Loading timesheet logs…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div><!-- /section-emp-timesheet -->
+
+    <!-- Payroll Tab -->
+    <div id="section-emp-payroll" class="emp-tab-panel hidden">
+      <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">Payroll</h1>
+      <p class="mt-1 text-sm text-slate-600">Payroll period overview based on your attendance and deployment schedule. Full earnings and deduction breakdowns appear on your payslip once payroll is finalized.</p>
+
+      <div class="mt-4 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm">
+        <p id="empPayrollTabNextPayday" class="font-bold text-brand-navy">Next Payday: —</p>
+        <p id="empPayrollTabCutoff" class="mt-1 text-xs text-slate-600">Cutoff period: —</p>
+      </div>
+
+      <section class="mt-6 rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500">Payroll Overview</h2>
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-500">Payroll Status</p>
+            <span id="empPayrollTabStatus" class="mt-1 inline-block rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">Pending</span>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-500">Days Worked</p>
+            <p id="empPayrollDaysWorked" class="mt-1 text-2xl font-bold tabular-nums text-brand-navy">—</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase text-slate-500 mb-1">Attendance Summary</p>
+            <div class="flex flex-wrap gap-2 text-xs font-semibold">
+              <span class="rounded-md bg-emerald-100 px-2 py-1 text-emerald-800"><span id="empPayrollPresentCount">0</span> Present</span>
+              <span class="rounded-md bg-amber-100 px-2 py-1 text-amber-800"><span id="empPayrollLateCount">0</span> Late</span>
+              <span class="rounded-md bg-red-100 px-2 py-1 text-red-800"><span id="empPayrollAbsentCount">0</span> Absent</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button type="button" id="btnViewPayslip" class="rounded-xl bg-brand-orange px-6 py-3 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark">
+          <i class="bi bi-receipt me-2"></i>View Payslip
+        </button>
+      </div>
+    </div><!-- /section-emp-payroll -->
+
+    <div id="section-emp-payroll-history" class="emp-tab-panel hidden">
+      <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">Payroll History</h1>
+      <p class="mt-1 text-sm text-slate-600">Your finalized/released payslips, including payroll status from Accounting. New payroll appears here automatically once finalized — no need to ask.</p>
+
+      <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-card ring-1 ring-slate-100">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[820px] text-left text-sm">
+            <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="px-4 py-3">Payroll Period</th>
+                <th class="px-4 py-3">Cycle</th>
+                <th class="px-4 py-3 text-right">Gross Pay</th>
+                <th class="px-4 py-3 text-right">Total Deductions</th>
+                <th class="px-4 py-3 text-right">Net Pay</th>
+                <th class="px-4 py-3">Payroll Status</th>
+                <th class="px-4 py-3">Action</th>
+              </tr>
+            </thead>
+            <tbody id="empPayrollHistoryBody" class="divide-y divide-slate-100">
+              <tr><td colspan="7" class="px-4 py-6 text-center text-slate-500">Loading payroll history…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /section-emp-payroll-history -->
+
+    </div><!-- /section-dashboard-main -->
+
+    <div id="section-notifications" class="hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">Notifications</h1>
+          <p class="mt-1 text-sm text-slate-600">System alerts and workflow updates.</p>
+        </div>
+        <button type="button" class="rounded-lg border border-brand-orange px-4 py-2 text-sm font-semibold text-brand-orange transition hover:bg-orange-50" data-show-section="section-dashboard-main">
+          ← Back to Dashboard
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-3 mb-4 text-sm">
+        <label class="inline-flex items-center gap-2"><input type="checkbox" id="owChkUnread" class="rounded"> Unread only</label>
+        <button type="button" id="owBtnRefreshNotif" class="rounded-lg border px-3 py-1.5">Refresh</button>
+        <button type="button" id="owBtnMarkAll" class="rounded-lg bg-brand-orange px-3 py-1.5 text-white">Mark all read</button>
+      </div>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div class="rounded-2xl bg-white shadow-card ring-1 ring-slate-100 overflow-hidden">
+          <div class="border-b px-4 py-3 font-semibold">Inbox</div>
+          <div id="owNotifList" class="max-h-[480px] overflow-y-auto"></div>
+        </div>
+        <div class="rounded-2xl bg-white p-4 shadow-card ring-1 ring-slate-100">
+          <div class="font-semibold mb-2">Details</div>
+          <div id="owNotifDetails" class="text-sm text-slate-600">Select a notification.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="section-profile" class="hidden">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">My Account</h1>
+          <p class="mt-1 text-sm text-slate-600">Your signed-in employee profile and account details.</p>
+        </div>
+        <button type="button" class="rounded-lg border border-brand-orange px-4 py-2 text-sm font-semibold text-brand-orange transition hover:bg-orange-50" data-show-section="section-dashboard-main">
+          ← Back to Dashboard
+        </button>
+      </div>
+      <div id="userProfileCard" class="mt-6 rounded-2xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500">Account Details</h2>
+        <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Full name</dt><dd id="upcFullName" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Email</dt><dd id="upcEmail" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Employee #</dt><dd id="upcEmployeeNumber" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Position</dt><dd id="upcPosition" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Company</dt><dd id="upcCompany" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Mobile</dt><dd id="upcMobile" class="font-medium text-slate-800">—</dd></div>
+          <div class="sm:col-span-2 lg:col-span-3"><dt class="text-xs font-semibold uppercase text-slate-400">Address</dt><dd id="upcAddress" class="font-medium text-slate-800">—</dd></div>
+        </dl>
+
+        <h2 class="mt-6 text-sm font-bold uppercase tracking-wide text-slate-500 border-t pt-4">Deployment Information</h2>
+        <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Deployment Site</dt><dd id="upcDeploymentSite" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Client Company</dt><dd id="upcClientCompany" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Team Lead</dt><dd id="upcTeamLead" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Deployment Status</dt><dd id="upcDeploymentStatus" class="font-medium text-emerald-700">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Assigned Date</dt><dd id="upcAssignedDate" class="font-medium text-slate-800">—</dd></div>
+        </dl>
+
+        <h2 class="mt-6 text-sm font-bold uppercase tracking-wide text-slate-500 border-t pt-4">Duty Schedule</h2>
+        <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Duty Days</dt><dd id="upcDutyDays" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Duty Hours</dt><dd id="upcDutyHours" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Break Schedule</dt><dd id="upcDutyBreak" class="font-medium text-slate-800">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-400">Grace Period</dt><dd id="upcGracePeriod" class="font-medium text-slate-800">—</dd></div>
+        </dl>
+
+        <p class="mt-4 mb-0"><a href="employee_profile_documents.html" class="text-sm font-semibold text-brand-orange hover:underline">Manage documents →</a></p>
+      </div>
+    </div>
+  </main>
+
+  <button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger" aria-expanded="false" aria-controls="owMessengerPanel">
+    <i class="bi bi-chat-dots fs-4"></i>
+  </button>
+  <div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+    <div class="ow-msgr-header">
+      <span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span>
+      <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose" aria-label="Close messenger">&times;</button>
+    </div>
+    <div class="ow-msgr-body">
+      <aside class="ow-msgr-sidebar">
+        <div class="ow-msgr-search-wrap">
+          <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off">
+        </div>
+        <div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div>
+      </aside>
+      <div class="ow-msgr-chat">
+        <div class="ow-msgr-chat-head">
+          <div class="fw-semibold" id="owMessengerChatTitle">Messenger</div>
+          <div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div>
+        </div>
+        <div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div>
+        <form class="ow-msgr-footer ow-msgr-compose" id="owMessengerComposeForm" autocomplete="off">
+          <input type="text" class="form-control form-control-sm" id="owMessengerInput" placeholder="Type a message…" autocomplete="off" aria-label="Message text" disabled>
+          <button type="submit" class="btn btn-primary btn-sm" id="owMessengerSend" aria-label="Send message" disabled><i class="bi bi-send"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payslip Modal -->
+  <div class="modal fade" id="payslipModal" tabindex="-1" aria-labelledby="payslipModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg overflow-hidden">
+        <div id="payslipPrintArea">
+          <div class="payslip-header">
+            <div class="d-flex align-items-start justify-content-between gap-3">
+              <div>
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <div class="rounded bg-white bg-opacity-10 px-2 py-1 fw-bold small">ONAZUL</div>
+                  <span class="small text-white-50">Manpower Services</span>
+                </div>
+                <h4 class="modal-title fw-bold mb-0" id="payslipModalLabel">Employee Payslip</h4>
+                <p id="payslipCompany" class="mb-0 mt-1 small text-white-50">Onazul Manpower Services</p>
+              </div>
+              <div class="text-end small">
+                <div class="fw-semibold">Pay Period</div>
+                <div id="payslipPeriod">—</div>
+              </div>
+            </div>
+            <div class="row g-2 mt-3 small">
+              <div class="col-sm-6"><span class="text-white-50">Employee:</span> <span id="payslipEmployeeName" class="fw-semibold">—</span></div>
+              <div class="col-sm-6"><span class="text-white-50">Employee ID:</span> <span id="payslipEmployeeId" class="fw-semibold">—</span></div>
+              <div class="col-sm-6"><span class="text-white-50">Designation:</span> <span id="payslipDesignation">—</span></div>
+              <div class="col-sm-6"><span class="text-white-50">Assigned Site:</span> <span id="payslipSite">—</span></div>
+              <div class="col-sm-6"><span class="text-white-50">Days Worked:</span> <span id="payslipDaysWorked">—</span></div>
+              <div class="col-sm-6"><span class="text-white-50">Daily Rate:</span> <span id="payslipDailyRate">—</span></div>
+            </div>
+          </div>
+          <div class="modal-body p-4">
+            <div id="payslipNotFinalizedNotice" class="d-none alert alert-warning mb-0" role="alert">
+              <i class="bi bi-hourglass-split me-2"></i>Payroll is not yet finalized. Your payslip will be available once payroll has been finalized.
+            </div>
+            <div id="payslipStatusBlock" class="d-none alert alert-secondary mb-3" role="alert">
+              <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+                <div>
+                  <div class="small text-uppercase fw-bold text-muted mb-1">Payroll Status</div>
+                  <span id="payslipStatusBadge" class="badge bg-secondary">—</span>
+                  <span id="payslipStatusUpdatedAt" class="small text-muted ms-2"></span>
+                  <div id="payslipStatusRemarks" class="small text-muted mt-1 fst-italic"></div>
+                </div>
+                <a id="payslipStatusProofLink" href="#" target="_blank" class="btn btn-sm btn-outline-secondary d-none">View Proof</a>
+              </div>
+              <div id="payslipStatusTimeline" class="mt-2 small"></div>
+            </div>
+            <div id="payslipFigures">
+              <div class="row g-4">
+                <div class="col-md-6">
+                  <h6 class="fw-bold text-brand-navy border-bottom pb-2">Earnings</h6>
+                  <div class="payslip-line"><span>Basic Pay</span><span id="payslipBasicPay" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Sunday / Regular OT</span><span id="payslipSundayOt" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Holiday Pay</span><span id="payslipHolidayPay" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>SIL Accrual (Daily × 5 ÷ 24)</span><span id="payslipSil" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Allowance</span><span id="payslipAllowance" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Late Minutes</span><span id="payslipLateMinutes" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Undertime Minutes</span><span id="payslipUndertimeMinutes" class="fw-semibold">—</span></div>
+                  <div class="payslip-line text-danger"><span>Late/Undertime Deduction</span><span id="payslipLateUndertimeDeduction" class="fw-semibold">—</span></div>
+                  <div class="payslip-line fw-bold text-brand-navy"><span>Gross Pay</span><span id="payslipGrossPay">—</span></div>
+                </div>
+                <div class="col-md-6">
+                  <h6 class="fw-bold text-brand-navy border-bottom pb-2">Deductions</h6>
+                  <div class="payslip-line"><span>SSS EE Share (Regular + MPF)</span><span id="payslipSss" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>PhilHealth EE Share</span><span id="payslipPhilhealth" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Pag-IBIG EE Share</span><span id="payslipPagibig" class="fw-semibold">—</span></div>
+                  <div class="payslip-line fw-bold text-danger"><span>Total Deductions</span><span id="payslipTotalDeductions">—</span></div>
+                </div>
+              </div>
+              <div class="payslip-net-box mt-4 text-center">
+                <p class="mb-1 small text-uppercase fw-bold text-slate-600">Net Pay</p>
+                <p id="payslipNetPay" class="payslip-net mb-0 text-brand-navy">—</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="btnPrintPayslip"><i class="bi bi-printer me-1"></i>Print Payslip</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="logout-modal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-slate-900/55 p-4">
+    <div class="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
+      <h3 class="text-lg font-bold text-brand-navy">Confirm Logout</h3>
+      <p class="mt-2 text-sm text-slate-600">Are you sure you want to logout?</p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button type="button" id="logout-cancel" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+        <button type="button" id="logout-confirm" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="doc-view-modal" class="fixed inset-0 z-[108] hidden items-center justify-center bg-slate-900/60 p-4">
+    <div class="h-[80vh] w-full max-w-4xl overflow-hidden rounded-xl bg-white shadow-2xl ring-1 ring-slate-200">
+      <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+        <h3 id="doc-view-title" class="text-sm font-bold text-brand-navy">Document Preview</h3>
+        <button id="doc-view-close" type="button" class="rounded p-1 hover:bg-slate-100" aria-label="Close">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="h-[calc(80vh-52px)] bg-slate-100">
+        <iframe id="doc-view-frame" class="h-full w-full" title="Document preview"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // Initialize Live Philippine Standard Time Clock in Header
+      function initLivePstClock() {
+        var clockEl = document.getElementById('philippine-live-clock');
+        if (!clockEl) return;
+        function updateClock() {
+          var now = new Date();
+          var options = {
+            timeZone: 'Asia/Manila',
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          };
+          clockEl.innerHTML = '<i class="bi bi-clock me-1 text-orange-300"></i><span>' + new Intl.DateTimeFormat('en-US', options).format(now) + ' (PST)</span>';
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+      }
+      initLivePstClock();
+
+      var EMPLOYEE_ID = '';
+      var DASHBOARD_API = '../../Api/Employee/dashboard_data.php';
+
+      var dashboardState = {
+        deployment: {
+          company_label: '—',
+          site_label: '—',
+          schedule_label: '—',
+          shift_display: '—'
+        },
+        analytics: {
+          leave_credits: null,
+          hours_this_week: null
+        }
+      };
+      var logByDate = {};
+
+      var STATUS_CLASSES = {
+        present: { bg: 'bg-green-500', text: 'text-white' },
+        absent: { bg: 'bg-red-500', text: 'text-white' },
+        rest: { bg: 'bg-gray-200', text: 'text-slate-900' },
+        late: { bg: 'bg-yellow-400', text: 'text-slate-900' },
+        leave: { bg: 'bg-violet-500', text: 'text-white' },
+        future: { bg: 'bg-slate-100', text: 'text-slate-700' },
+        empty: { bg: 'bg-white', text: 'text-slate-700 ring-1 ring-slate-200' }
+      };
+
+      var BADGE_BY_STATUS = {
+        present: { cls: 'bg-green-500 text-white', label: 'PRESENT' },
+        absent: { cls: 'bg-red-500 text-white', label: 'ABSENT' },
+        rest: { cls: 'bg-gray-200 text-slate-900 ring-1 ring-slate-300', label: 'REST DAY' },
+        late: { cls: 'bg-yellow-400 text-slate-900', label: 'LATE' },
+        leave: { cls: 'bg-violet-500 text-white', label: 'ON LEAVE' },
+        future: { cls: 'bg-slate-200 text-slate-800', label: 'SCHEDULED' },
+        empty: { cls: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200', label: 'NO RECORD' }
+      };
+
+      var calendarGrid = document.getElementById('calendar-grid');
+      var monthLabel = document.getElementById('calendar-month-label');
+      var detailPanel = document.getElementById('detail-panel');
+      var profileBtn = document.getElementById('profile-menu-btn');
+      var profileMenu = document.getElementById('profile-dropdown');
+      var profileNameRole = document.getElementById('profile-name-role');
+      var profileInitial = document.getElementById('profile-initial');
+      var documentsList = document.getElementById('documents-list');
+      var documentsCount = document.getElementById('documents-count');
+      var docModal = document.getElementById('doc-view-modal');
+      var docFrame = document.getElementById('doc-view-frame');
+      var docTitle = document.getElementById('doc-view-title');
+      var docClose = document.getElementById('doc-view-close');
+
+      var viewYear = new Date().getFullYear();
+      var viewMonth = new Date().getMonth();
+      var selectedIso = null;
+
+      function renderDocuments(docs) {
+        if (!documentsList || !documentsCount) return;
+        var list = Array.isArray(docs) ? docs : [];
+        documentsCount.textContent = list.length + (list.length === 1 ? ' document' : ' documents');
+        if (!list.length) {
+          documentsList.innerHTML = '<li class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">No converted applicant documents found. <a href="employee_profile_documents.html" class="font-semibold text-brand-orange hover:underline">Open Profile &amp; Documents</a> to upload now.</li>';
+          return;
+        }
+        documentsList.innerHTML = '';
+        list.forEach(function (doc) {
+          var li = document.createElement('li');
+          li.className = 'rounded-lg border border-slate-200 bg-white px-3 py-2';
+          var safeName = doc && doc.name ? String(doc.name) : 'Document';
+          var safeDate = doc && doc.uploaded_at ? String(doc.uploaded_at) : 'Unknown upload date';
+          var safePath = doc && doc.path ? String(doc.path) : '';
+          li.innerHTML = '<div class="flex items-center justify-between gap-2"><span class="font-medium text-slate-800">' + safeName + '</span><div class="flex items-center gap-2"><span class="text-xs text-slate-500">' + safeDate + '</span><button type="button" class="doc-view-btn rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-name="' + safeName.replace(/"/g, '&quot;') + '" data-path="' + safePath.replace(/"/g, '&quot;') + '">View</button></div></div>';
+          documentsList.appendChild(li);
+        });
+        documentsList.querySelectorAll('.doc-view-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var p = this.getAttribute('data-path') || '';
+            var n = this.getAttribute('data-name') || 'Document Preview';
+            if (!p) return;
+            docTitle.textContent = n;
+            docFrame.src = p;
+            docModal.classList.remove('hidden');
+            docModal.classList.add('flex');
+          });
+        });
+      }
+
+      function setText(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = val != null && String(val).trim() !== '' ? String(val) : '—';
+      }
+
+      function applyProfile(profile) {
+        if (!profile) return;
+        var fullName = String(profile.full_name || '').trim() || 'Employee';
+        var subtitle = String(profile.subtitle || profile.position || '').trim();
+        if (!subtitle && profile.position) {
+          subtitle = String(profile.position);
+          if (profile.company_name) subtitle += ' - ' + profile.company_name;
+        }
+        if (profileNameRole) {
+          profileNameRole.innerHTML = subtitle
+            ? fullName + ' <span class="font-normal text-slate-400">|</span> ' + subtitle
+            : fullName;
+        }
+        if (profileInitial && fullName) {
+          var parts = fullName.split(/\s+/).filter(Boolean);
+          var ini = (parts[0] ? parts[0].charAt(0) : '') + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '');
+          profileInitial.textContent = ini.toUpperCase() || 'E';
+        }
+        if (profile.employee_number) {
+          EMPLOYEE_ID = String(profile.employee_number);
+        }
+
+        setText('upcFullName', profile.full_name);
+        setText('upcEmail', profile.email);
+        setText('upcEmployeeNumber', profile.employee_number);
+        setText('upcPosition', profile.position);
+        setText('upcCompany', profile.company_name);
+        setText('upcMobile', profile.applicant_profile && profile.applicant_profile.mobile ? profile.applicant_profile.mobile : '—');
+        setText('upcAddress', profile.applicant_profile && profile.applicant_profile.address ? profile.applicant_profile.address : '—');
+
+        setText('upcDeploymentSite', profile.location);
+        setText('upcClientCompany', profile.company_name);
+        setText('upcTeamLead', profile.team_lead_name);
+        setText('upcDeploymentStatus', profile.deployment_status);
+        setText('upcAssignedDate', profile.assigned_date);
+
+        setText('upcDutyDays', profile.duty_days);
+        setText('upcDutyHours', (profile.duty_time_in || '08:00 AM') + ' - ' + (profile.duty_time_out || '05:00 PM'));
+        setText('upcDutyBreak', (profile.duty_break_duration ? profile.duty_break_duration + ' mins' : '60 mins'));
+        setText('upcGracePeriod', (profile.duty_grace_period ? profile.duty_grace_period + ' minutes' : '15 minutes'));
+      }
+
+      function dashLabel(val) {
+        return val != null && String(val).trim() !== '' ? String(val) : '—';
+      }
+
+      function escHtml(val) {
+        var d = document.createElement('div');
+        d.textContent = String(val == null ? '' : val);
+        return d.innerHTML;
+      }
+
+      function applyDeployment(deployment) {
+        deployment = deployment || {};
+        dashboardState.deployment = {
+          company_label: dashLabel(deployment.company_label || deployment.company_name),
+          site_label: dashLabel(deployment.site_label || deployment.site),
+          schedule_label: dashLabel(deployment.schedule_label || deployment.schedule),
+          shift_display: dashLabel(deployment.shift_display)
+        };
+        var companyEl = document.getElementById('empDeploymentCompany');
+        var siteEl = document.getElementById('empDeploymentSite');
+        var scheduleEl = document.getElementById('empDeploymentSchedule');
+        if (companyEl) companyEl.textContent = dashboardState.deployment.company_label;
+        if (siteEl) siteEl.textContent = dashboardState.deployment.site_label;
+        if (scheduleEl) scheduleEl.textContent = dashboardState.deployment.schedule_label;
+      }
+
+      function applyAnalytics(analytics) {
+        analytics = analytics || {};
+        dashboardState.analytics = analytics;
+        var leaveVal = analytics.leave_credits;
+        var hoursVal = analytics.hours_this_week;
+        var leaveText = leaveVal == null || leaveVal === '' ? '—' : String(leaveVal);
+        var hoursText = hoursVal == null || hoursVal === '' ? '—' : String(hoursVal);
+        var leaveEl = document.getElementById('empLeaveCredits');
+        var menuLeave = document.getElementById('empMenuLeaveCredits');
+        var menuHours = document.getElementById('empMenuHoursWeek');
+        if (leaveEl) leaveEl.textContent = leaveText;
+        if (menuLeave) menuLeave.textContent = leaveText;
+        if (menuHours) menuHours.textContent = hoursText;
+        var caBal = document.getElementById('empCashAdvanceBalance');
+        if (caBal) {
+          caBal.textContent = analytics.cash_advance_balance != null
+            ? 'C/A Balance: ₱' + Number(analytics.cash_advance_balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : 'C/A Balance: —';
+        }
+      }
+
+      function applyPayroll(payroll) {
+        payroll = payroll || {};
+        var nextPay = document.getElementById('empPayrollNextPayday');
+        var cutoff = document.getElementById('empPayrollCutoff');
+        if (nextPay && payroll.next_payday) {
+          nextPay.textContent = 'Next Payday: ' + payroll.next_payday;
+        }
+        if (cutoff && payroll.cutoff_period) {
+          cutoff.textContent = 'Cutoff period: ' + payroll.cutoff_period;
+        }
+      }
+
+      function showEmpTab(tabId) {
+        var panels = document.querySelectorAll('.emp-tab-panel');
+        panels.forEach(function (panel) {
+          panel.classList.toggle('hidden', panel.id !== tabId);
+        });
+        document.querySelectorAll('[data-emp-tab]').forEach(function (link) {
+          var active = link.getAttribute('data-emp-tab') === tabId;
+          link.classList.toggle('active', active);
+          if (active) link.setAttribute('aria-current', 'page');
+          else link.removeAttribute('aria-current');
+        });
+        if (tabId === 'section-emp-payroll' && window.EmployeePayroll && typeof EmployeePayroll.load === 'function') {
+          EmployeePayroll.load();
+        }
+        if (tabId === 'section-emp-payroll-history' && window.EmployeePayrollHistory && typeof EmployeePayrollHistory.load === 'function') {
+          EmployeePayrollHistory.load();
+        }
+        if (tabId === 'section-emp-timesheet' && window.EmployeeAttendanceSync && typeof EmployeeAttendanceSync.load === 'function') {
+          EmployeeAttendanceSync.load();
+        }
+      }
+      window.showEmpTab = showEmpTab;
+
+      document.querySelectorAll('[data-emp-tab]').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var tabId = link.getAttribute('data-emp-tab');
+          if (tabId) showEmpTab(tabId);
+        });
+      });
+
+      function dtrStatusToCalendarKey(status) {
+        var s = String(status || '').toLowerCase();
+        if (s === 'present') return 'present';
+        if (s === 'absent') return 'absent';
+        if (s === 'late') return 'late';
+        if (s === 'rest day') return 'rest';
+        if (s.indexOf('leave') >= 0) return 'leave';
+        if (s.indexOf('clock') >= 0 || s === 'on break') return 'present';
+        if (s === 'scheduled' || s === 'no record') return 'empty';
+        return 'empty';
+      }
+
+      function syncAttendancePayload(data) {
+        if (!data) return;
+        logByDate = data.log_by_date || {};
+        if (!Object.keys(logByDate).length && Array.isArray(data.logs)) {
+          data.logs.forEach(function (log) {
+            if (log && log.date) logByDate[log.date] = log;
+          });
+        }
+        if (data.hours_this_week != null) {
+          var menuHours = document.getElementById('empMenuHoursWeek');
+          if (menuHours) menuHours.textContent = String(data.hours_this_week);
+        }
+        buildCalendar();
+        if (selectedIso) {
+          var selectedBtn = document.querySelector('#calendar-grid [data-iso="' + selectedIso + '"]');
+          if (selectedBtn) {
+            renderDetailPanel(selectedIso, selectedBtn.dataset.status || 'empty');
+          }
+        }
+      }
+
+      async function loadEmployeeDashboardData() {
+        try {
+          var res = await fetch(DASHBOARD_API, { credentials: 'include' });
+          var data = await res.json();
+          if (!data || !data.success) return;
+          applyProfile(data.profile || null);
+          applyDeployment(data.deployment || null);
+          applyAnalytics(data.analytics || null);
+          applyPayroll(data.payroll || null);
+          renderDocuments(data.documents || []);
+        } catch (e) {}
+      }
+
+      function pad2(n) {
+        return (n < 10 ? '0' : '') + n;
+      }
+
+      function isoDate(y, m, d) {
+        return y + '-' + pad2(m + 1) + '-' + pad2(d);
+      }
+
+      function todayIso() {
+        var t = new Date();
+        return isoDate(t.getFullYear(), t.getMonth(), t.getDate());
+      }
+
+      function compareIso(a, b) {
+        if (a < b) return -1;
+        if (a > b) return 1;
+        return 0;
+      }
+
+      function calendarStatusForDay(iso, todayStr) {
+        var cmp = compareIso(iso, todayStr);
+        if (cmp > 0) return 'future';
+        var log = logByDate[iso];
+        if (!log) return 'empty';
+        return dtrStatusToCalendarKey(log.attendance_status || log.status);
+      }
+
+      function timesForLog(log) {
+        if (!log) {
+          return { in: '—', out: '—', breakTime: '—', hours: '—', undertimeMinutes: null };
+        }
+        var hours = log.total_hours != null ? log.total_hours : log.total_hours_rendered;
+        return {
+          in: log.time_in_display || '—',
+          out: log.time_out_display || '—',
+          breakTime: log.break_time_display || '—',
+          hours: hours != null ? String(hours) + ' hrs' : '—',
+          undertimeMinutes: log.undertime_minutes != null ? log.undertime_minutes : null
+        };
+      }
+
+      function statusLabelForCalendar(status) {
+        var map = {
+          present: 'PRESENT',
+          absent: 'ABSENT',
+          late: 'LATE',
+          rest: 'REST DAY',
+          leave: 'ON LEAVE',
+          future: 'SCHEDULED',
+          empty: 'NO RECORD'
+        };
+        return map[status] || 'NO RECORD';
+      }
+
+      /**
+       * Root cause fix (GPS "stuck acquiring" bug):
+       * renderDetailPanel() used to call window.initEmployeeGeolocation() behind a single
+       * `typeof === 'function'` check with no retry. employee_attendance_sync.js (which defines
+       * that function) loads near the bottom of the page, after the Bootstrap CDN bundle and
+       * employee_payroll.js. On a slow/flaky connection the calendar's click handlers (wired up
+       * earlier in this same inline script) can become interactive before that script finishes
+       * loading, so the check silently failed and the GPS badge/buttons were left on their
+       * placeholder text ("Checking GPS Location...") forever, with no feedback and no retry.
+       *
+       * This helper polls briefly for the function to become available (attendance_sync.js is
+       * already in-flight by the time a user could click, so this normally resolves almost
+       * instantly) and only shows a hard failure state, with a manual refresh action, if the
+       * script genuinely never loads.
+       */
+      function beginEmployeeGpsInit(retriesLeft) {
+        if (typeof window.initEmployeeGeolocation === 'function') {
+          window.initEmployeeGeolocation();
+          return;
+        }
+        if (retriesLeft <= 0) {
+          var badge = document.getElementById('geofenceBadge');
+          var text = document.getElementById('gpsDistanceText');
+          if (badge) {
+            badge.className = 'badge bg-danger mb-1';
+            badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>GPS Module Failed to Load';
+          }
+          if (text) {
+            text.innerHTML = 'Attendance GPS script did not load in time. Please refresh the page. ' +
+              '<button type="button" class="btn btn-sm btn-outline-dark ms-2 py-0 px-1" onclick="location.reload()">Refresh</button>';
+          }
+          return;
+        }
+        setTimeout(function () { beginEmployeeGpsInit(retriesLeft - 1); }, 200);
+      }
+
+      function renderDetailPanel(iso, status) {
+        var todayStr = todayIso();
+        var cmp = compareIso(iso, todayStr);
+        var log = logByDate[iso] || null;
+        var times = timesForLog(log);
+        var companyLabel = dashboardState.deployment.company_label || '—';
+        var shiftDisplay = dashboardState.deployment.shift_display || companyLabel;
+
+        if (cmp === 0) {
+          detailPanel.innerHTML =
+            '<h3 class="text-base font-bold text-brand-navy mb-2">Today\'s Shift: ' + escHtml(companyLabel) + '</h3>' +
+            '<div id="locationStatusContainer" class="p-3 my-3 bg-slate-50 rounded-xl border border-slate-200 text-center">' +
+              '<span class="badge bg-secondary mb-1" id="geofenceBadge"><i class="bi bi-geo-alt me-1"></i>Checking GPS Location...</span>' +
+              '<div class="small text-slate-500 text-xs mt-1" id="gpsDistanceText">Acquiring browser coordinates...</div>' +
+            '</div>' +
+            '<div class="d-flex justify-content-center gap-2 mt-3">' +
+              '<button type="button" class="btn btn-success fw-bold flex-fill py-2" id="btnClockIn" onclick="openSelfieModal(\'clock_in\')" disabled>' +
+                '<i class="bi bi-box-arrow-in-right me-1"></i>Clock In' +
+              '</button>' +
+              '<button type="button" class="btn btn-danger fw-bold flex-fill py-2" id="btnClockOut" onclick="openSelfieModal(\'clock_out\')" disabled>' +
+                '<i class="bi bi-box-arrow-right me-1"></i>Clock Out' +
+              '</button>' +
+            '</div>';
+
+          beginEmployeeGpsInit(40); // poll up to ~8s while employee_attendance_sync.js finishes loading
+          return;
+        }
+
+        if (cmp < 0) {
+          if (!log || (log.attendance_status === 'Absent' && !log.time_in_display)) {
+            var absentBadge = BADGE_BY_STATUS.absent || BADGE_BY_STATUS.empty;
+            detailPanel.innerHTML =
+              '<h3 class="text-base font-bold text-brand-navy">Attendance Record</h3>' +
+              '<p class="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 shadow-sm">No duty log recorded for this scheduled work day.</p>' +
+              '<div class="mt-4 flex justify-center">' +
+              '<span class="inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide ' + absentBadge.cls + '">ABSENT</span>' +
+              '</div>';
+            return;
+          }
+          var attKey = dtrStatusToCalendarKey(log.attendance_status || log.status);
+          var b = BADGE_BY_STATUS[attKey] || BADGE_BY_STATUS.empty;
+          var undertimeLine = (times.undertimeMinutes && times.undertimeMinutes > 0)
+            ? '<p class="mt-2 text-xs font-semibold text-amber-700">Undertime: ' + times.undertimeMinutes + ' min</p>'
+            : '';
+          detailPanel.innerHTML =
+            '<h3 class="text-base font-bold text-brand-navy">Attendance Record</h3>' +
+            '<p class="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-800 shadow-sm">' +
+            '<span class="font-semibold">Time In:</span> ' + times.in + ' <span class="text-slate-400">|</span> ' +
+            '<span class="font-semibold">Break:</span> ' + times.breakTime + ' <span class="text-slate-400">|</span> ' +
+            '<span class="font-semibold">Time Out:</span> ' + times.out + ' <span class="text-slate-400">|</span> ' +
+            '<span class="font-semibold">Total Hours:</span> ' + times.hours +
+            '</p>' +
+            undertimeLine +
+            '<div class="mt-4 flex justify-center">' +
+            '<span class="inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide ' + b.cls + '">' + statusLabelForCalendar(attKey) + '</span>' +
+            '</div>';
+          return;
+        }
+
+        detailPanel.innerHTML =
+          '<h3 class="text-base font-bold text-brand-navy">Scheduled Deployment</h3>' +
+          '<p class="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm font-medium text-slate-800 shadow-sm">' + escHtml(shiftDisplay) + '</p>' +
+          '<button type="button" id="btn-file-leave-date" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2">' +
+          'File Leave for this Date</button>';
+        var fl = document.getElementById('btn-file-leave-date');
+        if (fl) {
+          fl.addEventListener('click', function () {
+            window.alert('Leave filing for ' + iso + ' would open your HR workflow.');
+          });
+        }
+      }
+
+      function buildCalendar() {
+        if (!calendarGrid || !monthLabel) return;
+        calendarGrid.innerHTML = '';
+        var first = new Date(viewYear, viewMonth, 1);
+        var lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
+        var pad = first.getDay();
+        var todayStr = todayIso();
+
+        monthLabel.textContent = first.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+
+        for (var i = 0; i < pad; i++) {
+          var ph = document.createElement('div');
+          ph.className = 'min-h-[2.75rem] sm:min-h-[3.25rem]';
+          ph.setAttribute('aria-hidden', 'true');
+          calendarGrid.appendChild(ph);
+        }
+
+        for (var d = 1; d <= lastDay; d++) {
+          var iso = isoDate(viewYear, viewMonth, d);
+          var dt = new Date(viewYear, viewMonth, d);
+          var dow = dt.getDay();
+          var status = calendarStatusForDay(iso, todayStr);
+          var sc = STATUS_CLASSES[status] || STATUS_CLASSES.empty;
+
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.setAttribute('role', 'gridcell');
+          btn.setAttribute('aria-label', 'Day ' + d + ', ' + status);
+          btn.dataset.iso = iso;
+          btn.dataset.status = status;
+          btn.textContent = String(d);
+
+          btn.className =
+            'flex min-h-[2.75rem] items-center justify-center rounded-lg text-sm font-bold shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 sm:min-h-[3.25rem] sm:text-base ' +
+            sc.bg +
+            ' ' +
+            sc.text;
+
+          if (iso === todayStr) {
+            btn.classList.add('ring-4', 'ring-orange-500', 'ring-offset-2', 'ring-offset-white');
+          }
+
+          btn.addEventListener('click', function () {
+            var is = this.dataset.iso;
+            var st = this.dataset.status;
+            selectedIso = is;
+            document.querySelectorAll('#calendar-grid [role="gridcell"]').forEach(function (c) {
+              c.classList.remove('ring-2', 'ring-brand-navy', 'ring-offset-2');
+            });
+            this.classList.add('ring-2', 'ring-brand-navy', 'ring-offset-2');
+            renderDetailPanel(is, st);
+          });
+
+          calendarGrid.appendChild(btn);
+        }
+      }
+
+      document.getElementById('cal-prev').addEventListener('click', function () {
+        viewMonth--;
+        if (viewMonth < 0) {
+          viewMonth = 11;
+          viewYear--;
+        }
+        if (detailPanel) detailPanel.innerHTML = '<p class="text-sm text-slate-500">Select a date on the calendar.</p>';
+        buildCalendar();
+      });
+      document.getElementById('cal-next').addEventListener('click', function () {
+        viewMonth++;
+        if (viewMonth > 11) {
+          viewMonth = 0;
+          viewYear++;
+        }
+        if (detailPanel) detailPanel.innerHTML = '<p class="text-sm text-slate-500">Select a date on the calendar.</p>';
+        buildCalendar();
+      });
+
+      if (profileBtn && profileMenu) {
+        function setMenuOpen(open) {
+          profileBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          if (open) {
+            profileMenu.hidden = false;
+            requestAnimationFrame(function () {
+              profileMenu.classList.remove('invisible', 'scale-95', 'opacity-0');
+              profileMenu.classList.add('visible', 'scale-100', 'opacity-100');
+            });
+          } else {
+            profileMenu.classList.add('invisible', 'scale-95', 'opacity-0');
+            profileMenu.classList.remove('visible', 'scale-100', 'opacity-100');
+            window.setTimeout(function () {
+              if (profileBtn.getAttribute('aria-expanded') === 'false') profileMenu.hidden = true;
+            }, 150);
+          }
+        }
+        profileBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          setMenuOpen(profileBtn.getAttribute('aria-expanded') !== 'true');
+        });
+        document.addEventListener('click', function () {
+          setMenuOpen(false);
+        });
+        profileMenu.addEventListener('click', function (e) {
+          e.stopPropagation();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') setMenuOpen(false);
+        });
+      }
+
+      buildCalendar();
+
+      window.__empDashOnAttendance = syncAttendancePayload;
+      document.addEventListener('employee-attendance-updated', function (ev) {
+        syncAttendancePayload(ev.detail || null);
+      });
+
+      var todayStr = todayIso();
+      var auto = document.querySelector('#calendar-grid [data-iso="' + todayStr + '"]');
+      if (auto) auto.click();
+
+      loadEmployeeDashboardData();
+
+      var logoutModal = document.getElementById('logout-modal');
+      var logoutConfirm = document.getElementById('logout-confirm');
+      var logoutCancel = document.getElementById('logout-cancel');
+      function setLogoutModal(open) {
+        if (!logoutModal) return;
+        if (open) {
+          logoutModal.classList.remove('hidden');
+          logoutModal.classList.add('flex');
+        } else {
+          logoutModal.classList.add('hidden');
+          logoutModal.classList.remove('flex');
+        }
+      }
+      document.querySelectorAll('[data-logout]').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+          e.preventDefault();
+          setLogoutModal(true);
+        });
+      });
+      if (logoutCancel) logoutCancel.addEventListener('click', function () { setLogoutModal(false); });
+      if (logoutModal) {
+        logoutModal.addEventListener('click', function (e) {
+          if (e.target === logoutModal) setLogoutModal(false);
+        });
+      }
+      if (logoutConfirm) {
+        logoutConfirm.addEventListener('click', function () {
+          fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'include' })
+            .finally(function () {
+              window.location.href = '../../index.html';
+            });
+        });
+      }
+
+      if (docClose) {
+        docClose.addEventListener('click', function () {
+          docModal.classList.add('hidden');
+          docModal.classList.remove('flex');
+          docFrame.src = 'about:blank';
+        });
+      }
+      if (docModal) {
+        docModal.addEventListener('click', function (e) {
+          if (e.target === docModal) {
+            docModal.classList.add('hidden');
+            docModal.classList.remove('flex');
+            docFrame.src = 'about:blank';
+          }
+        });
+      }
+      window.addEventListener('beforeunload', function () {
+        if (typeof closeCamera === 'function') {
+          closeCamera();
+        }
+      });
+     
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../Js/Employee/employee_payroll.js"></script>
+  <script src="../../Js/Employee/employee_payroll_history.js"></script>
+  <script src="../../Js/Employee/employee_attendance_sync.js"></script>
+  <script>
+    (function () {
+      if (window.__empDashSyncAttendance) return;
+      window.__empDashSyncAttendance = true;
+      document.addEventListener('employee-attendance-updated', function (ev) {
+        if (typeof window.__empDashOnAttendance === 'function') {
+          window.__empDashOnAttendance(ev.detail || null);
+        }
+      });
+      if (window.EmployeeAttendanceSync && typeof EmployeeAttendanceSync.getLastPayload === 'function') {
+        var initial = EmployeeAttendanceSync.getLastPayload();
+        if (initial && typeof window.__empDashOnAttendance === 'function') {
+          window.__empDashOnAttendance(initial);
+        }
+      }
+    })();
+  </script>
+  <script src="../../Js/Shared/messenger_rbac.js"></script>
+  <script src="../../Js/Shared/ow_system_events.js"></script>
+  <script src="../../Js/Shared/ow_notifications.js"></script>
+  <script src="../../Js/Shared/ow_messenger.js"></script>
+  <script>
+    (function () {
+      var main = document.getElementById('section-dashboard-main');
+      var profile = document.getElementById('section-profile');
+      var notif = document.getElementById('section-notifications');
+      function empShowSection(id) {
+        if (!main || !profile || !notif) return;
+        var showMain = id === 'section-dashboard-main';
+        var showProfile = id === 'section-profile';
+        var showNotif = id === 'section-notifications';
+        main.classList.toggle('hidden', !showMain);
+        profile.classList.toggle('hidden', !showProfile);
+        notif.classList.toggle('hidden', !showNotif);
+        if (showProfile && window.UserProfileHydrate) UserProfileHydrate.load();
+      }
+      window.profileShowSection = empShowSection;
+      if (window.ProfileViewSwitch && ProfileViewSwitch.wireProfileTriggers) {
+        document.querySelectorAll('[data-show-section], #menu-profile-link').forEach(function (el) {
+          delete el.dataset.profileBound;
+        });
+        ProfileViewSwitch.wireProfileTriggers(empShowSection, 'section-profile', ProfileViewSwitch.closeMenus);
+      }
+      if (window.OwNotifications) {
+        OwNotifications.init({ sectionId: 'section-notifications', showSection: empShowSection });
+      }
+    })();
+  </script>
+
+  <!-- MANDATORY LIVE SELFIE CAMERA MODAL -->
+  <div class="modal fade" id="selfieCameraModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content border-0 shadow-lg">
+              <div class="modal-header bg-primary text-white">
+                  <h5 class="modal-title fw-bold"><i class="bi bi-camera me-2"></i>Live Photo Verification</h5>
+                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="closeCamera()"></button>
+              </div>
+              <div class="modal-body text-center p-4">
+                  <div class="camera-container position-relative mb-3 bg-black rounded-3 overflow-hidden" style="min-height: 320px;">
+                      <video id="selfieVideo" autoplay playsinline class="w-100 h-100 object-fit-cover" style="min-height: 320px;"></video>
+                      <canvas id="selfieCanvas" class="d-none"></canvas>
+                      <img id="selfiePreview" class="w-100 h-100 object-fit-cover d-none position-absolute top-0 start-0" alt="Selfie Preview" />
+                      
+                      <!-- LIVE CAMERA PREVIEW HUD OVERLAY -->
+                      <div id="liveCameraHud" class="position-absolute bottom-0 start-0 w-100 p-2 text-start text-white pointer-events-none" style="background: linear-gradient(to top, rgba(10,42,94,0.92) 0%, rgba(10,42,94,0.75) 70%, transparent 100%); font-family: Inter, system-ui, sans-serif; font-size: 11.5px; line-height: 1.35; border-bottom-left-radius: 0.375rem; border-bottom-right-radius: 0.375rem;">
+                          <div class="fw-bold text-orange-300" style="font-size: 12.5px; letter-spacing: 0.03em;">ONAZUL MANPOWER SERVICES</div>
+                          <div id="hudDateTime">DATE: — | TIME: —</div>
+                          <div id="hudCoords">LATITUDE: Acquiring... | LONGITUDE: Acquiring...</div>
+                          <div class="d-flex justify-content-between align-items-center mt-0.5">
+                              <span id="hudLocationStatus" class="text-warning font-semibold">LOCATION: ACQUIRING GPS...</span>
+                              <span id="hudActionStatus" class="fw-bold px-1.5 py-0.5 rounded text-white bg-success" style="font-size: 11px;">CLOCK IN</span>
+                          </div>
+                      </div>
+                  </div>
+                  <div class="alert alert-info small py-2 mb-3"><i class="bi bi-info-circle me-1"></i>Gallery uploads are disabled. Take a live photo.</div>
+                  <div class="d-flex justify-content-center gap-2">
+                      <button type="button" class="btn btn-secondary" id="btnRetakeSelfie" onclick="startCamera()" style="display:none;"><i class="bi bi-arrow-counterclockwise me-1"></i>Retake</button>
+                      <button type="button" class="btn btn-primary px-4 fw-bold" id="btnCaptureSelfie" onclick="captureSelfieSnapshot()"><i class="bi bi-camera-fill me-1"></i>Take Photo</button>
+                      <button type="button" class="btn btn-success px-4 fw-bold" id="btnSubmitAttendance" onclick="submitGeofenceAttendance()" style="display:none;"><i class="bi bi-check-circle me-1"></i>Confirm & Submit</button>
+                  </div>
+              </div>
+          </div>
+      </div>
+  </div>
+</body>
+</html>

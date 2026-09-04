@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Orders - Onazul Workforce Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --brand-primary: #0056b3; --sidebar-bg: #003366; --sidebar-width: 240px; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f5f7fb; }
+        .layout-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff; position: fixed; inset: 0 0 0 0; z-index: 1030; }
+        .sidebar-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.12); }
+        .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+        .sidebar-link { display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1.2rem; color: #e2e8f0; text-decoration: none; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .sidebar-link.active { background: linear-gradient(to right, #0072ff, #00c6ff); color: #fff; }
+        .main-content { flex: 1; margin-left: var(--sidebar-width); padding: 1.25rem 1.75rem; }
+        .page-header-title { font-size: 1.4rem; font-weight: 600; color: #1f2933; }
+        .page-header-subtitle { font-size: 0.9rem; color: #6b7280; }
+        .validation-block { display: none; }
+    </style>
+    <script>window.REQUIRED_ROLE = 'HR';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+</head>
+<body>
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header"><span>Onazul HR</span></div>
+        <ul class="sidebar-nav mt-2">
+            <li><a href="hr_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="job_orders.html" class="sidebar-link active"><i class="bi bi-briefcase"></i><span>Job Orders</span></a></li>
+            <li><a href="applicant_review.html" class="sidebar-link"><i class="bi bi-people"></i><span>Applicant Review</span></a></li>
+            <li><a href="hr_dashboard.html#section-messages" class="sidebar-link"><i class="bi bi-chat-dots"></i><span>Messages (HR)</span></a></li>
+            <li><a href="deployments.html" class="sidebar-link"><i class="bi bi-geo-alt"></i><span>Deployments</span></a></li>
+            <li><a href="../../index.html" class="sidebar-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a></li>
+        </ul>
+        <div class="sidebar-footer" style="position:absolute;bottom:0;padding:1rem;font-size:0.75rem;opacity:0.7;"><div id="userName">User</div></div>
+    </aside>
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <div class="page-header-title">Job Orders</div>
+                <div class="page-header-subtitle">Create Job Orders. Requires an active Service Agreement with uploaded document for the selected client.</div>
+            </div>
+            <button class="btn btn-primary" id="btnCreateJobOrder"><i class="bi bi-plus-circle me-1"></i> Create Job Order</button>
+        </div>
+
+        <div id="noAgreementBlock" class="alert alert-warning validation-block">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            <strong>Job Order creation blocked.</strong> No active Service Agreement with uploaded signed document exists for the selected client. The Admin must first create a Service Agreement, upload the scanned signed document, and set it to Active.
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-inbox me-2"></i>Job Order Requests from Team Leads</span>
+                <select id="requestFilter" class="form-select form-select-sm" style="width: auto;">
+                    <option value="">All</option>
+                    <option value="Pending" selected>Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead><tr><th>Requested By</th><th>Client</th><th>Position</th><th>Workers</th><th>Location</th><th>Schedule</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="requestsBody">
+                            <tr><td colspan="9" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead><tr><th>Client</th><th>Position</th><th>Workers</th><th>Deployment Site</th><th>Work Schedule</th><th>Request Date</th></tr></thead>
+                        <tbody id="ordersBody">
+                            <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal fade" id="createJobOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Create Job Order</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="createJOAlert" class="alert d-none"></div>
+                <form id="createJobOrderForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Client Company *</label>
+                            <select name="company_id" class="form-select" required id="joCompanySelect"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Service Agreement *</label>
+                            <select name="service_agreement_id" class="form-select" required id="joAgreementSelect">
+                                <option value="">Select client first</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Position / Role *</label>
+                            <input type="text" name="position" class="form-control" placeholder="e.g. Security Guard" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Job category *</label>
+                            <select name="job_category" class="form-select" required id="joJobCategory" data-job-category-select data-category-placeholder="-- Select Job Category --">
+                                <option value="" selected disabled>-- Select Job Category --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Number of Required Workers *</label>
+                            <input type="number" name="required_count" class="form-control" min="1" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deployment Site</label>
+                        <input type="text" name="deployment_site" class="form-control" placeholder="Work location address">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Work Schedule</label>
+                        <input type="text" name="work_schedule" class="form-control" placeholder="e.g. Mon-Fri 8AM-5PM">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitJobOrder">Create Job Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/ow_job_categories.js"></script>
+<script>
+const JO_API = '../../Api/HR/job_orders.php';
+const REQ_API = '../../Api/HR/job_order_requests.php';
+
+function showAlert(el, msg, type) { el.className = 'alert alert-' + (type || 'danger'); el.textContent = msg; el.classList.remove('d-none'); }
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function statusBadge(s) {
+    const c = s === 'Approved' ? 'success' : (s === 'Rejected' ? 'danger' : 'warning');
+    return '<span class="badge bg-' + c + '">' + esc(s) + '</span>';
+}
+
+function loadJobOrderRequests() {
+    const status = document.getElementById('requestFilter').value;
+    const url = status ? REQ_API + '?status=' + encodeURIComponent(status) : REQ_API;
+    fetch(url, { credentials: 'same-origin' }).then(r => r.json()).then(d => {
+        const tbody = document.getElementById('requestsBody');
+        if (!d.success || !d.requests || d.requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No job order requests.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.requests.map(r => {
+            let actions = '';
+            if (r.status === 'Pending') {
+                actions = '<button class="btn btn-sm btn-success me-1 btnApprove" data-id="' + r.request_id + '">Post</button>' +
+                    '<button class="btn btn-sm btn-outline-danger btnReject" data-id="' + r.request_id + '">Reject</button>';
+            }
+            return '<tr>' +
+                '<td>' + esc(r.requested_by) + '</td>' +
+                '<td>' + esc(r.company_name) + '</td>' +
+                '<td>' + esc(r.position) + '</td>' +
+                '<td>' + r.required_count + '</td>' +
+                '<td>' + (esc(r.location) || '–') + '</td>' +
+                '<td>' + (esc(r.work_schedule) || '–') + '</td>' +
+                '<td>' + (r.created_at ? new Date(r.created_at).toLocaleDateString() : '–') + '</td>' +
+                '<td>' + statusBadge(r.status) + '</td>' +
+                '<td>' + actions + '</td></tr>';
+        }).join('');
+        document.querySelectorAll('.btnApprove').forEach(btn => {
+            btn.onclick = () => approveRequest(parseInt(btn.dataset.id));
+        });
+        document.querySelectorAll('.btnReject').forEach(btn => {
+            btn.onclick = () => rejectRequest(parseInt(btn.dataset.id));
+        });
+    }).catch(() => { document.getElementById('requestsBody').innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Failed to load.</td></tr>'; });
+}
+
+function approveRequest(id) {
+    if (!confirm('Post this request as a Job Order?')) return;
+    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve', request_id: id }), credentials: 'same-origin' })
+        .then(r => r.json()).then(d => {
+            if (d.success) { loadJobOrderRequests(); loadJobOrders(); }
+            else {
+                var alertEl = document.getElementById('createJOAlert');
+                if (d.error_type === 'invalid_category' && alertEl) {
+                    showAlert(alertEl, d.message, 'warning');
+                } else {
+                    alert(d.message || 'Error');
+                }
+            }
+        });
+}
+
+function rejectRequest(id) {
+    if (!confirm('Reject this request?')) return;
+    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', request_id: id }), credentials: 'same-origin' })
+        .then(r => r.json()).then(d => {
+            if (d.success) loadJobOrderRequests();
+            else alert(d.message || 'Error');
+        });
+}
+
+document.getElementById('requestFilter').addEventListener('change', loadJobOrderRequests);
+
+function loadCompanies() {
+    return fetch(JO_API + '?list=companies').then(r => r.json()).then(d => {
+        const sel = document.getElementById('joCompanySelect');
+        sel.innerHTML = '<option value="">Select client company</option>' + (d.companies || []).map(c =>
+            `<option value="${c.CompanyID}">${esc(c.Name)}</option>`).join('');
+    });
+}
+
+document.getElementById('joCompanySelect').addEventListener('change', function() {
+    const cid = this.value;
+    const sel = document.getElementById('joAgreementSelect');
+    sel.innerHTML = '<option value="">Loading…</option>';
+    if (!cid) { sel.innerHTML = '<option value="">Select client first</option>'; return; }
+    fetch(JO_API + '?check_agreement=1&company_id=' + cid).then(r => r.json()).then(d => {
+        if (d.can_create && d.agreements && d.agreements.length) {
+            sel.innerHTML = d.agreements.map(a => `<option value="${a.ServiceAgreementID}">${esc(a.ContractNumber)} (${a.ContractStartDate} – ${a.ContractEndDate || 'ongoing'})</option>`).join('');
+            document.getElementById('noAgreementBlock').classList.add('validation-block');
+        } else {
+            sel.innerHTML = '<option value="">No active agreement</option>';
+            document.getElementById('noAgreementBlock').classList.remove('validation-block');
+        }
+    });
+});
+
+function loadJobOrders() {
+    fetch(JO_API).then(r => r.json()).then(d => {
+        const tbody = document.getElementById('ordersBody');
+        if (!d.success || !d.job_orders || d.job_orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No Job Orders yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.job_orders.map(o => `
+            <tr>
+                <td>${esc(o.CompanyName)}</td>
+                <td>${esc(o.Position)}</td>
+                <td>${o.RequiredCount}</td>
+                <td>${esc(o.Location) || '–'}</td>
+                <td>${esc(o.WorkSchedule) || '–'}</td>
+                <td>${o.RequestDate || o.CreatedAt || '–'}</td>
+            </tr>`).join('');
+    }).catch(() => { document.getElementById('ordersBody').innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load.</td></tr>'; });
+}
+
+document.getElementById('btnCreateJobOrder').onclick = () => {
+    loadCompanies().then(() => {
+        document.getElementById('joAgreementSelect').innerHTML = '<option value="">Select client first</option>';
+        document.getElementById('noAgreementBlock').classList.add('validation-block');
+        new bootstrap.Modal(document.getElementById('createJobOrderModal')).show();
+    });
+};
+
+document.getElementById('btnSubmitJobOrder').onclick = () => {
+    const form = document.getElementById('createJobOrderForm');
+    const fd = new FormData(form);
+    fd.append('action', 'create');
+    const alert = document.getElementById('createJOAlert');
+    fetch(JO_API, { method: 'POST', body: fd }).then(r => r.json()).then(d => {
+        if (d.success) {
+            bootstrap.Modal.getInstance(document.getElementById('createJobOrderModal')).hide();
+            form.reset();
+            loadJobOrders();
+            alert.classList.add('d-none');
+        } else { showAlert(alert, d.message || 'Error', d.error_type === 'invalid_category' ? 'warning' : 'danger'); }
+    }).catch(() => showAlert(alert, 'Request failed'));
+};
+
+loadJobOrders();
+loadJobOrderRequests();
+</script>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Job Board - Onazul Workforce Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../Css/ow_widgets.css">
+    <link rel="stylesheet" href="../../Css/applicant_job_wall_slots.css">
+    <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --jb-navy: #0f172a;
+            --jb-navy-mid: #1e293b;
+            --jb-accent: #0284c7;
+            --jb-accent-hover: #0369a1;
+            --jb-border: #e2e8f0;
+        }
+        body {
+            font-family: 'DM Sans', Inter, system-ui, -apple-system, sans-serif;
+            background-color: var(--ow-surface, #f8fafc);
+        }
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 0;
+            min-width: 0;
+        }
+        .user-topbar { display: flex; justify-content: flex-end; padding: 1rem 1.5rem 0; }
+        .sidebar-nav { padding-bottom: 4rem; }
+
+        /* Discovery hero */
+        .jb-hero {
+            position: relative;
+            background: linear-gradient(135deg, var(--jb-navy) 0%, var(--jb-navy-mid) 55%, #1a3a5c 100%);
+            padding: 1.25rem 1.5rem 2rem;
+            overflow: hidden;
+        }
+        .jb-hero::before,
+        .jb-hero::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .jb-hero::before {
+            width: 180px;
+            height: 180px;
+            background: rgba(233, 30, 140, 0.18);
+            top: -60px;
+            right: 8%;
+        }
+        .jb-hero::after {
+            width: 120px;
+            height: 120px;
+            border: 3px solid rgba(100, 180, 255, 0.35);
+            bottom: -40px;
+            left: 15%;
+        }
+        .jb-hero-inner { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; }
+        .jb-hero-title {
+            color: #fff;
+            font-weight: 700;
+            font-size: 1.35rem;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.35rem;
+        }
+        .jb-hero-sub {
+            color: rgba(255,255,255,0.75);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .jb-search-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 0.65rem;
+            align-items: stretch;
+        }
+        @media (max-width: 991px) {
+            .jb-search-grid { grid-template-columns: 1fr; }
+        }
+        .jb-field {
+            background: #fff;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 0.45rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: 46px;
+        }
+        .jb-field label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+        .jb-field input, .jb-field select {
+            border: none;
+            outline: none;
+            flex: 1;
+            min-width: 0;
+            font-size: 0.95rem;
+            background: transparent;
+        }
+        .jb-btn-clear {
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            padding: 0 0.25rem;
+            line-height: 1;
+        }
+        .jb-btn-clear:hover { color: #334155; }
+        .jb-btn-seek {
+            background: var(--jb-accent);
+            color: #fff;
+            border: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+            letter-spacing: 0.06em;
+            border-radius: 0.5rem;
+            padding: 0 1.5rem;
+            min-height: 46px;
+            transition: background 0.15s;
+        }
+        .jb-btn-seek:hover { background: var(--jb-accent-hover); color: #fff; }
+
+        .jb-filters-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.85rem;
+            align-items: center;
+        }
+        .jb-filter-pill {
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e2e8f0;
+            border-radius: 999px;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .jb-filter-pill select {
+            background: transparent;
+            border: none;
+            color: inherit;
+            outline: none;
+            cursor: pointer;
+            max-width: 140px;
+        }
+
+        .jb-body { padding: 0 1.25rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+        .jb-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--jb-border);
+        }
+        .jb-count { font-weight: 600; color: #1e293b; }
+        .jb-toolbar-links {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        .jb-link-filter {
+            color: var(--jb-accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .jb-link-filter:hover { text-decoration: underline; color: var(--jb-accent-hover); }
+        .jb-link-filter.active { color: #0f172a; text-decoration: underline; }
+        .jb-toggle {
+            font-size: 0.85rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .jb-split {
+            display: grid;
+            grid-template-columns: minmax(280px, 38%) 1fr;
+            gap: 0;
+            min-height: 72vh;
+            border: 1px solid var(--jb-border);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+        }
+        @media (max-width: 991px) {
+            .jb-split { grid-template-columns: 1fr; min-height: auto; }
+        }
+        .jb-list-col {
+            border-right: 1px solid var(--jb-border);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: #f8fafc;
+        }
+        @media (max-width: 991px) {
+            .jb-list-col { border-right: none; border-bottom: 1px solid var(--jb-border); max-height: 45vh; }
+        }
+        .jb-list-scroll {
+            overflow-y: auto;
+            flex: 1;
+            padding: 0.5rem;
+        }
+        .jb-list-item {
+            text-align: left;
+            width: 100%;
+            border: 1px solid transparent;
+            border-radius: 0.65rem;
+            padding: 0.85rem 1rem;
+            margin-bottom: 0.5rem;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .jb-list-item:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .jb-list-item.active {
+            border-color: var(--brand-primary);
+            box-shadow: 0 0 0 1px var(--brand-primary);
+        }
+        .jb-li-title {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 1rem;
+            line-height: 1.3;
+            margin-bottom: 0.25rem;
+        }
+        .jb-li-co { font-size: 0.85rem; color: #64748b; margin-bottom: 0.45rem; }
+        .jb-li-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.45rem; }
+        .jb-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .jb-badge-match { background: #dcfce7; color: #166534; }
+        .jb-badge-open { background: #dbeafe; color: #1e40af; }
+        .jb-li-snippet {
+            font-size: 0.8rem;
+            color: #475569;
+            line-height: 1.45;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .jb-li-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .jb-detail-col {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: #fff;
+        }
+        .jb-detail-scroll {
+            overflow-y: auto;
+            flex: 1;
+            padding: 1.25rem 1.5rem 2rem;
+        }
+        .jb-detail-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 280px;
+            color: #94a3b8;
+            text-align: center;
+            padding: 2rem;
+        }
+        .jb-detail-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .jb-detail-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+        }
+        .jb-detail-co { font-size: 1rem; color: #475569; margin-top: 0.35rem; }
+        .jb-detail-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+        .jb-icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            border: 1px solid var(--jb-border);
+            background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            cursor: pointer;
+        }
+        .jb-icon-btn:hover { background: #f8fafc; color: #0f172a; }
+        .jb-detail-meta {
+            display: grid;
+            gap: 0.65rem;
+            margin-bottom: 1.25rem;
+        }
+        .jb-meta-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            font-size: 0.95rem;
+            color: #334155;
+        }
+        .jb-meta-row i { color: #64748b; margin-top: 0.15rem; }
+        .jb-cta-row { display: flex; flex-wrap: wrap; gap: 0.65rem; margin-bottom: 1.5rem; }
+        .jb-btn-apply {
+            background: var(--jb-accent);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            padding: 0.65rem 1.5rem;
+            border-radius: 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .jb-btn-apply:hover { background: var(--jb-accent-hover); color: #fff; }
+        .jb-btn-save {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--jb-border);
+            font-weight: 600;
+            padding: 0.65rem 1.25rem;
+            border-radius: 0.5rem;
+        }
+        .jb-btn-save:hover { background: #e2e8f0; }
+        .jb-detail-section h3 {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+        .jb-detail-section p, .jb-detail-section li {
+            font-size: 0.95rem;
+            line-height: 1.65;
+            color: #334155;
+        }
+        .jb-detail-section { margin-bottom: 1.25rem; }
+    </style>
+</head>
+<body class="ow-dashboard">
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header d-flex justify-content-between align-items-center">
+            <span>Onazul Applicant</span>
+            <a href="applicant_dashboard.html#section-notifications" class="text-white text-decoration-none position-relative" id="notificationBell" title="Notifications" aria-label="Notifications">
+                <i class="bi bi-bell-fill"></i>
+                <span class="ow-notif-badge d-none" aria-hidden="true">0</span>
+            </a>
+        </div>
+        <ul class="sidebar-nav mt-2">
+            <li>
+                <a href="../../Html/Applicant/applicant_landing.html" class="sidebar-link">
+                    <i class="bi bi-grid-1x2"></i><span>Job Wall</span>
+                </a>
+            </li>
+            <li>
+                <a href="job_board.html" class="sidebar-link active">
+                    <i class="bi bi-briefcase"></i><span>Job Board</span>
+                </a>
+            </li>
+            <li>
+                <a href="my_applications.html" class="sidebar-link">
+                    <i class="bi bi-file-text"></i><span>My Applications</span>
+                </a>
+            </li>
+            <li>
+                <a href="inbox.html" class="sidebar-link">
+                    <i class="bi bi-chat-dots"></i><span>Messages (HR)</span>
+                </a>
+            </li>
+        </ul>
+        <div class="sidebar-footer" style="position:absolute;bottom:0;padding:1rem;font-size:0.75rem;opacity:0.7;">
+            <div id="applicantName">Applicant</div>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div class="user-topbar">
+            <div class="dropdown">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle" id="userDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="user-avatar-circle" id="userAvatarCircle">U</span>
+                    <span class="user-name-top" id="userNameTop">User</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="applicant_dashboard.html#section-profile" id="menuProfile">Profile</a></li>
+                    <li><a class="dropdown-item" href="my_documents.html" id="menuMyDocuments">My Documents</a></li>
+                    <li><a class="dropdown-item" href="#" id="menuSystemSettings">System Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <header class="jb-hero">
+            <div class="jb-hero-inner">
+                <div class="jb-hero-title">Find your next role</div>
+                <div class="jb-hero-sub">Search by keyword, classification, and location — matches to your profile are highlighted.</div>
+                <div class="jb-search-grid">
+                    <div class="jb-field">
+                        <label for="jbWhat">What</label>
+                        <input type="text" id="jbWhat" placeholder="Job title, keywords" autocomplete="off">
+                        <button type="button" class="jb-btn-clear d-none" id="jbClearWhat" aria-label="Clear"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="jb-field">
+                        <label for="jbClass">Classification</label>
+                        <input type="text" id="jbClass" placeholder="Any classification" list="jbClassList" autocomplete="off">
+                        <datalist id="jbClassList"></datalist>
+                    </div>
+                    <div class="jb-field">
+                        <label for="jbWhere">Where</label>
+                        <input type="text" id="jbWhere" placeholder="City or region" autocomplete="off">
+                        <button type="button" class="jb-btn-clear d-none" id="jbClearWhere" aria-label="Clear"><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <button type="button" class="jb-btn-seek" id="jbBtnSearch">Search</button>
+                </div>
+                <div class="jb-filters-row">
+                    <span class="jb-filter-pill">
+                        <select id="jbWorkType" aria-label="Work type">
+                            <option value="">All work types</option>
+                            <option value="fulltime">Full time</option>
+                            <option value="parttime">Part time</option>
+                            <option value="contract">Contract</option>
+                        </select>
+                    </span>
+                    <span class="jb-filter-pill">
+                        <select id="jbListed" aria-label="Date listed">
+                            <option value="0">Listed any time</option>
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                        </select>
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <div class="jb-body">
+            <div class="jb-toolbar">
+                <div class="jb-count"><span id="jbJobCount">0</span> jobs</div>
+                <div class="jb-toolbar-links">
+                    <a href="#" class="jb-link-filter active" id="btnAllOpenRoles" data-filter="all" aria-current="true">All open roles</a>
+                    <span class="text-muted">|</span>
+                    <a href="#" class="jb-link-filter" id="btnMatchProfile" data-filter="match">Match my profile</a>
+                </div>
+            </div>
+
+            <div class="jb-split" id="jbSplit">
+                <div class="jb-list-col">
+                    <div class="jb-list-scroll" id="job-listings-container">
+                        <div class="text-center text-muted py-5 px-3" id="jbListPlaceholder">
+                            <i class="bi bi-hourglass-split" style="font-size: 2rem;"></i>
+                            <p class="mt-2 mb-0 small">Loading jobs…</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="jb-detail-col">
+                    <div class="jb-detail-scroll" id="jbDetailPane">
+                        <div id="job-preview-panel">
+                            <div class="jb-detail-empty" id="jbDetailEmpty">
+                                <i class="bi bi-arrow-left-circle d-lg-none mb-2" style="font-size: 2rem;"></i>
+                                <p class="mb-0">Select a job on the left to see the full description.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Apply Modal -->
+<div class="modal fade" id="applyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Apply for Position</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="applyAlert" class="alert d-none"></div>
+                <p>You are about to apply for: <strong id="applyPositionName"></strong></p>
+                <p class="text-muted small">Make sure your profile and documents are complete before applying.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmApply">Confirm Application</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
+<script>
+    (function () {
+        function initials(name) {
+            if (!name) return 'U';
+            var parts = String(name).trim().split(/\s+/).filter(Boolean);
+            var a = parts[0] ? parts[0].charAt(0) : '';
+            var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+            return (a + b).toUpperCase() || 'U';
+        }
+        fetch('../../Api/Login/check_session.php', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.success) return;
+                var fullName = data.full_name || data.fullName || 'User';
+                var nameEl = document.getElementById('userNameTop');
+                var avatarEl = document.getElementById('userAvatarCircle');
+                if (nameEl) nameEl.textContent = fullName;
+                if (avatarEl) avatarEl.textContent = initials(fullName);
+                var foot = document.getElementById('applicantName');
+                if (foot) foot.textContent = fullName;
+            })
+            .catch(function () {});
+        function bindComingSoon(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                alert('This feature is not available yet.');
+            });
+        }
+        bindComingSoon('menuSystemSettings');
+        var logoutEl = document.getElementById('menuLogout');
+        if (logoutEl) {
+            logoutEl.addEventListener('click', function (e) {
+                e.preventDefault();
+                var doLogout = function () {
+                    fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'same-origin' })
+                        .then(function () { window.location.href = '/Employee_Tracking/index.html'; })
+                        .catch(function () { window.location.href = '/Employee_Tracking/index.html'; });
+                };
+                if (typeof window.showLogoutConfirm === 'function') window.showLogoutConfirm(doLogout);
+                else doLogout();
+            });
+        }
+    })();
+</script>
+<script src="../../Js/Applicant/job_wall_slots.js"></script>
+<script src="../../Js/Applicant/applicant_job_filter.js"></script>
+<script>
+    (function () {
+        var currentJobId = null;
+
+        function openApplyModal(jobId) {
+            currentJobId = jobId;
+            var jobs = window.ApplicantJobFilter ? ApplicantJobFilter.getJobs() : [];
+            var job = jobs.find(function (j) { return j.id === jobId; });
+            if (!job) return;
+            document.getElementById('applyPositionName').textContent =
+                (job.job_title || job.position) + ' — ' + (job.company_name || '');
+            new bootstrap.Modal(document.getElementById('applyModal')).show();
+        }
+
+        function saveJob(jobId) {
+            try {
+                var key = 'onazul_saved_job_ids';
+                var raw = localStorage.getItem(key);
+                var ids = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(ids)) ids = [];
+                if (ids.indexOf(jobId) === -1) ids.push(jobId);
+                localStorage.setItem(key, JSON.stringify(ids));
+                alert('Job saved to your list.');
+            } catch (e) {
+                alert('Could not save job.');
+            }
+        }
+
+        document.getElementById('btnConfirmApply').onclick = function () {
+            if (!currentJobId) return;
+            var alertEl = document.getElementById('applyAlert');
+            fetch('../../Api/Applicant/apply_job.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ job_order_id: currentJobId })
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        alertEl.className = 'alert alert-success';
+                        alertEl.textContent = 'Application submitted successfully!';
+                        alertEl.classList.remove('d-none');
+                        setTimeout(function () {
+                            var m = bootstrap.Modal.getInstance(document.getElementById('applyModal'));
+                            if (m) m.hide();
+                            ApplicantJobFilter.loadJobs(ApplicantJobFilter.getFilter());
+                        }, 1500);
+                    } else {
+                        alertEl.className = 'alert alert-danger';
+                        alertEl.textContent = data.message || 'Failed to submit application.';
+                        alertEl.classList.remove('d-none');
+                    }
+                })
+                .catch(function () {
+                    alertEl.className = 'alert alert-danger';
+                    alertEl.textContent = 'Error submitting application.';
+                    alertEl.classList.remove('d-none');
+                });
+        };
+
+        ApplicantJobFilter.init({
+            apiUrl: '../../Api/Applicant/get_jobs.php',
+            listContainerId: 'job-listings-container',
+            previewPanelId: 'job-preview-panel',
+            countElId: 'jbJobCount',
+            btnAllId: 'btnAllOpenRoles',
+            btnMatchId: 'btnMatchProfile',
+            keywordInputId: 'jbWhat',
+            locationInputId: 'jbWhere',
+            classificationInputId: 'jbClass',
+            workTypeInputId: 'jbWorkType',
+            postedWithinInputId: 'jbListed',
+            searchBtnId: 'jbBtnSearch',
+            onApply: openApplyModal,
+            onSave: saveJob
+        });
+    })();
+</script>
+<button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger"><i class="bi bi-chat-dots fs-4"></i></button>
+<div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+  <div class="ow-msgr-header"><span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span><button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose">&times;</button></div>
+  <div class="ow-msgr-body">
+    <aside class="ow-msgr-sidebar"><div class="ow-msgr-search-wrap"><input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…"></div><div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div></aside>
+    <div class="ow-msgr-chat"><div class="ow-msgr-chat-head"><div class="fw-semibold" id="owMessengerChatTitle">Messenger</div><div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div></div><div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div><div class="ow-msgr-footer"><input type="text" class="form-control form-control-sm" id="owMessengerInput" disabled><button type="button" class="btn btn-primary btn-sm" id="owMessengerSend" disabled><i class="bi bi-send"></i></button></div></div>
+  </div>
+</div>
+<script src="../../Js/Shared/messenger_rbac.js"></script>
+<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Shared/ow_system_events.js"></script>
+<script src="../../Js/Shared/ow_notifications.js"></script>
+</body>
+</html>

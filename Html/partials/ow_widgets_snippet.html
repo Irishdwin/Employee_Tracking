@@ -1,0 +1,103 @@
+<!-- Include in <head>: -->
+<!-- <link rel="stylesheet" href="../../Css/ow_widgets.css"> -->
+<!-- Scripts before </body>: ow_system_events.js, messenger_rbac.js, ow_notifications.js, ow_messenger.js -->
+
+<!-- Notifications section (Bootstrap SPA — inside #main-content) -->
+<div id="notifications-section" class="dashboard-section d-none" aria-labelledby="notifications-section-title">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+      <h1 id="notifications-section-title" class="page-header-title mb-1">Notifications</h1>
+      <p class="page-header-subtitle mb-0">System alerts and workflow updates for your account.</p>
+    </div>
+    <button type="button" class="btn btn-outline-primary btn-sm" data-show-section="section-overview" data-ow-notif-back>
+      <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+    </button>
+  </div>
+  <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+    <div class="form-check form-switch mb-0">
+      <input class="form-check-input" type="checkbox" id="owChkUnread">
+      <label class="form-check-label small text-secondary" for="owChkUnread">Unread only</label>
+    </div>
+    <button type="button" class="btn btn-outline-secondary btn-sm" id="owBtnRefreshNotif"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+    <button type="button" class="btn btn-outline-primary btn-sm" id="owBtnMarkAll">Mark all as read</button>
+  </div>
+  <div class="row g-3">
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold">Inbox</div>
+        <div id="owNotifList" class="list-group list-group-flush" style="max-height:520px;overflow-y:auto">
+          <div class="list-group-item text-muted small py-4 text-center">Loading…</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-white fw-semibold">Details</div>
+        <div class="card-body" id="owNotifDetails"><p class="text-muted mb-0">Select a notification.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notifications view (Tailwind view-panel — inside <main>) -->
+<section class="view-panel hidden" data-view="notifications" id="view-notifications">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div>
+      <h1 class="text-2xl font-bold text-brand-sidebar">Notifications</h1>
+      <p class="mt-1 text-sm text-slate-600">System alerts and workflow updates.</p>
+    </div>
+    <button type="button" class="rounded-lg border border-brand-accent px-4 py-2 text-sm font-semibold text-brand-accent" data-nav="dashboard">← Back</button>
+  </div>
+  <div class="flex flex-wrap gap-3 mb-4 text-sm">
+    <label class="inline-flex items-center gap-2"><input type="checkbox" id="owChkUnread" class="rounded"> Unread only</label>
+    <button type="button" id="owBtnRefreshNotif" class="rounded-lg border px-3 py-1.5">Refresh</button>
+    <button type="button" id="owBtnMarkAll" class="rounded-lg bg-brand-accent px-3 py-1.5 text-white">Mark all read</button>
+  </div>
+  <div class="grid gap-4 lg:grid-cols-2">
+    <div class="rounded-xl bg-white shadow-card ring-1 ring-slate-100 overflow-hidden">
+      <div class="border-b px-4 py-3 font-semibold">Inbox</div>
+      <div id="owNotifList" class="max-h-[480px] overflow-y-auto"></div>
+    </div>
+    <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-slate-100">
+      <div class="font-semibold mb-2">Details</div>
+      <div id="owNotifDetails" class="text-sm text-slate-600">Select a notification.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Bell: id="owNotifBellBtn" position-relative + <span class="ow-notif-badge d-none">0</span> -->
+
+<!-- Messenger widget (before </body>) -->
+<button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger" aria-expanded="false" aria-controls="owMessengerPanel">
+  <i class="bi bi-chat-dots fs-4"></i>
+  <span id="globalMessageBadge"
+        data-global-message-badge
+        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-light d-none"
+        style="font-size:0.65rem; min-width:1.1rem;"
+        aria-hidden="true">0</span>
+</button>
+<div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+  <div class="ow-msgr-header">
+    <span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span>
+    <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="ow-msgr-body">
+    <aside class="ow-msgr-sidebar">
+      <div class="ow-msgr-search-wrap">
+        <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off">
+      </div>
+      <div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div>
+    </aside>
+    <div class="ow-msgr-chat">
+      <div class="ow-msgr-chat-head">
+        <div class="fw-semibold" id="owMessengerChatTitle">Messenger</div>
+        <div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div>
+      </div>
+      <div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div>
+      <form class="ow-msgr-footer ow-msgr-compose" id="owMessengerComposeForm" autocomplete="off">
+        <input type="text" class="form-control form-control-sm" id="owMessengerInput" placeholder="Type a message…" autocomplete="off" aria-label="Message text" disabled>
+        <button type="submit" class="btn btn-primary btn-sm" id="owMessengerSend" aria-label="Send message" disabled><i class="bi bi-send"></i></button>
+      </form>
+    </div>
+  </div>
+</div>

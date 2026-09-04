@@ -1,0 +1,75 @@
+/* Applicant Job Wall — per-deployment slot fulfillment states */
+.jw-deployment-slots {
+  margin-top: 1.25rem;
+}
+
+.jw-deployment-slots-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 0.65rem;
+}
+
+.jw-deployment-slots-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.jw-slot-card,
+.placement-option-card {
+  position: relative;
+}
+
+.jw-slot-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.85rem 0.95rem;
+  background: #fff;
+}
+
+.jw-slot-card-title {
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.2rem;
+}
+
+.jw-slot-card-meta,
+.jw-slot-card-schedule {
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.jw-slot-card-schedule {
+  margin-top: 0.35rem;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+.jw-slot-card.is-filled,
+.placement-option-card.placement-option-filled {
+  filter: grayscale(1);
+  opacity: 0.62;
+  pointer-events: none;
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.jw-slot-filled-badge,
+.placement-filled-badge {
+  position: absolute;
+  top: 0.55rem;
+  right: 0.55rem;
+  background: #0f172a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+}
+
+.placement-option-card.placement-option-filled .placement-radio {
+  visibility: hidden;
+}

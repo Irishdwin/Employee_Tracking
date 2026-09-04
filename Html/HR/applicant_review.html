@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applicant Review - Onazul HR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0056b3;
+            --sidebar-bg: #003366;
+            --sidebar-width: 240px;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f5f7fb;
+        }
+        .layout-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: #fff;
+            position: fixed;
+            inset: 0 0 0 0;
+            z-index: 1030;
+        }
+        .sidebar-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+        }
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.65rem 1.2rem;
+            color: #e2e8f0;
+            text-decoration: none;
+        }
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+        }
+        .sidebar-link.active {
+            background: linear-gradient(to right, #0072ff, #00c6ff);
+            color: #fff;
+        }
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 1.25rem 1.75rem;
+        }
+        .page-header-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1f2933;
+        }
+        .filter-badge {
+            cursor: pointer;
+        }
+    </style>
+    <script>window.REQUIRED_ROLE = 'HR';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+</head>
+<body>
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header"><span>Onazul HR</span></div>
+        <ul class="sidebar-nav mt-2">
+            <li><a href="hr_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="job_orders.html" class="sidebar-link"><i class="bi bi-briefcase"></i><span>Job Orders</span></a></li>
+            <li><a href="applicant_review.html" class="sidebar-link active"><i class="bi bi-people"></i><span>Applicant Review</span></a></li>
+            <li><a href="hr_dashboard.html#section-messages" class="sidebar-link"><i class="bi bi-chat-dots"></i><span>Messages (HR)</span></a></li>
+            <li><a href="deployments.html" class="sidebar-link"><i class="bi bi-geo-alt"></i><span>Deployments</span></a></li>
+            <li><a href="../../index.html" class="sidebar-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a></li>
+        </ul>
+    </aside>
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <div class="page-header-title">Applicant Review</div>
+                <div class="page-header-subtitle">Review applications, schedule interviews, and manage endorsements</div>
+            </div>
+            <div class="d-flex gap-2">
+                <select id="filterStatus" class="form-select" style="max-width: 200px;">
+                    <option value="">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="For Interview">For Interview</option>
+                    <option value="Passed">Passed</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Endorsed">Endorsed</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Applicant</th>
+                                <th>Position</th>
+                                <th>Company</th>
+                                <th>Applied Date</th>
+                                <th>Status</th>
+                                <th>Documents</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="applicationsBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Loading applications...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reviewAlert" class="alert d-none"></div>
+                <div id="reviewContent">
+                    <!-- Content loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API_BASE = '../../Api/HR/';
+    
+    function loadApplications() {
+        const status = document.getElementById('filterStatus').value;
+        const url = API_BASE + 'applicant_review.php' + (status ? '?status=' + status : '');
+        
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    renderApplications(data.applications || []);
+                } else {
+                    document.getElementById('applicationsBody').innerHTML = 
+                        '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load applications.</td></tr>';
+                }
+            })
+            .catch(() => {
+                document.getElementById('applicationsBody').innerHTML = 
+                    '<tr><td colspan="7" class="text-center text-danger py-4">Error loading applications.</td></tr>';
+            });
+    }
+    
+    function renderApplications(apps) {
+        const tbody = document.getElementById('applicationsBody');
+        if (apps.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No applications found.</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = apps.map(app => `
+            <tr>
+                <td><strong>${escapeHtml(app.applicant_name)}</strong><br><small class="text-muted">${escapeHtml(app.email)}</small></td>
+                <td>${escapeHtml(app.position)}</td>
+                <td>${escapeHtml(app.company_name)}</td>
+                <td>${app.application_date}</td>
+                <td><span class="badge bg-${getStatusColor(app.status)}">${escapeHtml(app.status)}</span></td>
+                <td><span class="badge bg-${app.doc_count > 0 ? 'success' : 'warning'}">${app.doc_count} doc${app.doc_count !== 1 ? 's' : ''}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="openReview(${app.application_id})">
+                        <i class="bi bi-eye"></i> Review
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function getStatusColor(status) {
+        const colors = {
+            'Pending': 'warning',
+            'For Interview': 'info',
+            'Passed': 'success',
+            'Failed': 'danger',
+            'Endorsed': 'primary'
+        };
+        return colors[status] || 'secondary';
+    }
+    
+    function openReview(appId) {
+        fetch(API_BASE + 'get_application_details.php?id=' + appId)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    renderReviewModal(data);
+                    new bootstrap.Modal(document.getElementById('reviewModal')).show();
+                }
+            });
+    }
+    
+    function renderReviewModal(data) {
+        const content = document.getElementById('reviewContent');
+        content.innerHTML = `
+            <div class="mb-3">
+                <h6>Applicant Information</h6>
+                <p><strong>Name:</strong> ${escapeHtml(data.applicant_name)}</p>
+                <p><strong>Email:</strong> ${escapeHtml(data.email)}</p>
+                <p><strong>Mobile:</strong> ${escapeHtml(data.mobile || 'N/A')}</p>
+            </div>
+            <div class="mb-3">
+                <h6>Application Details</h6>
+                <p><strong>Position:</strong> ${escapeHtml(data.position)}</p>
+                <p><strong>Company:</strong> ${escapeHtml(data.company_name)}</p>
+                <p><strong>Applied:</strong> ${data.application_date}</p>
+            </div>
+            <div class="mb-3">
+                <h6>Documents</h6>
+                <div id="documentsList">${renderDocuments(data.documents || [])}</div>
+            </div>
+            <div class="mb-3">
+                <h6>Actions</h6>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-info btn-sm" onclick="scheduleInterview(${data.application_id})">
+                        <i class="bi bi-calendar"></i> Schedule Interview
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="updateStatus(${data.application_id}, 'For Interview')">
+                        Mark for Interview
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="endorseToClient(${data.application_id})">
+                        Endorse to Client
+                    </button>
+                    ${data.can_hire ? `
+                        <button type="button" class="btn btn-dark btn-sm btn-hire-applicant" data-app-id="${data.application_id}">
+                            <i class="bi bi-person-check"></i> Hire Applicant
+                        </button>
+                    ` : (data.is_hired ? '<span class="badge bg-success">Hired</span>' : '')}
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderDocuments(docs) {
+        if (docs.length === 0) return '<p class="text-muted">No documents uploaded.</p>';
+        return '<ul class="list-group">' + docs.map(doc => `
+            <li class="list-group-item d-flex justify-content-between">
+                <span>${escapeHtml(doc.doc_type)} - ${escapeHtml(doc.original_filename)}</span>
+                <a href="${doc.file_path}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+            </li>
+        `).join('') + '</ul>';
+    }
+    
+    function scheduleInterview(appId) {
+        const date = prompt('Enter interview date and time (YYYY-MM-DD HH:MM):');
+        if (!date) return;
+        
+        fetch(API_BASE + 'schedule_interview.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({application_id: appId, interview_date: date})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Interview scheduled successfully!');
+                bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+                loadApplications();
+            } else {
+                alert(data.message || 'Failed to schedule interview.');
+            }
+        });
+    }
+    
+    function updateStatus(appId, status) {
+        fetch(API_BASE + 'update_application_status.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({application_id: appId, status: status})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Status updated successfully!');
+                bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
+                loadApplications();
+            } else {
+                alert(data.message || 'Failed to update status.');
+            }
+        });
+    }
+    
+    function endorseToClient(appId) {
+        if (!confirm('Endorse this applicant to the client?')) return;
+        
+        fetch(API_BASE + 'endorse_to_client.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({application_id: appId})
+        })
+        .then(r => {
+            return r.text().then(text => {
+                try {
+                    return { ok: r.ok, status: r.status, data: JSON.parse(text) };
+                } catch (e) {
+                    return { ok: false, status: r.status, data: null, raw: text };
+                }
+            });
+        })
+        .then(res => {
+            const data = res.data;
+            if (res.data === null) {
+                alert('Invalid server response: ' + (res.raw || '(empty response)'));
+                return;
+            }
+            if (res.ok && data.success) {
+                alert('Applicant endorsed to client successfully!');
+                const modalEl = document.getElementById('reviewModal');
+                if (modalEl) {
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    if (modal) modal.hide();
+                }
+                loadApplications();
+            } else {
+                alert((data && (data.message || data.error)) || 'Failed to endorse applicant.');
+            }
+        })
+        .catch(err => {
+            alert('Request failed: ' + (err.message || 'network error'));
+        });
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    document.getElementById('filterStatus').addEventListener('change', loadApplications);
+    loadApplications();
+</script>
+</body>
+</html>

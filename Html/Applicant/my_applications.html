@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Applications - Onazul Workforce Suite</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css">
+  <style>
+    :root{
+      --onazul-navy:#0f172a;
+      --onazul-primary:#0056b3;
+      --onazul-magenta:#e60278;
+      --bg:#f4f5f7;
+      --text:#0f172a;
+      --muted:#6b7280;
+    }
+    html,body{ height:100%; }
+    body{
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      overflow-x:hidden;
+    }
+
+    /* Top header (constant) */
+    .topbar{
+      background:#fff;
+      border-bottom:1px solid rgba(15,23,42,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 1050;
+    }
+    .brand-logo{
+      height:34px;
+      width:auto;
+      object-fit:contain;
+    }
+    .nav-link{
+      color: rgba(15,23,42,0.78);
+      font-weight: 700;
+    }
+    .nav-link:hover{ color: rgba(15,23,42,1); }
+
+    /* Modern account dropdown card */
+    .account-menu-wrap{ position: relative; }
+    .account-trigger{
+      display:inline-flex;
+      align-items:center;
+      gap:4px;
+      background:transparent;
+      border:none;
+      padding:4px 8px 4px 4px;
+      border-radius:999px;
+      cursor:pointer;
+    }
+    .account-avatar{
+      width:36px;
+      height:36px;
+      border-radius:50%;
+      background: linear-gradient(145deg, #fed7aa 0%, #fb923c 55%, #ea580c 100%);
+      color:#7c2d12;
+      font-weight:800;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 2px 8px rgba(234,88,12,0.25);
+      border:2px solid rgba(255,255,255,0.85);
+      flex-shrink:0;
+      line-height:1;
+    }
+    .account-chevron{
+      font-size:11px;
+      color:#64748b;
+      transition: transform .2s ease;
+      margin-left:2px;
+    }
+    .account-menu-wrap.is-open .account-chevron{ transform: rotate(180deg); }
+    .account-dropdown{
+      display:none;
+      position:absolute;
+      right:0;
+      top: calc(100% + 10px);
+      min-width: 300px;
+      max-width: min(360px, 96vw);
+      background:#fff;
+      border:1px solid rgba(15,23,42,0.08);
+      border-radius:16px;
+      box-shadow:0 24px 60px rgba(15,23,42,0.18);
+      z-index:12050;
+      overflow:hidden;
+    }
+    .account-dropdown.is-open{ display:block; }
+    .account-dropdown-card-header{
+      padding:16px 16px 12px;
+      border-bottom:1px solid #eef0f3;
+      background: linear-gradient(180deg, #fff 0%, #fafbfc 100%);
+    }
+    .account-dropdown-name{
+      font-weight: 900;
+      font-size: 15px;
+      color:#0f172a;
+      line-height:1.3;
+      margin-bottom:6px;
+    }
+    .account-dropdown-meta{
+      display:flex;
+      gap:6px;
+      align-items:flex-start;
+      font-size:13px;
+      font-weight:700;
+      color:#64748b;
+      margin-bottom:4px;
+    }
+    .account-dropdown-meta i{ color: var(--onazul-primary); margin-top:2px; }
+    .account-dropdown-meta.muted{ color:#94a3b8; font-style:italic; }
+    .account-dropdown-stats{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+      padding:12px 16px;
+      background:#f8fafc;
+      border-bottom:1px solid #eef0f3;
+    }
+    .account-stat-box{
+      background:#fff;
+      border:1px solid rgba(15,23,42,0.08);
+      border-radius:12px;
+      padding:10px 12px;
+      text-align:center;
+    }
+    .account-stat-num{
+      font-weight:900;
+      font-size:22px;
+      color: var(--onazul-navy);
+      line-height:1.1;
+    }
+    .account-stat-label{
+      font-size:11px;
+      font-weight:900;
+      color:#64748b;
+      margin-top:4px;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+    }
+    .account-dropdown-actions{
+      padding: 8px 8px 10px;
+    }
+    .account-dropdown-link{
+      display:block;
+      width:100%;
+      text-align:left;
+      padding: 11px 14px;
+      border:none;
+      background:none;
+      font-size:14px;
+      font-weight:800;
+      color:#0f172a;
+      text-decoration:none;
+      cursor:pointer;
+      border-radius:10px;
+    }
+    .account-dropdown-link:hover{ background:#f1f5f9; }
+    .account-dropdown-item{
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: none;
+      background: none;
+      font-size: 14px;
+      font-weight: 650;
+      color: #0f172a;
+      text-decoration: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .account-dropdown-item:hover{ background: #f1f5f9; color: #0f172a; }
+    .account-dropdown-divider{
+      height: 1px;
+      background: #e2e8f0;
+      margin: 4px 6px;
+    }
+    .account-dropdown-signout{
+      color:#dc2626;
+      width:100%;
+      text-align:left;
+    }
+    .account-dropdown-signout:hover{ background:#fef2f2 !important; color:#b91c1c !important; }
+
+    /* Master-detail split view */
+    .app-wrap{
+      padding: 22px 16px 60px;
+      width: 100%;
+      margin: 0;
+      max-width: none;
+    }
+    .app-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap: 14px;
+      margin-top: 14px;
+      margin-bottom: 18px;
+    }
+    .page-title{
+      font-size: 26px;
+      font-weight: 950;
+      color: var(--text);
+      margin: 0;
+      line-height: 1.15;
+    }
+    .page-subtitle{
+      color: var(--muted);
+      font-weight: 700;
+      margin-top: 6px;
+      margin-bottom: 0;
+    }
+
+    .app-split-row{
+      display:flex;
+      flex-wrap:nowrap;
+      gap: 16px;
+      align-items:flex-start;
+    }
+    @media (max-width: 991px){
+      .app-split-row{ flex-wrap:wrap; }
+    }
+    .app-col-master{
+      flex:0 0 40%;
+      max-width:40%;
+      min-width: 320px;
+    }
+    @media (max-width: 991px){
+      .app-col-master{ flex:1 1 auto; max-width:none; min-width:0; }
+    }
+    .app-col-detail{
+      flex:0 0 60%;
+      max-width:60%;
+      min-width: 420px;
+    }
+    @media (max-width: 991px){
+      .app-col-detail{ flex:1 1 auto; max-width:none; min-width:0; }
+    }
+
+    .app-search{
+      background:#fff;
+      border:1px solid rgba(15,23,42,0.08);
+      border-radius:14px;
+      padding: 12px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .app-search input{
+      width:100%;
+      border:none;
+      outline:none;
+      font-weight:750;
+      background:transparent;
+    }
+
+    .app-cards{
+      margin-top: 12px;
+      max-height: calc(100vh - 220px);
+      overflow-y:auto;
+      padding-right:6px;
+    }
+    .app-card{
+      width:100%;
+      text-align:left;
+      background:#fff;
+      border:1px solid rgba(15,23,42,0.12);
+      border-radius:14px;
+      padding:14px 14px;
+      margin-bottom:10px;
+      cursor:pointer;
+      transition: border-color .15s, box-shadow .15s, transform .15s;
+    }
+    .app-card:hover{
+      border-color: rgba(0,86,179,0.35);
+      box-shadow: 0 4px 16px rgba(15,23,42,0.06);
+      transform: translateY(-1px);
+    }
+    .app-card.is-active{
+      border-color: var(--onazul-primary);
+      box-shadow: 0 0 0 2px rgba(0,86,179,0.18);
+    }
+    .app-logo{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:#f1f5f9;
+      border:1px solid rgba(15,23,42,0.08);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:950;
+      color: var(--onazul-primary);
+      flex-shrink:0;
+    }
+    .app-card-title{
+      font-weight: 950;
+      color:#0f172a;
+      margin:0 0 4px;
+      line-height:1.25;
+      font-size: 16px;
+    }
+    .app-card-company{
+      color: var(--muted);
+      font-weight: 750;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .app-card-meta{
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+      font-size: 13px;
+      color:#475569;
+      margin-bottom: 8px;
+    }
+
+    .app-detail-sticky{
+      position: sticky;
+      top: 88px;
+      background:#fff;
+      border:1px solid rgba(15,23,42,0.12);
+      border-radius:16px;
+      padding: 18px 18px 22px;
+      box-shadow:0 4px 20px rgba(15,23,42,0.06);
+      max-height: calc(100vh - 120px);
+      overflow:auto;
+    }
+    @media (max-width: 991px){
+      .app-detail-sticky{
+        position: relative;
+        top:auto;
+        max-height:none;
+      }
+    }
+    .app-detail-empty{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      min-height:240px;
+      gap:8px;
+      color:#94a3b8;
+      text-align:center;
+    }
+    .app-detail-head{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:flex-start;
+      margin-bottom: 10px;
+    }
+    .app-detail-title{
+      font-weight: 950;
+      color:#0f172a;
+      margin:0;
+      font-size: clamp(1.25rem, 2vw, 1.55rem);
+      letter-spacing:-0.02em;
+      line-height:1.2;
+    }
+    .app-detail-company{
+      color:#475569;
+      font-weight: 750;
+      margin-top:4px;
+    }
+    .app-detail-body{
+      color:#334155;
+      line-height:1.7;
+      font-size:0.95rem;
+      white-space:pre-wrap;
+      margin-top: 10px;
+    }
+
+    .app-timeline{
+      margin-top: 18px;
+    }
+    .app-timeline h3{
+      font-size: 12px;
+      font-weight: 950;
+      color:#64748b;
+      text-transform:uppercase;
+      letter-spacing:0.06em;
+      margin-bottom: 10px;
+    }
+    .app-timeline-item{
+      display:flex;
+      gap:12px;
+      align-items:flex-start;
+      padding:10px 0;
+      border-top:1px solid rgba(15,23,42,0.06);
+    }
+    .app-timeline-item:first-child{ border-top:none; padding-top:0; }
+    .app-timeline-dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background: var(--onazul-primary);
+      margin-top:6px;
+      flex-shrink:0;
+    }
+    .app-timeline-label{
+      font-weight: 950;
+      color:#0f172a;
+      margin:0;
+      line-height:1.3;
+    }
+    .app-timeline-date{
+      font-size: 13px;
+      font-weight: 850;
+      color:#64748b;
+      margin-top:2px;
+    }
+    .app-timeline-detail{
+      margin-top:4px;
+      color:#334155;
+      font-size:0.95rem;
+      white-space:pre-wrap;
+      line-height:1.6;
+    }
+
+    /* Progress stepper */
+    .app-stepper{
+      display:flex;
+      gap:0;
+      margin:14px 0 12px;
+      padding: 10px 0 12px;
+      border-top:1px solid rgba(15,23,42,0.06);
+      border-bottom:1px solid rgba(15,23,42,0.06);
+    }
+    .app-stepper-step{
+      flex:1;
+      text-align:center;
+      position:relative;
+      padding:0 6px;
+    }
+    .app-stepper-step:not(:last-child)::after{
+      content:'';
+      position:absolute;
+      top:18px;
+      left:50%;
+      right:-50%;
+      height:2px;
+      background: rgba(15,23,42,0.12);
+      transform: translateX(6px);
+      z-index:0;
+    }
+    .app-stepper-dot{
+      width:14px;
+      height:14px;
+      border-radius:999px;
+      background: rgba(15,23,42,0.15);
+      margin:0 auto;
+      position:relative;
+      z-index:1;
+    }
+    .app-stepper-step.is-complete:not(:last-child)::after{ background: var(--onazul-primary); }
+    .app-stepper-step.is-complete .app-stepper-dot{ background: var(--onazul-primary); }
+    .app-stepper-step.is-active .app-stepper-dot{ background: var(--onazul-magenta); }
+    .app-stepper-label{
+      margin-top:8px;
+      font-size:10px;
+      font-weight: 950;
+      color:#64748b;
+      line-height:1.15;
+    }
+    @media (min-width: 992px){
+      .app-stepper-label{ font-size:11px; }
+    }
+    .app-stepper-step.is-complete .app-stepper-label{ color:#0f172a; }
+
+    /* Agency contact widget */
+    .app-contact-card{
+      margin-top: 14px;
+      border:1px solid rgba(15,23,42,0.10);
+      background:#f8fafc;
+      border-radius:14px;
+      padding:14px 14px 14px;
+    }
+    .app-contact-title{
+      font-weight: 950;
+      color:#0f172a;
+      margin-bottom: 8px;
+      font-size: 13px;
+      text-transform:uppercase;
+      letter-spacing:0.05em;
+    }
+    .app-contact-body{
+      color:#334155;
+      font-weight: 750;
+      line-height:1.6;
+      font-size: 13px;
+    }
+  </style>
+  <script>
+    window.REQUIRED_ROLE = 'Applicant';
+    window.ROLE_GUARD_DEFER_ELEVATION = true;
+  </script>
+  <script src="../../Js/Shared/role_guard.js"></script>
+</head>
+<body>
+  <!-- Main Top Header -->
+  <header class="topbar">
+    <div class="container-fluid px-3 py-2">
+      <div class="d-flex align-items-center justify-content-between gap-3">
+        <a href="applicant_landing.html" class="text-decoration-none d-flex align-items-center gap-2">
+          <img src="../../Images/images.jpg" alt="Onazul logo" class="brand-logo">
+          <span class="fw-bold" style="color: var(--onazul-navy);">Onazul Manpower Services</span>
+        </a>
+
+        <nav class="d-none d-md-flex align-items-center gap-4">
+          <a class="nav-link" href="../../Html/Applicant/applicant_landing.html">Job search</a>
+          <a class="nav-link" href="applicant_career_advice.html">Career advice</a>
+          <a class="nav-link" href="applicant_companies.html">Companies</a>
+        </nav>
+
+        <div class="d-flex align-items-center gap-3">
+          <!-- Notifications (optional, but keeps existing bell script working) -->
+          <div class="dropdown">
+            <a href="#" class="text-decoration-none text-dark dropdown-toggle position-relative" id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-bell-fill" style="font-size:18px;color:#0f172a;opacity:0.9;"></i>
+              <span class="ow-notif-badge d-none" id="notificationBadge" aria-hidden="true">0</span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow" id="notificationDropdown" style="min-width:280px;max-height:320px;overflow-y:auto;">
+              <li class="dropdown-header">Notifications</li>
+              <li><hr class="dropdown-divider"></li>
+              <li><div id="notificationList">Loading...</div></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item small text-center" href="#" id="markAllRead">Mark all as read</a></li>
+            </ul>
+          </div>
+
+          <div class="account-menu-wrap d-none" id="accountMenuWrap">
+            <button type="button" class="account-trigger" id="accountMenuTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="accountDropdown">
+              <span class="account-avatar" id="accountAvatarInitial" aria-hidden="true">?</span>
+              <i class="bi bi-chevron-down account-chevron" aria-hidden="true"></i>
+            </button>
+            <div class="account-dropdown" id="accountDropdown" role="menu" aria-labelledby="accountMenuTrigger">
+              <div class="account-dropdown-card-header">
+                <div class="account-dropdown-name" id="accountDropdownName">Applicant</div>
+                <div class="account-dropdown-meta" id="accountDropdownRoleRow"><i class="bi bi-diagram-3"></i><span id="accountDropdownRole">—</span></div>
+                <div class="account-dropdown-meta" id="accountDropdownLocRow"><i class="bi bi-geo-alt"></i><span id="accountDropdownLoc">—</span></div>
+              </div>
+              <div class="account-dropdown-stats">
+                <div class="account-stat-box">
+                  <div class="account-stat-num" id="accountStatApplications">0</div>
+                  <div class="account-stat-label">Applications</div>
+                </div>
+                <div class="account-stat-box">
+                  <div class="account-stat-num" id="accountStatSaved">0</div>
+                  <div class="account-stat-label">Saved jobs</div>
+                </div>
+              </div>
+              <div style="padding: 8px;">
+                <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#profile">Profile &amp; preferences</a>
+                <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#documents">My documents</a>
+                <a class="account-dropdown-item" role="menuitem" href="my_applications.html" id="accountLinkApplications">Job applications</a>
+                <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
+                <a class="account-dropdown-item" role="menuitem" href="../notifications.html">Notifications</a>
+                <div class="account-dropdown-divider"></div>
+                <button type="button" class="account-dropdown-item account-dropdown-signout" id="btnSignOut">Logout</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary fw-bold d-none" style="background: var(--onazul-primary); border:none;" id="btnOpenSignIn" type="button">
+            Sign in
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Master-detail content -->
+  <main class="app-wrap">
+    <div class="app-header">
+      <div>
+        <h1 class="page-title">My Applications</h1>
+        <p class="page-subtitle">Track the status of all your job applications.</p>
+      </div>
+    </div>
+
+    <div class="app-split-row">
+      <div class="app-col-master">
+        <div class="app-search">
+          <i class="bi bi-search" style="color: var(--onazul-primary); font-weight:950;"></i>
+          <input id="appSearch" type="text" placeholder="Search by job title or company..." autocomplete="off">
+        </div>
+        <div id="applicationsList" class="app-cards"></div>
+      </div>
+
+      <div class="app-col-detail">
+        <div id="appDetailSticky" class="app-detail-sticky">
+          <div id="appDetailEmpty" class="app-detail-empty">
+            <i class="bi bi-grid-1x2" style="font-size:2rem;opacity:0.5;"></i>
+            <p class="mb-0" style="font-weight:800;">Select an application from the left.</p>
+          </div>
+          <div id="appDetailContent" class="d-none"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../Js/Shared/ow_system_events.js"></script>
+  <script src="../../Js/Shared/ow_notifications.js"></script>
+  <script src="../../Js/Applicant/applicant_notifications.js"></script>
+  <script>
+    (function () {
+      var STATUS_API = '../../Api/Applicant/get_profile_status.php';
+      var HEADER_STATS_API = '../../Api/Applicant/applicant_header_stats.php';
+      var APPS_API = '../../Api/Applicant/get_my_applications.php';
+
+      // Account dropdown
+      var accountWrap = document.getElementById('accountMenuWrap');
+      var accountTrigger = document.getElementById('accountMenuTrigger');
+      var accountDropdown = document.getElementById('accountDropdown');
+      var btnOpen = document.getElementById('btnOpenSignIn');
+      var btnOut = document.getElementById('btnSignOut');
+
+      var applicationsCountEl = document.getElementById('accountStatApplications');
+      var savedCountEl = document.getElementById('accountStatSaved');
+      var roleEl = document.getElementById('accountDropdownRole');
+      var locEl = document.getElementById('accountDropdownLoc');
+      var nameEl = document.getElementById('accountDropdownName');
+      var avatarEl = document.getElementById('accountAvatarInitial');
+
+      function initials(name) {
+        var s = String(name || '').trim();
+        if (!s) return 'U';
+        return s.charAt(0).toUpperCase() + (s.split(/\s+/)[1] ? s.split(/\s+/)[1].charAt(0).toUpperCase() : '');
+      }
+
+      function setSavedCount() {
+        try {
+          var raw = localStorage.getItem('onazul_saved_job_ids');
+          var arr = raw ? JSON.parse(raw) : [];
+          if (savedCountEl) savedCountEl.textContent = String(Array.isArray(arr) ? arr.length : 0);
+        } catch (e) {
+          if (savedCountEl) savedCountEl.textContent = '0';
+        }
+      }
+
+      function closeMenu() {
+        if (!accountWrap || !accountDropdown) return;
+        accountWrap.classList.remove('is-open');
+        accountDropdown.classList.remove('is-open');
+        if (accountTrigger) accountTrigger.setAttribute('aria-expanded', 'false');
+      }
+
+      if (accountTrigger && accountDropdown) {
+        accountTrigger.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var open = accountDropdown.classList.contains('is-open');
+          if (open) closeMenu();
+          else {
+            accountWrap.classList.add('is-open');
+            accountDropdown.classList.add('is-open');
+            accountTrigger.setAttribute('aria-expanded', 'true');
+            loadHeaderStats();
+            setSavedCount();
+          }
+        });
+      }
+      document.addEventListener('click', function (e) {
+        if (!accountWrap || !accountDropdown) return;
+        if (accountWrap.contains(e.target)) return;
+        closeMenu();
+      });
+      window.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeMenu();
+      });
+
+      if (btnOut) {
+        btnOut.addEventListener('click', function () {
+          closeMenu();
+          fetch('../../Api/Login/logout.php', {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+          })
+          .catch(function(){})
+          .then(function () { window.location.href = '/Employee_Tracking/index.html'; });
+        });
+      }
+
+      function fetchJson(url, opts) {
+        var o = opts ? Object.assign({}, opts) : {};
+        o.credentials = 'include';
+        o.headers = Object.assign({ 'Accept': 'application/json' }, o.headers || {});
+        return fetch(url, o).then(function (r) {
+          return r.text().then(function (t) {
+            var data = null;
+            try { data = t ? JSON.parse(t) : null; } catch (e) { data = null; }
+            return { ok: r.ok, status: r.status, data: data };
+          });
+        });
+      }
+
+      function loadHeaderStats() {
+        return fetchJson(HEADER_STATS_API, { method: 'GET' }).then(function (res) {
+          var d = res.data;
+          if (!d || !d.success || !d.logged_in) return;
+          if (nameEl) nameEl.textContent = d.full_name || 'Applicant';
+          if (avatarEl) avatarEl.textContent = initials(d.full_name || 'Applicant');
+          if (roleEl) roleEl.textContent = d.saved_role ? d.saved_role : 'Add a role in your profile';
+          if (locEl) locEl.textContent = d.home_location ? d.home_location : 'Add a home location';
+          if (applicationsCountEl) applicationsCountEl.textContent = String(d.applications_count != null ? d.applications_count : 0);
+        }).catch(function(){});
+      }
+
+      function routeToOnboardingIfNeeded() {
+        return fetchJson(STATUS_API, { method: 'GET' }).then(function (res) {
+          var st = res.data;
+          if (!res.ok || !st || !st.success || st.logged_in === false) {
+            window.location.replace('applicant_profile_master.html#profile');
+            return { ok: false };
+          }
+          if (st.status === 'incomplete' || !st.profile_completed) {
+            window.location.replace('applicant_profile_master.html#profile');
+            return { ok: false };
+          }
+          return { ok: true, st: st };
+        });
+      }
+
+      // Master-detail application UI
+      var allApplications = [];
+      var filteredApplications = [];
+      var selectedApplicationId = null;
+      var refreshTimer = null;
+      var isRefreshing = false;
+      var lastRefreshHash = '';
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function fmtDateCompact(d) { return d || ''; }
+
+      function statusBadgeClass(statusBadge) {
+        var map = {
+          'Applied': 'bg-secondary',
+          'Scheduled for Interview': 'bg-info',
+          'Endorsed to Client': 'bg-primary',
+          'Approved by Company': 'bg-warning',
+          'Hired': 'bg-success',
+          'Declined': 'bg-danger',
+          // Legacy labels (backward compatibility)
+          'In Review': 'bg-primary',
+          'Interview Scheduled': 'bg-info',
+          'Approved': 'bg-warning'
+        };
+        return map[statusBadge] || 'bg-secondary';
+      }
+
+      function progressStepIndex(badge) {
+        var b = String(badge || '').trim();
+        if (b === 'Applied') return 0;
+        if (b === 'Scheduled for Interview' || b === 'Interview Scheduled') return 1;
+        if (b === 'Endorsed to Client' || b === 'In Review') return 2;
+        if (b === 'Approved by Company' || b === 'Approved') return 3;
+        if (b === 'Hired') return 4;
+        if (b === 'Declined') return 2;
+        return 0;
+      }
+
+      function renderProgressStepper(badge) {
+        var activeIdx = progressStepIndex(badge);
+        var completeAll = (String(badge || '').trim() === 'Hired');
+        var steps = [
+          'Applied',
+          'Interview Scheduled',
+          'Endorsed to Client',
+          'Approved by Company',
+          'Hired'
+        ];
+
+        var html = '<div class="app-stepper" aria-label="Application progress">';
+        steps.forEach(function (label, idx) {
+          var cls = 'app-stepper-step';
+          if (completeAll || idx < activeIdx) cls += ' is-complete';
+          if (!completeAll && idx === activeIdx) cls += ' is-active';
+          html += '<div class="' + cls + '">' +
+            '<div class="app-stepper-dot" aria-hidden="true"></div>' +
+            '<div class="app-stepper-label">' + escapeHtml(label) + '</div>' +
+          '</div>';
+        });
+        html += '</div>';
+        return html;
+      }
+
+      function renderTimeline(events) {
+        var html = '';
+        var items = events && Array.isArray(events) ? events : [];
+        items.forEach(function (ev) {
+          html +=
+            '<div class="app-timeline-item">' +
+              '<div class="app-timeline-dot" aria-hidden="true"></div>' +
+              '<div>' +
+                '<p class="app-timeline-label">' + escapeHtml(ev.label) + '</p>' +
+                (ev.date ? '<div class="app-timeline-date">' + escapeHtml(ev.date) + '</div>' : '') +
+                (ev.detail ? '<div class="app-timeline-detail">' + escapeHtml(ev.detail) + '</div>' : '') +
+              '</div>' +
+            '</div>';
+        });
+        return '<div class="app-timeline"><h3>Status Updates</h3>' + html + '</div>';
+      }
+
+      function renderAgencyContact() {
+        return (
+          '<div class="app-contact-card">' +
+            '<div class="app-contact-title"><i class="bi bi-person-badge me-2"></i>Agency Contact</div>' +
+            '<div class="app-contact-body">' +
+              '<div style="font-weight:950;color:#0f172a;margin-bottom:4px;">Onazul Manpower Agent</div>' +
+              '<div><i class="bi bi-envelope me-2" style="color: var(--onazul-primary);"></i>talent@onazul.example</div>' +
+              '<div><i class="bi bi-telephone me-2" style="color: #64748b;"></i>+63 (000) 000-0000</div>' +
+              '<div style="margin-top:8px;color:#64748b;font-weight:700;">Updates about your application will appear here and in your messages.</div>' +
+            '</div>' +
+          '</div>'
+        );
+      }
+
+      function renderApplications(list) {
+        var el = document.getElementById('applicationsList');
+        if (!el) return;
+        if (!list || list.length === 0) {
+          el.innerHTML = '<div class="text-muted p-3 bg-white rounded-3 border" style="font-weight:800;">No applications found.</div>';
+          return;
+        }
+        el.innerHTML = list.map(function (a) {
+          var active = (a.application_id === selectedApplicationId) ? ' is-active' : '';
+          var initialsCompany = String(a.company_name || 'O').trim().slice(0, 2).toUpperCase();
+          return (
+            '<div class="app-card' + active + '" role="button" tabindex="0" data-application-id="' + a.application_id + '">' +
+              '<div style="display:flex;gap:12px;align-items:flex-start;">' +
+                '<div class="app-logo" aria-hidden="true">' + escapeHtml(initialsCompany) + '</div>' +
+                '<div style="flex:1;min-width:0;">' +
+                  '<div class="app-card-title">' + escapeHtml(a.position) + '</div>' +
+                  '<div class="app-card-company">' + escapeHtml(a.company_name) + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="app-card-meta">' +
+                '<div><i class="bi bi-geo-alt" style="color: var(--onazul-primary);"></i> ' + escapeHtml(a.location || 'Mindanao') + '</div>' +
+                '<div><i class="bi bi-calendar" style="color: #64748b;"></i> Applied ' + escapeHtml(fmtDateCompact(a.application_date)) + '</div>' +
+              '</div>' +
+              '<div class="badge ' + statusBadgeClass(a.status_badge) + '" style="padding:8px 12px;font-size:13px;font-weight:900;width:fit-content;">' +
+                escapeHtml(a.status_badge) +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
+
+        Array.prototype.forEach.call(el.querySelectorAll('.app-card'), function (card) {
+          card.addEventListener('click', function () {
+            var id = parseInt(card.getAttribute('data-application-id'), 10);
+            if (!id) return;
+            selectApplication(id, true);
+          });
+          card.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              var id = parseInt(card.getAttribute('data-application-id'), 10);
+              if (!id) return;
+              selectApplication(id, true);
+            }
+          });
+        });
+      }
+
+      function renderApplicationDetail(app) {
+        var empty = document.getElementById('appDetailEmpty');
+        var content = document.getElementById('appDetailContent');
+        if (!content || !empty) return;
+
+        if (!app) {
+          empty.classList.remove('d-none');
+          content.classList.add('d-none');
+          content.innerHTML = '';
+          return;
+        }
+
+        empty.classList.add('d-none');
+        content.classList.remove('d-none');
+
+        var jobDesc = '';
+        if (app.qualifications && String(app.qualifications).trim() !== '') {
+          jobDesc += '<h3 class="h6 text-uppercase fw-bold mb-2" style="font-size:11px;letter-spacing:0.06em;color:#64748b;">Job Details (Requirements &amp; Responsibilities)</h3>';
+          jobDesc += '<div class="app-detail-body">' + escapeHtml(app.qualifications) + '</div>';
+        }
+        if (app.required_skills && String(app.required_skills).trim() !== '') {
+          jobDesc += '<h3 class="h6 text-uppercase fw-bold mt-4 mb-2" style="font-size:11px;letter-spacing:0.06em;color:#64748b;">Required Skills</h3>';
+          jobDesc += '<div class="app-detail-body">' + escapeHtml(app.required_skills) + '</div>';
+        }
+        if (!jobDesc) jobDesc = '<div class="app-detail-body" style="color:#94a3b8;font-style:italic;">No description provided yet.</div>';
+
+        var badgeClass = statusBadgeClass(app.status_badge);
+
+        content.innerHTML =
+          '<div class="app-detail-head">' +
+            '<div>' +
+              '<h2 class="app-detail-title">' + escapeHtml(app.position || 'Role') + '</h2>' +
+              '<div class="app-detail-company">' + escapeHtml(app.company_name || 'Employer') + '</div>' +
+            '</div>' +
+            '<div>' +
+              '<div class="badge ' + badgeClass + '" style="padding:10px 14px;font-size:13px;">' + escapeHtml(app.status_badge) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">' +
+            '<div style="color:#334155;font-weight:850;"><i class="bi bi-geo-alt" style="color: var(--onazul-primary);"></i> ' + escapeHtml(app.location || 'Mindanao') + '</div>' +
+            (app.work_schedule ? '<div style="color:#334155;font-weight:850;"><i class="bi bi-clock" style="color:#64748b;"></i> ' + escapeHtml(app.work_schedule) + '</div>' : '') +
+            (app.request_date ? '<div style="color:#334155;font-weight:850;"><i class="bi bi-calendar3" style="color:#64748b;"></i> Posted ' + escapeHtml(app.request_date) + '</div>' : '') +
+            '<div style="color:#334155;font-weight:850;"><i class="bi bi-calendar" style="color:#64748b;"></i> Applied ' + escapeHtml(app.application_date || '') + '</div>' +
+          '</div>' +
+          renderProgressStepper(app.status_badge) +
+          jobDesc +
+          renderAgencyContact() +
+          renderTimeline(app.timeline);
+      }
+
+      function selectApplication(appId, scrollIntoView) {
+        selectedApplicationId = appId;
+        renderApplications(filteredApplications);
+        var app = allApplications.find(function (x) { return x.application_id === appId; }) || null;
+        renderApplicationDetail(app);
+        if (scrollIntoView && window.innerWidth < 992) {
+          document.getElementById('appDetailSticky').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+
+      function applySearchFilter() {
+        var q = document.getElementById('appSearch').value.trim().toLowerCase();
+        if (!q) filteredApplications = allApplications.slice();
+        else {
+          filteredApplications = allApplications.filter(function (a) {
+            return String(a.position || '').toLowerCase().includes(q) ||
+              String(a.company_name || '').toLowerCase().includes(q);
+          });
+        }
+
+        if (filteredApplications.length === 0) {
+          selectedApplicationId = null;
+          renderApplications(filteredApplications);
+          renderApplicationDetail(null);
+          return;
+        }
+
+        var stillVisible = selectedApplicationId && filteredApplications.some(function (x) { return x.application_id === selectedApplicationId; });
+        if (!stillVisible) selectedApplicationId = filteredApplications[0].application_id;
+        renderApplications(filteredApplications);
+        var app = allApplications.find(function (x) { return x.application_id === selectedApplicationId; }) || null;
+        renderApplicationDetail(app);
+      }
+
+      function stableHashApplications(apps) {
+        // Quick hash to skip DOM work when nothing changed.
+        try {
+          return JSON.stringify((apps || []).map(function (a) {
+            return [
+              a.application_id,
+              a.status,
+              a.status_badge,
+              a.application_date,
+              a.endorsed_date,
+              a.interview_date,
+              a.client_approval_status,
+              a.hired_date
+            ];
+          }));
+        } catch (e) {
+          return String(Date.now());
+        }
+      }
+
+      function refreshApplications(opts) {
+        var o = opts || {};
+        if (isRefreshing) return Promise.resolve();
+        isRefreshing = true;
+        return fetchJson(APPS_API, { method: 'GET' })
+          .then(function (res) {
+            var d = res.data;
+            if (!d || !d.success) return;
+
+            var nextAll = d.applications || [];
+            var nextHash = stableHashApplications(nextAll);
+            if (nextHash === lastRefreshHash && o.force !== true) return;
+
+            lastRefreshHash = nextHash;
+            allApplications = nextAll;
+
+            // Keep the user's current search text and selection stable.
+            var searchEl = document.getElementById('appSearch');
+            var q = searchEl ? String(searchEl.value || '') : '';
+            if (q.trim() !== '') {
+              // Apply filter without reading DOM twice.
+              var ql = q.trim().toLowerCase();
+              filteredApplications = allApplications.filter(function (a) {
+                return String(a.position || '').toLowerCase().includes(ql) ||
+                  String(a.company_name || '').toLowerCase().includes(ql);
+              });
+            } else {
+              filteredApplications = allApplications.slice();
+            }
+
+            // If selected app disappeared (rare), pick first visible.
+            var stillExists = selectedApplicationId && allApplications.some(function (x) { return x.application_id === selectedApplicationId; });
+            if (!stillExists) {
+              selectedApplicationId = filteredApplications.length ? filteredApplications[0].application_id : null;
+            }
+
+            renderApplications(filteredApplications);
+            var selectedApp = selectedApplicationId
+              ? (allApplications.find(function (x) { return x.application_id === selectedApplicationId; }) || null)
+              : null;
+            renderApplicationDetail(selectedApp);
+
+            var anyHired = allApplications.some(function (a) {
+              return String(a.status_badge || '').trim() === 'Hired'
+                || String(a.status || '').trim().toLowerCase() === 'hired';
+            });
+            if (anyHired && window.ApplicantHireCelebration && typeof ApplicantHireCelebration.poll === 'function') {
+              ApplicantHireCelebration.poll();
+            }
+          })
+          .catch(function(){})
+          .finally(function () { isRefreshing = false; });
+      }
+
+      function loadApplications() {
+        return fetchJson(APPS_API, { method: 'GET' }).then(function (res) {
+          if (!res.data || !res.data.success) {
+            window.location.replace('applicant_profile_master.html#profile');
+            return;
+          }
+          allApplications = res.data.applications || [];
+          filteredApplications = allApplications.slice();
+          if (allApplications.length) {
+            selectedApplicationId = allApplications[0].application_id;
+            renderApplications(filteredApplications);
+            renderApplicationDetail(allApplications[0]);
+          } else {
+            selectedApplicationId = null;
+            renderApplications([]);
+            renderApplicationDetail(null);
+          }
+
+          // Seed hash for the refresh loop so we don't instantly re-render.
+          lastRefreshHash = stableHashApplications(allApplications);
+        });
+      }
+
+      function boot() {
+        routeToOnboardingIfNeeded().then(function (r) {
+          if (!r || !r.ok) return;
+          if (accountWrap) accountWrap.classList.remove('d-none');
+          if (btnOpen) btnOpen.classList.add('d-none');
+          loadHeaderStats();
+          setSavedCount();
+
+          var search = document.getElementById('appSearch');
+          if (search) search.addEventListener('input', applySearchFilter);
+
+          var params = new URLSearchParams(window.location.search);
+          var targetId = parseInt(params.get('id'), 10);
+
+          loadApplications().then(function () {
+            if (targetId) selectApplication(targetId, false);
+
+            // Auto-refresh status updates without page reload.
+            // Keep interval modest to reduce server load but still feel "live".
+            if (refreshTimer) window.clearInterval(refreshTimer);
+            refreshTimer = window.setInterval(function () {
+              refreshApplications();
+            }, 8000);
+          });
+        });
+      }
+
+      boot();
+    })();
+  </script>
+  <script src="../../Js/Applicant/applicant_hire_celebration.js"></script>
+</body>
+</html>
+

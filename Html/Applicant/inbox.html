@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>HR Messages - Onazul Workforce Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../Css/ow_widgets.css">
+    <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css">
+    <style>
+        .sidebar-nav { padding-bottom: 4rem; }
+        .applicant-inbox-inner { max-width: 1200px; margin: 0 auto; width: 100%; }
+        .title { font-size: 1.4rem; font-weight: 700; color: var(--ow-text-primary, #0f172a); }
+        .sub { color: var(--ow-text-secondary, #64748b); font-size: 0.9rem; }
+        .panel { border: none; border-radius: 0.85rem; box-shadow: var(--ow-card-shadow); background:#fff; }
+        .threads { max-height: 680px; overflow:auto; }
+        .thread-item { cursor:pointer; padding: 0.75rem 0.9rem; border-left: 4px solid transparent; }
+        .thread-item:hover { background:#f8fafc; }
+        .thread-item.active { border-left-color: var(--ow-brand-primary); background:#eef6ff; }
+        .thread-item .badge-unread { background:#dc2626 !important; font-size:0.7rem; }
+        .mm-shell { display:grid; grid-template-columns:minmax(260px,340px) 1fr; gap:16px; align-items:stretch; }
+        @media (max-width:900px){ .mm-shell{ grid-template-columns:1fr; } }
+        .mm-master { background:#fff; border-radius:16px; box-shadow:0 8px 28px rgba(15,23,42,0.08); border:1px solid rgba(15,23,42,0.06); overflow:hidden; }
+        .mm-detail { background:#fff; border-radius:16px; box-shadow:0 8px 28px rgba(15,23,42,0.08); border:1px solid rgba(15,23,42,0.06); display:flex; flex-direction:column; min-height:520px; }
+        .mm-master-head { padding:14px 16px; border-bottom:1px solid #eef0f3; font-weight:800; color: var(--ow-brand-dark, #003366); font-family:system-ui,sans-serif; }
+        .thread-preview { color:#6b7280; font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width: 100%; }
+        .chat-box { height: 680px; display:flex; flex-direction:column; }
+        .chat-messages { flex:1; overflow:auto; padding: 0.9rem; }
+        .bubble { max-width: 75%; padding: 0.65rem 0.75rem; border-radius: 1rem; margin-bottom: 0.6rem; }
+        .bubble.me { background:#e6f2ff; margin-left:auto; border-bottom-right-radius: 0.3rem; }
+        .bubble.hr { background:#f1f5f9; border-bottom-left-radius: 0.3rem; }
+        .bubble .meta { font-size:0.75rem; color:#64748b; margin-bottom: 0.25rem; }
+        .composer { border-top: 1px solid #e5e7eb; padding: 0.85rem; display:flex; gap: 0.5rem; }
+        .composer textarea { resize:none; }
+    </style>
+    <script>window.REQUIRED_ROLES = 'Applicant,TeamLead,Employee';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+</head>
+<body class="ow-dashboard">
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header d-flex justify-content-between align-items-center">
+            <span id="sidebarBrand">Onazul Applicant</span>
+            <a href="applicant_dashboard.html#section-notifications" class="text-white text-decoration-none position-relative" id="notificationBell" title="Notifications" aria-label="Notifications">
+                <i class="bi bi-bell-fill"></i>
+                <span class="ow-notif-badge d-none" aria-hidden="true">0</span>
+            </a>
+        </div>
+        <ul class="sidebar-nav mt-2" id="navApplicant">
+            <li>
+                <a href="job_board.html" class="sidebar-link">
+                    <i class="bi bi-briefcase"></i><span>Job Board</span>
+                </a>
+            </li>
+            <li>
+                <a href="my_applications.html" class="sidebar-link">
+                    <i class="bi bi-file-text"></i><span>My Applications</span>
+                </a>
+            </li>
+            <li>
+                <a href="inbox.html" class="sidebar-link active">
+                    <i class="bi bi-chat-dots"></i><span>Messages (HR)</span>
+                </a>
+            </li>
+        </ul>
+        <ul class="sidebar-nav mt-2 d-none" id="navTeamLead">
+            <li>
+                <a href="../TeamLead/team_lead_dashboard.html" class="sidebar-link" id="teamLeadDashLink">
+                    <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="../TeamLead/endorsed_applicants.html" class="sidebar-link" id="teamLeadEndorsedLink">
+                    <i class="bi bi-person-check"></i><span>Endorsed Applicants</span>
+                </a>
+            </li>
+            <li>
+                <a href="../TeamLead/request_job_order.html" class="sidebar-link" id="teamLeadRequestLink">
+                    <i class="bi bi-clipboard-plus"></i><span>Request Job Order</span>
+                </a>
+            </li>
+            <li>
+                <a href="inbox.html" class="sidebar-link active">
+                    <i class="bi bi-chat-dots"></i><span>Messages (HR)</span>
+                </a>
+            </li>
+        </ul>
+        <ul class="sidebar-nav mt-2 d-none" id="navEmployee">
+            <li>
+                <a href="../../index.html" class="sidebar-link" id="employeeDashLink">
+                    <i class="bi bi-speedometer2"></i><span>My Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="inbox.html" class="sidebar-link active">
+                    <i class="bi bi-chat-dots"></i><span>Messages (HR)</span>
+                </a>
+            </li>
+        </ul>
+        <div class="sidebar-footer" style="position:absolute;bottom:0;padding:1rem;font-size:0.75rem;opacity:0.7;">
+            <div id="applicantName">User</div>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div class="user-topbar">
+            <div class="dropdown">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle" id="userDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="user-avatar-circle" id="userAvatarCircle">U</span>
+                    <span class="user-name-top" id="userNameTop">User</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="applicant_dashboard.html#section-profile" id="menuProfile">Profile</a></li>
+                    <li id="menuMyDocumentsLi"><a class="dropdown-item" href="my_documents.html" id="menuMyDocuments">My Documents</a></li>
+                    <li><a class="dropdown-item" href="#" id="menuSystemSettings">System Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="applicant-inbox-inner">
+            <div class="mb-3">
+                <div class="title"><i class="bi bi-chat-dots me-2"></i>Messages for HR</div>
+                <div class="sub">Contact the agency through HR. Messages also appear in notifications and chat.</div>
+            </div>
+
+            <div class="mm-shell">
+                <div class="mm-master">
+                    <div class="mm-master-head"><i class="bi bi-chat-square-text me-2"></i>Conversations</div>
+                    <div class="threads p-1" id="threads" style="max-height:640px;"></div>
+                </div>
+                <div class="mm-detail chat-box">
+                    <div class="p-3 border-bottom">
+                        <div class="fw-semibold" id="activeThreadTitle">Select a conversation</div>
+                        <div class="sub" id="activeThreadSub">Choose Administrators or HR on the left, or open a thread.</div>
+                    </div>
+                    <div class="chat-messages flex-grow-1" id="messages"></div>
+                    <div class="p-2 border-top bg-light">
+                        <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
+                            <span class="small text-muted fw-bold">Send to:</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPickHr">HR</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPickAdmin">Administrators</button>
+                        </div>
+                        <div class="composer">
+                            <textarea id="msgInput" class="form-control" rows="2" placeholder="Type your message…"></textarea>
+                            <button class="btn btn-primary" id="btnSend"><i class="bi bi-send"></i> Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
+<script>
+(function () {
+    function initials(name) {
+        if (!name) return 'U';
+        var parts = String(name).trim().split(/\s+/).filter(Boolean);
+        var a = parts[0] ? parts[0].charAt(0) : '';
+        var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+        return (a + b).toUpperCase() || 'U';
+    }
+    function normalizeRole(r) {
+        return String(r || '').replace(/\s+/g, '').toLowerCase();
+    }
+    fetch('../../Api/Login/check_session.php', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data || !data.success) return;
+            var fullName = data.full_name || data.fullName || 'User';
+            var nameEl = document.getElementById('userNameTop');
+            var avatarEl = document.getElementById('userAvatarCircle');
+            if (nameEl) nameEl.textContent = fullName;
+            if (avatarEl) avatarEl.textContent = initials(fullName);
+            var foot = document.getElementById('applicantName');
+            if (foot) foot.textContent = fullName;
+
+            if (data.user_id) {
+                window.__USER_ID__ = data.user_id;
+            } else {
+                window.__USER_ID__ = null;
+            }
+
+            var role = normalizeRole(data.role);
+            var navApp = document.getElementById('navApplicant');
+            var navTeamLead = document.getElementById('navTeamLead');
+            var navEmployee = document.getElementById('navEmployee');
+            var brand = document.getElementById('sidebarBrand');
+            var docLi = document.getElementById('menuMyDocumentsLi');
+
+            if (role === 'applicant') {
+                if (navApp) navApp.classList.remove('d-none');
+                if (navTeamLead) navTeamLead.classList.add('d-none');
+                if (navEmployee) navEmployee.classList.add('d-none');
+                if (brand) brand.textContent = 'Onazul Applicant';
+                if (docLi) docLi.classList.remove('d-none');
+            } else if (role === 'teamlead') {
+                if (navApp) navApp.classList.add('d-none');
+                if (navTeamLead) navTeamLead.classList.remove('d-none');
+                if (navEmployee) navEmployee.classList.add('d-none');
+                if (docLi) docLi.classList.add('d-none');
+                if (brand) brand.textContent = 'Onazul Team Lead';
+            } else {
+                if (navApp) navApp.classList.add('d-none');
+                if (navTeamLead) navTeamLead.classList.add('d-none');
+                if (navEmployee) navEmployee.classList.remove('d-none');
+                if (docLi) docLi.classList.add('d-none');
+                if (brand) brand.textContent = 'Onazul';
+            }
+        })
+        .catch(function () { window.__USER_ID__ = null; });
+
+    function bindComingSoon(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', function (e) {
+            e.preventDefault();
+            alert('This feature is not available yet.');
+        });
+    }
+    bindComingSoon('menuSystemSettings');
+
+    var logoutEl = document.getElementById('menuLogout');
+    if (logoutEl) {
+        logoutEl.addEventListener('click', function (e) {
+            e.preventDefault();
+            var doLogout = function () {
+                fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'same-origin' })
+                    .then(function () { window.location.href = '/Employee_Tracking/index.html'; })
+                    .catch(function () { window.location.href = '/Employee_Tracking/index.html'; });
+            };
+            if (typeof window.showLogoutConfirm === 'function') window.showLogoutConfirm(doLogout);
+            else doLogout();
+        });
+    }
+})();
+</script>
+<script>
+const API_THREADS = '../../Api/Common/messages_threads.php';
+const API_MESSAGES = '../../Api/Common/fetch_messages.php';
+const API_SEND = '../../Api/Common/messages_send.php';
+
+let state = {
+  activeThreadId: null,
+  contactChannel: 'hr',
+  threads: []
+};
+
+function esc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+function formatPreview(text) {
+  return (text || '').trim();
+}
+
+function renderThreads() {
+  const el = document.getElementById('threads');
+  if (!el) return;
+  if (!state.threads || state.threads.length === 0) {
+    el.innerHTML = '<div class="text-muted p-3">No threads yet. Pick <strong>HR</strong> or <strong>Administrators</strong> below and send a message.</div>';
+    return;
+  }
+  const sorted = [...state.threads].sort((a, b) => {
+    const oa = (a.channel === 'admin' ? 0 : a.channel === 'hr' ? 1 : 9);
+    const ob = (b.channel === 'admin' ? 0 : b.channel === 'hr' ? 1 : 9);
+    return oa - ob;
+  });
+  el.innerHTML = sorted.map(t => {
+    const active = t.thread_id === state.activeThreadId ? 'active' : '';
+    const unread = t.unread_count > 0 ? `<span class="badge rounded-pill badge-unread ms-2">${t.unread_count}</span>` : '';
+    const title = esc(t.conversation_label || t.thread_type || 'Chat');
+    return `
+      <div class="thread-item ${active}" data-thread-id="${t.thread_id}">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="fw-semibold">${title}</div>
+          ${unread}
+        </div>
+        <div class="thread-preview mt-1">${esc(formatPreview(t.last_message_text)).slice(0, 56)}</div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.thread-item').forEach(item => {
+    item.addEventListener('click', () => {
+      state.activeThreadId = parseInt(item.dataset.threadId, 10);
+      const th = state.threads.find(x => x.thread_id === state.activeThreadId);
+      if (th && th.channel) state.contactChannel = th.channel;
+      loadMessages();
+    });
+  });
+}
+
+async function loadThreads() {
+  const r = await fetch(API_THREADS, { credentials: 'same-origin' });
+  const d = await r.json();
+  if (!d.success) throw new Error(d.message || 'Failed to load threads');
+  state.threads = d.threads || [];
+  renderThreads();
+}
+
+async function loadMessages() {
+  if (!state.activeThreadId) {
+    document.getElementById('activeThreadTitle').textContent = 'Select a conversation';
+    document.getElementById('activeThreadSub').textContent = 'Use HR or Administrators, or pick a thread on the left.';
+    document.getElementById('messages').innerHTML = '';
+    return;
+  }
+  const thread = state.threads.find(t => t.thread_id === state.activeThreadId);
+  document.getElementById('activeThreadTitle').textContent = thread
+    ? (thread.conversation_label || thread.other_user_name || 'Conversation')
+    : 'Conversation';
+  document.getElementById('activeThreadSub').textContent = thread && thread.channel
+    ? (thread.channel === 'admin' ? 'Direct line to Administrators' : 'HR team inbox')
+    : '';
+
+  const r = await fetch(API_MESSAGES + '?thread_id=' + encodeURIComponent(state.activeThreadId), { credentials: 'same-origin' });
+  const d = await r.json();
+  const box = document.getElementById('messages');
+  box.innerHTML = '';
+  if (!d.success) {
+    box.innerHTML = '<div class="text-danger">Failed to load messages.</div>';
+    return;
+  }
+  const msgs = d.messages || [];
+  if (msgs.length === 0) {
+    box.innerHTML = '<div class="text-muted">No messages yet.</div>';
+    return;
+  }
+
+  msgs.forEach(m => {
+    const mine = m.sender_user_id === window.__USER_ID__;
+    const bubbleCls = mine ? 'me' : 'hr';
+    const sender = esc(m.sender_name || '');
+    const text = esc(m.message_text || '');
+    const sys = m.is_system ? '<div class="meta">System message</div>' : `<div class="meta">${sender}</div>`;
+    const html = `
+      <div class="bubble ${bubbleCls}">
+        ${sys}
+        <div class="msg">${text}</div>
+      </div>
+    `;
+    box.insertAdjacentHTML('beforeend', html);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msgInput');
+  const text = (input.value || '').trim();
+  if (!text) return;
+
+  const payload = { message_text: text, contact_channel: state.contactChannel };
+  if (state.activeThreadId) {
+    payload.thread_id = state.activeThreadId;
+    delete payload.contact_channel;
+  }
+
+  const r = await fetch(API_SEND, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify(payload)
+  });
+  const d = await r.json();
+  if (!d.success) {
+    alert(d.message || 'Failed to send message');
+    return;
+  }
+
+  state.activeThreadId = d.thread_id || state.activeThreadId;
+  input.value = '';
+  await loadThreads();
+  await loadMessages();
+}
+
+async function poll() {
+  try {
+    await loadThreads();
+    if (state.activeThreadId) await loadMessages();
+  } catch (e) {}
+}
+
+document.getElementById('btnSend').addEventListener('click', sendMessage);
+document.getElementById('btnPickHr').addEventListener('click', () => {
+  state.contactChannel = 'hr';
+  const t = state.threads.find(x => x.channel === 'hr');
+  state.activeThreadId = t ? t.thread_id : null;
+  document.getElementById('activeThreadSub').textContent = t ? '' : 'Type a message to create your HR thread.';
+  loadMessages();
+});
+document.getElementById('btnPickAdmin').addEventListener('click', () => {
+  state.contactChannel = 'admin';
+  const t = state.threads.find(x => x.channel === 'admin');
+  state.activeThreadId = t ? t.thread_id : null;
+  document.getElementById('activeThreadSub').textContent = t ? '' : 'Type a message to reach Administrators.';
+  loadMessages();
+});
+
+loadThreads().then(() => loadMessages());
+setInterval(poll, 5000);
+</script>
+<script src="../../Js/Applicant/applicant_message_toast.js"></script>
+<button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger"><i class="bi bi-chat-dots fs-4"></i></button>
+<div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+  <div class="ow-msgr-header"><span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span><button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose">&times;</button></div>
+  <div class="ow-msgr-body">
+    <aside class="ow-msgr-sidebar"><div class="ow-msgr-search-wrap"><input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…"></div><div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div></aside>
+    <div class="ow-msgr-chat"><div class="ow-msgr-chat-head"><div class="fw-semibold" id="owMessengerChatTitle">Messenger</div><div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div></div><div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div><div class="ow-msgr-footer"><input type="text" class="form-control form-control-sm" id="owMessengerInput" disabled><button type="button" class="btn btn-primary btn-sm" id="owMessengerSend" disabled><i class="bi bi-send"></i></button></div></div>
+  </div>
+</div>
+<script src="../../Js/Shared/messenger_rbac.js"></script>
+<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Shared/ow_system_events.js"></script>
+<script src="../../Js/Shared/ow_notifications.js"></script>
+</body>
+</html>

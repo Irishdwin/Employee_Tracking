@@ -1,0 +1,2177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Team Lead Dashboard — Onazul Manpower Services</title>
+  <meta name="description" content="Team Lead dashboard — roster, secure attendance, team, and DTR review." />
+  <script src="../../Js/Shared/ow_tailwind_cdn_warn_shim.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../../Js/Shared/ow_tailwind_theme.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: OW_TAILWIND_BRAND.colors,
+          boxShadow: OW_TAILWIND_BRAND.boxShadow,
+          fontFamily: OW_TAILWIND_BRAND.fontFamily,
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../../Css/ow_widgets.css" />
+  <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css" />
+  <link rel="stylesheet" href="../../Css/ow_collapsible_sidebar.css" />
+  <script>window.REQUIRED_ROLE = 'TeamLead';</script>
+  <script src="../../Js/Shared/role_guard.js"></script>
+  <script src="../../Js/Shared/hydrate_user_profile.js"></script>
+  <script src="../../Js/Shared/profile_view_switch.js"></script>
+    <style>
+    body { font-family: Inter, system-ui, sans-serif; }
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .toast-animate { animation: toast-in 0.25s ease-out; }
+    .scan-reticle {
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+    }
+    </style>
+</head>
+<body class="min-h-screen bg-brand-surface text-slate-800 antialiased">
+
+  <div id="sidebar-overlay" aria-hidden="true"></div>
+  <div id="dashboard-wrapper">
+  <aside id="main-sidebar" class="flex h-screen flex-col bg-brand-sidebar text-white shadow-xl" aria-label="Main navigation">
+    <div class="sidebar-brand-block border-b border-white/10 px-4 py-5">
+      <p class="sidebar-brand-text text-lg font-bold leading-tight tracking-tight">Onazul Team Lead</p>
+      <p class="sidebar-brand-compact text-lg font-bold" aria-hidden="true">T</p>
+    </div>
+
+    <nav class="sidebar-nav-scroll flex flex-1 flex-col gap-0.5 px-2 py-4 text-sm font-medium" aria-label="Sidebar">
+      <button type="button" data-nav="dashboard" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+        <span class="sidebar-label flex-1">Dashboard</span>
+        <span class="sidebar-nav-badge d-none" id="tlDashboardBadge" aria-label="Team members absent today">0</span>
+      </button>
+
+      <button type="button" data-nav="scanner" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        <span class="sidebar-label flex-1">Work Site Geofence</span>
+        <span class="sidebar-nav-badge d-none bg-red-500 text-white" id="tlGeofenceBadge" aria-label="Work site not registered">!</span>
+      </button>
+
+      <button type="button" data-nav="team" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        <span class="sidebar-label flex-1">My Deployed Team</span>
+        <span class="sidebar-nav-badge d-none" id="tlTeamBadge" aria-label="New team deployments">0</span>
+      </button>
+
+      <button type="button" data-nav="jobrequests" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" />
+        </svg>
+        <span class="sidebar-label flex-1">Job Order Requests</span>
+        <span class="sidebar-nav-badge d-none" id="tlJobOrdersBadge" aria-label="New job order updates">0</span>
+      </button>
+
+      <button type="button" data-nav="endorsed" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7M7 3h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z" />
+        </svg>
+        <span class="sidebar-label flex-1">Endorsed Applicants</span>
+        <span class="sidebar-nav-badge d-none" id="tlEndorsedBadge" aria-label="Endorsed applicants awaiting decision">0</span>
+      </button>
+
+      <button type="button" data-nav="dtr" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+        <span class="sidebar-label">DTR Cutoff Review</span>
+      </button>
+
+      <button type="button" data-nav="overtime" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="sidebar-label">Overtime</span>
+      </button>
+
+    </nav>
+
+    <div class="sidebar-user-block border-t border-white/10">
+      <div class="sidebar-user-details px-4 py-3">
+        <p class="sidebar-label text-xs font-medium text-white/50">Logged in as</p>
+        <p id="tlSidebarUserName" class="sidebar-label text-sm font-semibold text-white" data-user-field="full_name">Loading…</p>
+        <p class="sidebar-label mt-0.5 text-xs text-white/60" data-user-field="subtitle"></p>
+      </div>
+      <div class="sidebar-user-compact">
+        <span class="sidebar-initial-avatar" id="sidebarUserInitialCompact" data-user-initials>…</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="dashboard-shell min-h-screen">
+    <header id="top-navbar" class="sticky top-0 z-30 flex items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur-sm sm:px-6">
+      <div class="top-navbar-start flex items-center gap-3">
+        <button type="button" id="hamburger-toggle" class="hamburger-toggle-btn" aria-label="Toggle sidebar menu" aria-controls="main-sidebar">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <span class="hidden text-sm font-semibold text-slate-600 sm:inline">Team Lead</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="dropdown relative">
+          <button type="button" id="owNotifBellBtn" class="relative rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span class="ow-notif-badge d-none" data-global-notif-badge aria-hidden="true">0</span>
+          </button>
+          <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-2xl p-0 w-80 sm:w-96 text-sm" style="max-height: 480px; overflow-y: auto;" aria-labelledby="owNotifBellBtn">
+            <div class="bg-slate-900 text-white px-4 py-3 font-bold flex justify-between items-center rounded-t-2xl">
+              <span><i class="bi bi-bell me-1 text-blue-400"></i> Notifications</span>
+              <button type="button" class="text-xs text-blue-300 hover:text-white font-normal" onclick="showView('notifications')">View All</button>
+            </div>
+            <div id="bellNotifDropdownList" class="divide-y divide-slate-100">
+              <div class="p-4 text-center text-slate-500">Loading notifications...</div>
+            </div>
+          </div>
+        </div>
+
+      <div class="relative">
+        <button type="button" id="header-profile-btn" class="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 transition hover:bg-slate-100" aria-expanded="false" aria-haspopup="true" aria-controls="header-profile-menu">
+          <span id="tlHeaderInitial" data-user-initials class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-avatar text-sm font-bold text-white shadow-sm ring-2 ring-white">…</span>
+          <span id="tlHeaderUserName" class="hidden text-sm font-semibold text-slate-800 sm:inline" data-user-field="full_name">Loading…</span>
+          <svg class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <div id="header-profile-menu" class="invisible absolute right-0 top-full z-40 mt-2 w-48 rounded-lg border border-slate-200 bg-white opacity-0 shadow-lg transition" hidden>
+          <a href="#section-profile" id="menuProfile" data-show-section="section-profile" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Profile</a>
+          <a href="#" data-logout class="block px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Logout</a>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content-area" class="p-6">
+      <!-- VIEW A: Dashboard -->
+      <section id="view-dashboard" class="view-panel" data-view="dashboard" aria-labelledby="dash-title">
+        <!-- Work Site Unregistered Warning Banner -->
+        <div id="tlGeofenceWarningBanner" class="hidden mb-6 rounded-xl border border-red-200 bg-red-50 p-4 shadow-sm flex items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div class="p-2 rounded-lg bg-red-100 text-red-700"><i class="bi bi-exclamation-triangle-fill fs-5"></i></div>
+            <div>
+              <h4 class="font-bold text-red-900 text-sm mb-0.5">Work Site Not Registered</h4>
+              <p class="text-red-700 text-xs mb-0">Work site not registered. Please register your work site before creating a job order.</p>
+            </div>
+          </div>
+          <button type="button" class="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-red-700 transition" onclick="showView('scanner')">
+            Register Now
+          </button>
+        </div>
+
+        <h1 id="dash-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Team Lead Dashboard</h1>
+        <p class="mt-1 text-sm text-slate-600">Welcome, <span data-user-field="full_name">Team Lead</span>. Today's deployment roster for your assigned site(s).</p>
+
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Total Team</p>
+            <p class="mt-2 text-3xl font-bold tabular-nums text-brand-sidebar" id="kpiTotalTeam">—</p>
+          </div>
+          <div class="rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Clocked In Today</p>
+            <p class="mt-2 text-3xl font-bold tabular-nums text-emerald-600" id="kpiClockedIn">—</p>
+          </div>
+          <div class="rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Late</p>
+            <p class="mt-2 text-3xl font-bold tabular-nums text-amber-600" id="kpiLate">—</p>
+          </div>
+          <div class="rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Absent</p>
+            <p class="mt-2 text-3xl font-bold tabular-nums text-red-600" id="kpiAbsent">—</p>
+          </div>
+        </div>
+
+        <div class="mt-8 overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-slate-100">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[640px] text-left text-sm">
+              <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="px-4 py-3">Employee</th>
+                  <th class="px-4 py-3">Position</th>
+                  <th class="px-4 py-3">Today's Status</th>
+                  <th class="px-4 py-3 text-right">Logs</th>
+                            </tr>
+                        </thead>
+              <tbody id="dashboardRosterBody" class="divide-y divide-slate-100">
+                <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">Loading roster…</td></tr>
+              </tbody>
+                    </table>
+                </div>
+            </div>
+      </section>
+
+      <!-- VIEW B: Work Site Geofence -->
+      <section id="view-scanner" class="view-panel hidden" data-view="scanner" aria-labelledby="scanner-title">
+        <h1 id="scanner-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Deployment Site Geofence</h1>
+        <p class="mt-1 text-sm text-slate-600">Manage and register official work site GPS coordinates for employee clock-ins.</p>
+
+        <div class="mx-auto mt-8 max-w-2xl rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100 sm:p-8">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Registered Coordinates</p>
+                    <h4 class="fw-bold text-brand-sidebar mb-0" id="registeredSiteCoords">Loading site coordinates...</h4>
+                </div>
+                <button type="button" class="btn btn-primary fw-bold" onclick="openRegisterSiteModal()">
+                    <i class="bi bi-pin-map-fill me-1"></i>Register Location
+                </button>
+            </div>
+            
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold text-slate-800 text-sm">Geofence Radius:</span>
+                        <span class="badge bg-info text-dark ms-2" id="registeredGeofenceRadius">100 Meters</span>
+                    </div>
+                    <span class="badge bg-success" id="siteRegStatusBadge"><i class="bi bi-check-circle-fill me-1"></i>Active Site</span>
+                </div>
+            </div>
+        </div>
+      </section>
+
+      <!-- VIEW C: Team -->
+      <section id="view-team" class="view-panel hidden" data-view="team" aria-labelledby="team-title">
+        <h1 id="team-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Deployed Personnel</h1>
+        <p class="mt-1 text-sm text-slate-600">Personnel assigned to your site roster.</p>
+
+        <div id="deployed-team-grid" class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <article class="rounded-xl border border-slate-100 bg-white p-4 shadow-card">
+            <p class="text-sm text-slate-500">Loading deployed personnel...</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- VIEW D: Job Order Requests -->
+      <section id="view-job-requests" class="view-panel hidden" data-view="jobrequests" aria-labelledby="jor-title">
+        <h1 id="jor-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Job Order Requests</h1>
+        <p class="mt-1 text-sm text-slate-600">Create new requests and monitor HR approval status.</p>
+
+        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+          <div class="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+            <div class="mb-3">
+              <h2 class="text-lg font-bold text-brand-sidebar">Create Job Order Request</h2>
+              <p class="text-xs text-slate-500">Submit staffing requests to HR for approval.</p>
+            </div>
+            <form id="job-order-request-form" class="space-y-3">
+              <div>
+                <label for="jor-company" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Client Company</label>
+                <select id="jor-company" name="company_id" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25 bg-slate-100 cursor-not-allowed text-slate-700" required disabled>
+                  <option value="">Loading assigned company...</option>
+                </select>
+              </div>
+
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Positions &amp; Deployments</p>
+                <button type="button" id="jor-add-row-btn" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-accent bg-brand-accent/10 px-3 py-1.5 text-xs font-bold text-brand-accent transition hover:bg-brand-accent/20 focus:outline-none focus:ring-2 focus:ring-brand-accent/30">
+                  <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                  Add Position / Deployment
+                </button>
+              </div>
+
+              <div id="jor-positions-container" class="max-h-[340px] space-y-3 overflow-y-auto pr-1">
+                <!-- Dynamic position rows inserted by JavaScript -->
+              </div>
+
+              <div>
+                <label for="jor-remarks" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Remarks</label>
+                <textarea id="jor-remarks" name="remarks" rows="2" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" placeholder="Optional notes for HR"></textarea>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <p id="jor-feedback" class="text-xs text-slate-500"></p>
+                <button id="jor-submit-btn" type="submit" class="rounded-xl bg-brand-accent px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-brand-accent-dark focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2">
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+          <div class="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+            <h2 class="text-lg font-bold text-brand-sidebar">Your Job Order Requests</h2>
+            <p class="text-xs text-slate-500">Shows requests you submitted and HR approval status.</p>
+            <div class="mt-4 max-h-[350px] overflow-auto rounded-lg border border-slate-100">
+              <table class="w-full min-w-[620px] text-left text-sm">
+                <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wide text-slate-500">
+                  <tr>
+                    <th class="px-3 py-2">Date</th>
+                    <th class="px-3 py-2">Company</th>
+                    <th class="px-3 py-2">Position</th>
+                    <th class="px-3 py-2">Workers</th>
+                    <th class="px-3 py-2">Site</th>
+                    <th class="px-3 py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="job-requests-body" class="divide-y divide-slate-100">
+                  <tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">Loading requests...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW E: Endorsed Applicants -->
+      <section id="view-endorsed" class="view-panel hidden" data-view="endorsed" aria-labelledby="endorsed-title">
+        <h1 id="endorsed-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Endorsed Applicants</h1>
+        <p class="mt-1 text-sm text-slate-600">Applicants endorsed by HR to your assigned company/team.</p>
+
+        <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-slate-100">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[860px] text-left text-sm">
+              <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="px-4 py-3">Applicant</th>
+                  <th class="px-4 py-3">Email</th>
+                  <th class="px-4 py-3">Position</th>
+                  <th class="px-4 py-3">Company</th>
+                  <th class="px-4 py-3">Endorsed Date</th>
+                  <th class="px-4 py-3">Client Status</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="endorsed-applicants-body" class="divide-y divide-slate-100">
+                <tr><td colspan="7" class="px-4 py-4 text-center text-slate-500">Loading endorsed applicants...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW F: DTR -->
+      <section id="view-dtr" class="view-panel hidden" data-view="dtr" aria-labelledby="dtr-title">
+        <h1 id="dtr-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Timesheet Submission</h1>
+        <p class="mt-1 text-sm text-slate-600" id="dtr-cutoff-label">Reviewing Cutoff: —</p>
+
+        <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950">
+          <strong>Warning:</strong> Once submitted to Accounting, DTR records are locked and cannot be edited.
+        </div>
+
+        <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-slate-100">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[720px] text-left text-sm">
+              <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="w-10 px-3 py-3"><input type="checkbox" id="dtr-select-all" aria-label="Select all employees" /></th>
+                  <th class="px-4 py-3">Employee</th>
+                  <th class="px-4 py-3">Total Regular Hrs</th>
+                  <th class="px-4 py-3">Total Overtime Hrs</th>
+                  <th class="px-4 py-3">Holiday Pay Hrs</th>
+                  <th class="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody id="dtrTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">No DTR submissions loaded yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="flex justify-end border-t border-slate-100 px-4 py-4">
+            <button type="button" id="btn-submit-dtr" class="rounded-xl bg-brand-accent px-6 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-brand-accent-dark focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2">
+              Submit Selected DTRs to Accounting
+            </button>
+            </div>
+        </div>
+      </section>
+
+      <!-- VIEW: Overtime Management -->
+      <section id="view-overtime" class="view-panel hidden" data-view="overtime" aria-labelledby="overtime-title">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 id="overtime-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Overtime Management</h1>
+            <p class="mt-1 text-sm text-slate-600">Record and control overtime sessions for your deployed team — separate from their regular Time In / Time Out.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label for="overtime-date-picker" class="text-xs font-semibold uppercase text-slate-500">Date</label>
+            <input type="date" id="overtime-date-picker" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm" />
+          </div>
+        </div>
+
+        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase text-slate-500">Pending</p>
+            <p id="otCountPending" class="mt-1 text-2xl font-bold text-brand-navy">0</p>
+          </div>
+          <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase text-slate-500">Active</p>
+            <p id="otCountActive" class="mt-1 text-2xl font-bold text-brand-navy">0</p>
+          </div>
+          <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase text-slate-500">Completed</p>
+            <p id="otCountCompleted" class="mt-1 text-2xl font-bold text-brand-navy">0</p>
+          </div>
+          <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-slate-100">
+            <p class="text-xs font-semibold uppercase text-slate-500">Approved</p>
+            <p id="otCountApproved" class="mt-1 text-2xl font-bold text-brand-navy">0</p>
+          </div>
+        </div>
+
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500">Team — <span id="overtime-date-label">—</span></h2>
+          <button type="button" id="btn-start-overtime" class="rounded-xl bg-brand-accent px-4 py-2 text-sm font-bold text-white shadow-md transition hover:bg-brand-accent-dark" disabled>
+            Start Overtime for Selected
+          </button>
+        </div>
+
+        <div class="mt-3 overflow-hidden rounded-xl bg-white shadow-card ring-1 ring-slate-100">
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[880px] text-left text-sm">
+              <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="w-10 px-3 py-3"><input type="checkbox" id="overtime-select-all" aria-label="Select all employees" /></th>
+                  <th class="px-4 py-3">Employee</th>
+                  <th class="px-4 py-3">Client Company</th>
+                  <th class="px-4 py-3">Regular Schedule</th>
+                  <th class="px-4 py-3">OT Start</th>
+                  <th class="px-4 py-3">OT End</th>
+                  <th class="px-4 py-3">OT Hours</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody id="overtimeTableBody" class="divide-y divide-slate-100">
+                <tr><td colspan="9" class="px-4 py-6 text-center text-slate-500">Loading team…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODAL: Start/Edit Overtime -->
+      <div id="overtime-edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div class="flex items-center justify-between">
+            <h3 id="overtime-edit-modal-title" class="text-lg font-bold text-brand-navy">Overtime</h3>
+            <button type="button" id="overtime-edit-modal-close" class="text-slate-400 hover:text-slate-600" aria-label="Close">&times;</button>
+          </div>
+          <div class="mt-4 space-y-3">
+            <div>
+              <label class="text-xs font-semibold uppercase text-slate-500">OT Start</label>
+              <input type="time" id="overtime-edit-start" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="text-xs font-semibold uppercase text-slate-500">OT End</label>
+              <input type="time" id="overtime-edit-end" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label class="text-xs font-semibold uppercase text-slate-500">Reason / Remarks</label>
+              <textarea id="overtime-edit-remarks" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"></textarea>
+            </div>
+            <p id="overtime-edit-error" class="hidden text-sm font-semibold text-red-600"></p>
+          </div>
+          <div class="mt-5 flex justify-end gap-2">
+            <button type="button" id="overtime-edit-cancel" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+            <button type="button" id="overtime-edit-save" class="rounded-lg bg-brand-accent px-4 py-2 text-sm font-bold text-white hover:bg-brand-accent-dark">Save</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: My Account (Profile) -->
+      <section id="view-profile" class="view-panel hidden" data-view="profile" aria-labelledby="profile-title">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 id="profile-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">My Account</h1>
+            <p class="mt-1 text-sm text-slate-600">Your signed-in team lead profile and account details.</p>
+          </div>
+          <button type="button" class="rounded-lg border border-brand-accent px-4 py-2 text-sm font-semibold text-brand-accent transition hover:bg-brand-accent/10" data-show-section="section-overview">
+            ← Back to Dashboard
+          </button>
+        </div>
+        <div id="userProfileCard" class="mt-6 rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+          <h2 class="text-sm font-bold uppercase tracking-wide text-slate-500">Account Details</h2>
+          <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+            <div><dt class="text-xs font-semibold uppercase text-slate-400">Full name</dt><dd id="upcFullName" class="font-medium text-slate-800">—</dd></div>
+            <div><dt class="text-xs font-semibold uppercase text-slate-400">Email</dt><dd id="upcEmail" class="font-medium text-slate-800">—</dd></div>
+            <div><dt class="text-xs font-semibold uppercase text-slate-400">Role</dt><dd id="upcRole" class="font-medium text-slate-800">—</dd></div>
+            <div><dt class="text-xs font-semibold uppercase text-slate-400">Mobile</dt><dd id="upcMobile" class="font-medium text-slate-800">—</dd></div>
+            <div class="sm:col-span-2"><dt class="text-xs font-semibold uppercase text-slate-400">Address</dt><dd id="upcAddress" class="font-medium text-slate-800">—</dd></div>
+            <div class="sm:col-span-2 lg:col-span-3"><dt class="text-xs font-semibold uppercase text-slate-400">Assigned client companies</dt><dd><ul id="upcAssignedCompanies" class="mt-1 list-disc space-y-1 pl-5">—</ul></dd></div>
+          </dl>
+        </div>
+
+        <div id="tlCompanyProfileCard" class="card border-0 shadow-sm mt-4" aria-labelledby="tlCompanyCardTitle">
+          <div class="card-header bg-white d-flex flex-wrap align-items-center justify-content-between gap-2 py-3">
+            <h2 id="tlCompanyCardTitle" class="h6 mb-0 fw-semibold">
+              <i class="bi bi-building me-2 text-primary"></i>Assigned Company &amp; Service Agreement Details
+            </h2>
+            <span id="tlAgreementStatusBadge" class="badge bg-secondary">—</span>
+          </div>
+          <div class="card-body">
+            <div id="tlCompanyLoading" class="text-muted small py-3 text-center">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Loading company details…
+            </div>
+            <div id="tlCompanyEmpty" class="d-none alert alert-light border mb-0" role="status">
+              <i class="bi bi-info-circle me-1"></i>
+              <span id="tlCompanyEmptyMessage">No client company is assigned to your account.</span>
+            </div>
+            <div id="tlCompanyError" class="d-none alert alert-danger mb-0" role="alert">
+              <span id="tlCompanyErrorMessage">Could not load company details.</span>
+            </div>
+            <div id="tlCompanyContent" class="d-none">
+              <p class="text-muted small mb-3">Read-only view of the client company and active service agreement linked to your Team Lead account.</p>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Company Name</label>
+                  <div id="tlCompanyName" class="fw-semibold">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Contract / Service Agreement Number</label>
+                  <div id="tlContractNumber" class="fw-semibold">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Service Agreement Start Date</label>
+                  <div id="tlAgreementStart">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Service Agreement End Date</label>
+                  <div id="tlAgreementEnd">—</div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label text-muted small mb-1">Service Agreement Duration</label>
+                  <div id="tlAgreementDuration" class="fw-medium">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Deployment / Company Address</label>
+                  <div id="tlCompanyAddress">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Main Contact Person / Representative</label>
+                  <div id="tlContactPerson">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Contact Number</label>
+                  <div id="tlContactNumber">—</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label text-muted small mb-1">Industry</label>
+                  <div id="tlCompanyIndustry">—</div>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-top">
+                <label class="form-label text-muted small mb-2 d-block">Payroll Information</label>
+                <div class="row g-3">
+                  <div class="col-md-3 col-6">
+                    <label class="form-label text-muted small mb-1">Payroll Type</label>
+                    <div><span id="tlPayrollTypeBadge" class="badge bg-secondary">—</span></div>
+                  </div>
+                  <div class="col-md-3 col-6">
+                    <label class="form-label text-muted small mb-1">Current Payroll</label>
+                    <div id="tlPayrollCutoff">—</div>
+                  </div>
+                  <div class="col-md-3 col-6">
+                    <label class="form-label text-muted small mb-1">Payroll Release</label>
+                    <div id="tlPayrollRelease">—</div>
+                  </div>
+                  <div class="col-md-3 col-6">
+                    <label class="form-label text-muted small mb-1">Deductions</label>
+                    <div id="tlPayrollDeductions">—</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-top">
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btnViewServiceAgreement" disabled>
+                  <i class="bi bi-file-earmark-pdf me-1"></i>View Service Agreement Document
+                </button>
+                <p id="tlAgreementDocHint" class="text-muted small mb-0 mt-2 d-none">No signed document has been uploaded for this agreement yet.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view-panel hidden" data-view="notifications" id="view-notifications">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h1 class="text-2xl font-bold text-brand-sidebar">Notifications</h1>
+            <p class="mt-1 text-sm text-slate-600">System alerts and workflow updates.</p>
+          </div>
+          <button type="button" class="rounded-lg border border-brand-accent px-4 py-2 text-sm font-semibold text-brand-accent" data-nav="dashboard">← Back</button>
+        </div>
+        <div class="flex flex-wrap gap-3 mb-4 text-sm">
+          <label class="inline-flex items-center gap-2"><input type="checkbox" id="owChkUnread" class="rounded"> Unread only</label>
+          <button type="button" id="owBtnRefreshNotif" class="rounded-lg border px-3 py-1.5">Refresh</button>
+          <button type="button" id="owBtnMarkAll" class="rounded-lg bg-brand-accent px-3 py-1.5 text-white">Mark all read</button>
+        </div>
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="rounded-xl bg-white shadow-card ring-1 ring-slate-100 overflow-hidden">
+            <div class="border-b px-4 py-3 font-semibold">Inbox</div>
+            <div id="owNotifList" class="max-h-[480px] overflow-y-auto"></div>
+          </div>
+          <div class="rounded-xl bg-white p-4 shadow-card ring-1 ring-slate-100">
+            <div class="font-semibold mb-2">Details</div>
+            <div id="owNotifDetails" class="text-sm text-slate-600">Select a notification.</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  </div>
+
+  <button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger" aria-expanded="false" aria-controls="owMessengerPanel">
+    <i class="bi bi-chat-dots fs-4"></i>
+  </button>
+  <div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+    <div class="ow-msgr-header">
+      <span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span>
+      <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose" aria-label="Close messenger">&times;</button>
+    </div>
+    <div class="ow-msgr-body">
+      <aside class="ow-msgr-sidebar">
+        <div class="ow-msgr-search-wrap">
+          <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off">
+        </div>
+        <div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div>
+      </aside>
+      <div class="ow-msgr-chat">
+        <div class="ow-msgr-chat-head">
+          <div class="fw-semibold" id="owMessengerChatTitle">Messenger</div>
+          <div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div>
+        </div>
+        <div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div>
+        <form class="ow-msgr-footer ow-msgr-compose" id="owMessengerComposeForm" autocomplete="off">
+          <input type="text" class="form-control form-control-sm" id="owMessengerInput" placeholder="Type a message…" autocomplete="off" aria-label="Message text" disabled>
+          <button type="submit" class="btn btn-primary btn-sm" id="owMessengerSend" aria-label="Send message" disabled><i class="bi bi-send"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee attendance history (Bootstrap modal) -->
+  <div class="modal fade" id="tlAttendanceModal" tabindex="-1" aria-labelledby="tlAttendanceModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tlAttendanceModalTitle">Employee Attendance History</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="tlAttendanceModalBody">
+          <p class="text-muted mb-0">Loading duty logs…</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Single-day attendance detail: Time In / Break / Time Out + clock-in/out photos -->
+  <div class="modal fade" id="tlAttendanceDayModal" tabindex="-1" aria-labelledby="tlAttendanceDayModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tlAttendanceDayModalTitle">Attendance Detail</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="tlAttendanceDayModalBody">
+          <p class="text-muted mb-0">Loading…</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="logout-modal" class="fixed inset-0 z-[110] hidden items-center justify-center bg-slate-900/55 p-4">
+    <div class="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
+      <h3 class="text-lg font-bold text-brand-sidebar">Confirm Logout</h3>
+      <p class="mt-2 text-sm text-slate-600">Are you sure you want to logout?</p>
+      <div class="mt-5 flex justify-end gap-2">
+        <button type="button" id="logout-cancel" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
+        <button type="button" id="logout-confirm" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast-root" class="pointer-events-none fixed bottom-6 right-6 z-[100] flex flex-col gap-2" aria-live="polite"></div>
+
+<script>
+    (function () {
+      'use strict';
+      var TL_DEPLOYMENTS_API = '../../Api/TeamLead/team_deployments.php';
+      var TL_JOB_ORDER_REQ_API = '../../Api/TeamLead/request_job_order.php';
+      var TL_CONSOLIDATED_JOR_API = '../../Api/TeamLead/submit_consolidated_jor.php';
+      var TL_JOR_LIST_API = '../../Api/TeamLead/get_tl_job_requests.php';
+      var TL_ENDORSED_API = '../../Api/TeamLead/endorsed_applicants.php';
+      var TL_WORK_SCHEDULES_API = '../../Api/Common/work_schedules.php';
+      var TL_DTR_REVIEW_API = '../../Api/TeamLead/get_dtr_cutoff_review.php';
+      var TL_DTR_SUBMIT_API = '../../Api/TeamLead/submit_dtr.php';
+      var jorScheduleOptions = [];
+      // Holds the last-loaded DTR Cutoff Review payload (period + per-employee rows)
+      // so the submit handler can read cutoff dates and per-row detail without
+      // re-fetching.
+      var dtrReviewState = { period: null, employeesById: {} };
+
+      var panels = document.querySelectorAll('.view-panel');
+      var navItems = document.querySelectorAll('.nav-item');
+      var activeNavClass = 'bg-brand-accent text-white shadow-md';
+      var inactiveNavClass = 'text-white/85 hover:bg-white/10';
+      function clearModuleNotifications(moduleName) {
+        fetch('../../Api/TeamLead/mark_module_read.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ module: moduleName })
+        })
+        .then(function (r) { return r.json(); })
+        .then(function () {
+          pollRealtimeCounters();
+        })
+        .catch(function () {});
+      }
+
+      function showView(viewId) {
+        if (viewId === 'dashboard') {
+          loadDashboardRoster();
+        }
+        if (viewId === 'scanner') {
+          if (window.loadWorkSiteDetails) window.loadWorkSiteDetails();
+          clearModuleNotifications('geofence');
+        }
+        if (viewId === 'team') {
+          loadDeployedPersonnel();
+          clearModuleNotifications('team');
+        }
+        if (viewId === 'jobrequests') {
+          loadAssignedCompanies();
+          loadWorkScheduleLookup();
+          loadJobOrderRequests();
+          clearModuleNotifications('jobrequests');
+          if (window.TeamLeadSidebarBadges && typeof TeamLeadSidebarBadges.markJobRequestsSeen === 'function') {
+            TeamLeadSidebarBadges.markJobRequestsSeen('../../Api/Common/realtime_counters.php');
+          }
+        }
+        if (viewId === 'endorsed') {
+          loadEndorsedApplicants();
+          clearModuleNotifications('endorsed');
+        }
+        if (viewId === 'dtr') {
+          loadDtrCutoffReview();
+        }
+        if (viewId === 'overtime') {
+          if (window.TlOvertime && typeof TlOvertime.load === 'function') {
+            TlOvertime.load();
+          }
+        }
+        if (viewId === 'notifications') {
+          if (window.OwNotifications && typeof OwNotifications.loadList === 'function') {
+            OwNotifications.loadList();
+          }
+        }
+        panels.forEach(function (p) {
+          if (p.getAttribute('data-view') === viewId) {
+            p.classList.remove('hidden');
+          } else {
+            p.classList.add('hidden');
+          }
+        });
+        navItems.forEach(function (btn) {
+          var id = btn.getAttribute('data-nav');
+          if (id === viewId) {
+            btn.className =
+              'nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ' + activeNavClass;
+          } else {
+            btn.className =
+              'nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ' + inactiveNavClass;
+          }
+        });
+      }
+
+      navItems.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-nav');
+          showView(id);
+        });
+      });
+
+      showView('dashboard');
+
+      if (typeof ProfileViewSwitch !== 'undefined') {
+        showView = ProfileViewSwitch.initViewPanel({
+          existingShowView: showView,
+          activeNavClass: activeNavClass,
+          inactiveNavClass: inactiveNavClass
+        }) || showView;
+      }
+      window.showView = showView;
+      function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function formatShortDate(value) {
+        if (!value) return '—';
+        var d = new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        return d.toLocaleDateString();
+      }
+
+      function statusPill(status) {
+        var s = String(status || 'Pending');
+        var label = s;
+        if (s === 'Pending') label = 'Pending HR';
+        var cls = 'bg-amber-100 text-amber-800';
+        if (s === 'Approved') cls = 'bg-emerald-100 text-emerald-800';
+        else if (s === 'Posted') cls = 'bg-blue-100 text-blue-800';
+        else if (s === 'Rejected') cls = 'bg-red-100 text-red-700';
+        return '<span class="rounded-full px-2.5 py-1 text-xs font-semibold ' + cls + '">' + escapeHtml(label) + '</span>';
+      }
+
+      function jorScheduleOptionsHtml() {
+        if (!jorScheduleOptions.length) {
+          return '<option value="">No work schedules available</option>';
+        }
+        var opts = ['<option value="">Select schedule</option>'];
+        jorScheduleOptions.forEach(function (name) {
+          opts.push('<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>');
+        });
+        return opts.join('');
+      }
+
+      function syncJorRemoveButtons() {
+        var container = document.getElementById('jor-positions-container');
+        if (!container) return;
+        var rows = container.querySelectorAll('.jor-position-row');
+        rows.forEach(function (row, idx) {
+          var btn = row.querySelector('.jor-remove-row');
+          if (!btn) return;
+          var hide = rows.length <= 1;
+          btn.classList.toggle('hidden', hide);
+          btn.disabled = hide;
+        });
+      }
+
+      function addDeploymentRow(prefillSite) {
+        var container = document.getElementById('jor-positions-container');
+        if (!container) return;
+
+        var row = document.createElement('div');
+        row.className = 'jor-position-row relative rounded-lg border border-slate-200 bg-slate-50/80 p-3 pt-8 shadow-sm';
+        row.innerHTML =
+          '<button type="button" class="jor-remove-row absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200" title="Remove this position">' +
+          '  <i class="bi bi-trash" aria-hidden="true"></i>' +
+          '</button>' +
+          '<div class="grid gap-3 sm:grid-cols-2">' +
+          '  <div>' +
+          '    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Position</label>' +
+          '    <input type="text" class="val-position w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" placeholder="e.g. Teacher" required />' +
+          '  </div>' +
+          '  <div>' +
+          '    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Job Category</label>' +
+          '    <select class="val-category w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" data-job-category-select required>' +
+          '      <option value="" selected disabled>-- Select Job Position --</option>' +
+          '    </select>' +
+          '  </div>' +
+          '</div>' +
+          '<div class="mt-3 grid gap-3 sm:grid-cols-2">' +
+          '  <div>' +
+          '    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Required Workers</label>' +
+          '    <input type="number" min="1" class="val-workers w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" placeholder="1" required />' +
+          '  </div>' +
+          '  <div>' +
+          '    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Deployment Site</label>' +
+          '    <input type="text" class="val-site w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" placeholder="e.g. Carmen Campus" required />' +
+          '  </div>' +
+          '</div>' +
+          '<div class="mt-3">' +
+          '  <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Work Schedule</label>' +
+          '  <select class="val-schedule w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" required>' +
+          jorScheduleOptionsHtml() +
+          '  </select>' +
+          '</div>';
+
+        var removeBtn = row.querySelector('.jor-remove-row');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', function () {
+            row.remove();
+            syncJorRemoveButtons();
+          });
+        }
+
+        if (prefillSite) {
+          var siteInput = row.querySelector('.val-site');
+          if (siteInput && !siteInput.value) siteInput.value = prefillSite;
+        }
+
+        container.appendChild(row);
+        if (window.OwJobCategories && typeof OwJobCategories.populate === 'function') {
+          OwJobCategories.populate();
+        }
+        syncJorRemoveButtons();
+      }
+      window.addDeploymentRow = addDeploymentRow;
+
+      function resetJorForm() {
+        var container = document.getElementById('jor-positions-container');
+        var remarks = document.getElementById('jor-remarks');
+        if (container) container.innerHTML = '';
+        addDeploymentRow('');
+        if (remarks) remarks.value = '';
+      }
+
+      function collectJorPositions() {
+        var container = document.getElementById('jor-positions-container');
+        if (!container) return [];
+        var rows = container.querySelectorAll('.jor-position-row');
+        var positions = [];
+        rows.forEach(function (row, idx) {
+          var position = (row.querySelector('.val-position') || {}).value || '';
+          var categoryId = parseInt((row.querySelector('.val-category') || {}).value, 10) || 0;
+          var workers = parseInt((row.querySelector('.val-workers') || {}).value, 10) || 0;
+          var site = (row.querySelector('.val-site') || {}).value || '';
+          var schedule = (row.querySelector('.val-schedule') || {}).value || '';
+          positions.push({
+            position: String(position).trim(),
+            category_id: categoryId,
+            workers_needed: workers,
+            deployment_site: String(site).trim(),
+            work_schedule: String(schedule).trim(),
+            _row: idx + 1
+          });
+        });
+        return positions;
+      }
+
+      function renderJorDeploymentCell(deployments, type) {
+        if (!Array.isArray(deployments) || !deployments.length) return '—';
+        var lines = deployments.map(function (d) {
+          var workers = parseInt(d.workers || d.required_workers, 10) || 0;
+          var pos = String(d.position || d.position_title || '').trim();
+          var site = String(d.site || d.deployment_site || '').trim();
+          if (type === 'position') {
+            return '• ' + workers + ' ' + (pos || 'Role');
+          }
+          if (type === 'workers') {
+            return '• ' + workers;
+          }
+          if (type === 'site') {
+            return site || '—';
+          }
+          return '';
+        }).filter(Boolean);
+        return lines.length
+          ? lines.map(function (line) { return escapeHtml(line); }).join('<br>')
+          : '—';
+      }
+
+      function handleJORSubmit(e) {
+        e.preventDefault();
+        var feedback = document.getElementById('jor-feedback');
+        var submitBtn = document.getElementById('jor-submit-btn');
+        var companySelect = document.getElementById('jor-company');
+        var remarksEl = document.getElementById('jor-remarks');
+        var companyId = companySelect ? parseInt(companySelect.value, 10) : 0;
+        var positions = collectJorPositions();
+
+        for (var i = 0; i < positions.length; i++) {
+          var p = positions[i];
+          if (!p.position || !p.category_id || p.workers_needed <= 0 || !p.deployment_site || !p.work_schedule) {
+            if (feedback) {
+              feedback.textContent = 'Complete all fields in position row ' + p._row + '.';
+            }
+            return;
+          }
+        }
+
+        if (feedback) feedback.textContent = 'Submitting request...';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Submitting...';
+        }
+
+        var payload = {
+          company_id: companyId,
+          client_company: companyId,
+          remarks: remarksEl ? String(remarksEl.value || '').trim() : '',
+          positions: positions.map(function (p) {
+            return {
+              position: p.position,
+              category_id: p.category_id,
+              workers_needed: p.workers_needed,
+              deployment_site: p.deployment_site,
+              work_schedule: p.work_schedule
+            };
+          })
+        };
+
+        fetch(TL_CONSOLIDATED_JOR_API, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload)
+        })
+          .then(function (r) {
+            return r.text().then(function (text) {
+              try {
+                return { ok: r.ok, data: JSON.parse(text) };
+              } catch (err) {
+                return { ok: false, data: { success: false, message: 'Server error while submitting request.' } };
+              }
+            });
+          })
+          .then(function (resp) {
+            var data = resp.data;
+            if (resp.ok && data && data.success) {
+              if (feedback) feedback.textContent = 'Request submitted successfully.';
+              resetJorForm();
+              showToast('Job order request submitted');
+              loadJobOrderRequests();
+              loadAssignedCompanies();
+            } else {
+              var errMsg = (data && data.message) ? data.message : 'Failed to submit request.';
+              if (feedback) {
+                if (data && data.error_type === 'invalid_category') {
+                  feedback.innerHTML = '<div class="alert alert-warning mb-0 py-2 px-3 text-sm" role="alert">' + escapeHtml(errMsg) + '</div>';
+                } else {
+                  feedback.textContent = errMsg;
+                }
+              }
+              if (data && data.error_code === 'WORK_SITE_NOT_REGISTERED') {
+                showAgreementBlockedPopup(data.message || 'Please register your work site before creating a job order.');
+              } else if (data && data.error_code === 'NO_ACTIVE_SERVICE_AGREEMENT') {
+                showAgreementBlockedPopup(data.message || 'Your company needs to upload an agreement before it can request a job.');
+              }
+            }
+          })
+          .catch(function () {
+            if (feedback) feedback.textContent = 'Request failed. Please try again.';
+          })
+          .finally(function () {
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Submit Request';
+            }
+          });
+      }
+
+      function fetchJsonWithStatus(url, options) {
+        return fetch(url, options || { credentials: 'include' })
+          .then(function (r) {
+            return r.json().catch(function () { return {}; }).then(function (data) {
+              return { ok: r.ok, status: r.status, data: data || {} };
+            });
+          });
+      }
+
+      function loadDeployedPersonnel() {
+        var grid = document.getElementById('deployed-team-grid');
+        if (!grid) return;
+        grid.innerHTML = '<article class="rounded-xl border border-slate-100 bg-white p-4 shadow-card"><p class="text-sm text-slate-500">Loading deployed personnel...</p></article>';
+        fetchJsonWithStatus(TL_DEPLOYMENTS_API, { credentials: 'include' })
+          .then(function (resp) {
+            if (!resp.ok || !resp.data || !resp.data.success) {
+              var msg = (resp.data && (resp.data.message || resp.data.error)) || ('Failed to load (' + resp.status + ')');
+              grid.innerHTML = '<article class="rounded-xl border border-red-100 bg-red-50 p-4 shadow-card"><p class="text-sm font-medium text-red-700">' + escapeHtml(msg) + '</p></article>';
+              return;
+            }
+            var rows = Array.isArray(resp.data.deployments) ? resp.data.deployments : [];
+            if (!rows.length) {
+              grid.innerHTML = '<article class="rounded-xl border border-slate-100 bg-white p-4 shadow-card"><p class="text-sm text-slate-500">No deployed personnel found for your assignment yet.</p></article>';
+              return;
+            }
+            grid.innerHTML = rows.map(function (d) {
+              var role = d.position || '—';
+              var site = d.location || 'Unspecified site';
+              var company = d.company_name || '—';
+              var empId = parseInt(d.employee_id || d.EmployeeID || 0, 10);
+              return '' +
+                '<article class="rounded-xl border border-slate-100 bg-white p-4 shadow-card flex flex-col justify-between">' +
+                '  <div>' +
+                '    <div class="flex justify-between items-start gap-2">' +
+                '      <p class="font-bold text-slate-900">' + escapeHtml(d.employee_name || 'Unknown Employee') + '</p>' +
+                '      <span class="badge bg-slate-100 text-slate-600 text-xs font-mono">' + escapeHtml(d.employee_number || 'ID #' + empId) + '</span>' +
+                '    </div>' +
+                '    <p class="text-sm text-slate-600 mt-1">' + escapeHtml(role) + ' · ' + escapeHtml(company) + '</p>' +
+                '    <p class="mt-1.5 text-xs font-medium text-emerald-700"><i class="bi bi-geo-alt-fill me-1"></i>' + escapeHtml(site) + '</p>' +
+                '    <p class="mt-1 text-[11px] text-slate-400">Assigned: ' + escapeHtml(formatShortDate(d.start_date)) + (d.end_date ? ' to ' + escapeHtml(formatShortDate(d.end_date)) : '') + '</p>' +
+                '  </div>' +
+                '  <div class="mt-4 pt-3 border-t border-slate-100 flex justify-end">' +
+                '    <button type="button" class="btn btn-sm btn-outline-primary fw-bold text-xs px-3 py-1.5" onclick="openEmployeeAttendanceModal(' + empId + ', \'' + escapeHtml(d.employee_name || 'Employee') + '\')">' +
+                '      <i class="bi bi-calendar-check me-1"></i>View Attendance &amp; Details' +
+                '    </button>' +
+                '  </div>' +
+                '</article>';
+            }).join('');
+          })
+          .catch(function () {
+            grid.innerHTML = '<article class="rounded-xl border border-red-100 bg-red-50 p-4 shadow-card"><p class="text-sm font-medium text-red-700">Request failed while loading deployed personnel.</p></article>';
+          });
+      }
+
+      function openEmployeeAttendanceModal(employeeId, employeeName) {
+        var modalEl = document.getElementById('tlAttendanceModal');
+        var titleEl = document.getElementById('tlAttendanceModalTitle');
+        var bodyEl = document.getElementById('tlAttendanceModalBody');
+        if (!modalEl || !bodyEl) return;
+
+        if (titleEl) titleEl.textContent = 'Attendance & Monitoring — ' + employeeName;
+        bodyEl.innerHTML = '<div class="text-center text-slate-500 py-6"><div class="spinner-border spinner-border-sm me-2 text-primary" role="status"></div>Loading duty logs...</div>';
+        
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        fetch('../../Api/TeamLead/get_employee_attendance_logs.php?employee_id=' + encodeURIComponent(employeeId), { credentials: 'include' })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (!res || !res.success) {
+              bodyEl.innerHTML = '<div class="alert alert-danger mb-0">' + escapeHtml((res && res.message) || 'Failed to load attendance history.') + '</div>';
+              return;
+            }
+
+            var emp = res.employee || {};
+            var logs = Array.isArray(res.logs) ? res.logs : [];
+
+            var logsTable = logs.length ? 
+              '<div class="table-responsive"><table class="table table-hover align-middle mb-0 text-sm">' +
+              '<thead class="table-light text-uppercase fs-7 text-muted"><tr><th>Date</th><th>Time In</th><th>Break</th><th>Time Out</th><th>Hours</th><th>Status</th></tr></thead>' +
+              '<tbody>' + logs.map(function (l) {
+                var badgeColor = 'bg-secondary';
+                var st = String(l.status || '').toLowerCase();
+                if (st === 'present') badgeColor = 'bg-success';
+                else if (st === 'late') badgeColor = 'bg-warning text-dark';
+                else if (st === 'absent') badgeColor = 'bg-danger';
+
+                return '<tr>' +
+                  '<td><strong>' + escapeHtml(l.date) + '</strong></td>' +
+                  '<td>' + escapeHtml(l.time_in_display || l.time_in || '—') + '</td>' +
+                  '<td>' + escapeHtml(l.break_time_display || l.break_time || '—') + '</td>' +
+                  '<td>' + escapeHtml(l.time_out_display || l.time_out || '—') + '</td>' +
+                  '<td><span class="badge bg-light text-dark border">' + (l.total_hours_rendered != null ? l.total_hours_rendered + ' hrs' : '—') + '</span></td>' +
+                  '<td><span class="badge ' + badgeColor + '">' + escapeHtml(l.status || 'Recorded') + '</span></td>' +
+                  '</tr>';
+              }).join('') + '</tbody></table></div>' :
+              '<div class="alert alert-light border text-center text-muted mb-0 py-4">No attendance records found for this employee yet.</div>';
+
+            bodyEl.innerHTML =
+              '<div class="space-y-4">' +
+              '  <div class="rounded-xl bg-slate-50 p-3.5 border border-slate-200">' +
+              '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-primary"><i class="bi bi-person-badge me-1"></i> Employee Monitoring Summary</h6>' +
+              '    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">' +
+              '      <div><span class="text-slate-500 block text-xs">Employee No:</span> <strong class="text-slate-800">' + escapeHtml(emp.employee_number || '—') + '</strong></div>' +
+              '      <div><span class="text-slate-500 block text-xs">Full Name:</span> <strong class="text-slate-800">' + escapeHtml(emp.employee_name || employeeName) + '</strong></div>' +
+              '      <div><span class="text-slate-500 block text-xs">Position / Role:</span> <strong class="text-slate-800">' + escapeHtml(emp.position || '—') + '</strong></div>' +
+              '    </div>' +
+              '  </div>' +
+              '  <div>' +
+              '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-slate-600"><i class="bi bi-clock-history me-1"></i> Recent Duty Logs &amp; Attendance Status</h6>' +
+                   logsTable +
+              '  </div>' +
+              '</div>';
+          })
+          .catch(function () {
+            bodyEl.innerHTML = '<div class="alert alert-danger mb-0">Network error while fetching attendance logs. Please try again.</div>';
+          });
+      }
+      window.openEmployeeAttendanceModal = openEmployeeAttendanceModal;
+
+      function dtrStatusBadgeClass(status) {
+        var s = String(status || '').toLowerCase();
+        if (s === 'present') return 'bg-success';
+        if (s === 'late') return 'bg-warning text-dark';
+        if (s === 'absent') return 'bg-danger';
+        if (s === 'rest day') return 'bg-secondary';
+        if (s === 'on leave') return 'bg-info text-dark';
+        return 'bg-light text-dark border';
+      }
+
+      function syncDtrSelectAllState() {
+        var selectAll = document.getElementById('dtr-select-all');
+        if (!selectAll) return;
+        var boxes = document.querySelectorAll('.dtr-checkbox');
+        if (!boxes.length) {
+          selectAll.checked = false;
+          selectAll.indeterminate = false;
+          selectAll.disabled = true;
+          return;
+        }
+        selectAll.disabled = false;
+        var checkedCount = document.querySelectorAll('.dtr-checkbox:checked').length;
+        selectAll.checked = checkedCount === boxes.length;
+        selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+      }
+
+      function loadDtrCutoffReview() {
+        var tbody = document.getElementById('dtrTableBody');
+        var cutoffLabelEl = document.getElementById('dtr-cutoff-label');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">Loading DTR cutoff review...</td></tr>';
+
+        fetch(TL_DTR_REVIEW_API, { credentials: 'include' })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (!res || !res.success) {
+              tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">' + escapeHtml((res && res.message) || 'Failed to load DTR cutoff review.') + '</td></tr>';
+              return;
+            }
+
+            dtrReviewState.period = res.period || null;
+            var employees = Array.isArray(res.employees) ? res.employees : [];
+            dtrReviewState.employeesById = {};
+            employees.forEach(function (e) { dtrReviewState.employeesById[e.employee_id] = e; });
+
+            if (cutoffLabelEl && res.period) {
+              cutoffLabelEl.textContent = 'Reviewing Cutoff: ' + (res.period.label || (res.period.start + ' – ' + res.period.end));
+            }
+
+            if (!employees.length) {
+              tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">No employees found on your team for this cutoff.</td></tr>';
+              syncDtrSelectAllState();
+              return;
+            }
+
+            tbody.innerHTML = employees.map(function (e) {
+              var isSubmitted = !!e.is_submitted;
+              var checkbox = isSubmitted
+                ? '<input type="checkbox" disabled title="Already submitted" />'
+                : '<input type="checkbox" class="dtr-checkbox" value="' + e.employee_id + '" />';
+              var statusBadge = isSubmitted
+                ? '<span class="badge bg-success">Submitted</span>'
+                : '<span class="badge bg-secondary">Pending Submission</span>';
+              var isDifferentPeriod = res.period && (e.period_start !== res.period.start || e.period_end !== res.period.end);
+              var cutoffNote = isDifferentPeriod
+                ? '<div class="text-xs text-amber-600">' + escapeHtml(e.payroll_type_label || '') + ' — ' + escapeHtml(e.cutoff_label || '') + '</div>'
+                : '';
+              return '<tr>' +
+                '<td class="px-3 py-3">' + checkbox + '</td>' +
+                '<td class="px-4 py-3">' +
+                '  <button type="button" class="fw-bold text-brand-accent text-decoration-underline bg-transparent border-0 p-0" onclick="openDtrDetailModal(' + e.employee_id + ')">' +
+                escapeHtml(e.employee_name || 'Employee') +
+                '  </button>' +
+                '  <div class="text-xs text-slate-500">' + escapeHtml(e.position || '—') + '</div>' +
+                cutoffNote +
+                '</td>' +
+                '<td class="px-4 py-3">' + (e.total_regular_hours != null ? e.total_regular_hours + ' hrs' : '—') + '</td>' +
+                '<td class="px-4 py-3">' + (e.total_overtime_hours != null ? e.total_overtime_hours + ' hrs' : '—') + '</td>' +
+                '<td class="px-4 py-3">' + (e.holiday_pay_hours != null ? e.holiday_pay_hours + ' hrs' : '—') + '</td>' +
+                '<td class="px-4 py-3">' + statusBadge + '</td>' +
+                '</tr>';
+            }).join('');
+
+            document.querySelectorAll('.dtr-checkbox').forEach(function (cb) {
+              cb.addEventListener('change', syncDtrSelectAllState);
+            });
+            syncDtrSelectAllState();
+          })
+          .catch(function () {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">Network error while loading DTR cutoff review.</td></tr>';
+          });
+      }
+      window.loadDtrCutoffReview = loadDtrCutoffReview;
+
+      function openDtrDetailModal(employeeId) {
+        var modalEl = document.getElementById('tlAttendanceModal');
+        var titleEl = document.getElementById('tlAttendanceModalTitle');
+        var bodyEl = document.getElementById('tlAttendanceModalBody');
+        if (!modalEl || !bodyEl) return;
+
+        var emp = dtrReviewState.employeesById[employeeId];
+        if (!emp) return;
+
+        if (titleEl) titleEl.textContent = 'DTR — ' + (emp.employee_name || 'Employee') + (dtrReviewState.period ? ' (' + dtrReviewState.period.label + ')' : '');
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+        var days = Array.isArray(emp.daily_breakdown) ? emp.daily_breakdown : [];
+        var daysTable = days.length ?
+          '<div class="table-responsive"><table class="table table-hover align-middle mb-0 text-sm">' +
+          '<thead class="table-light text-uppercase fs-7 text-muted"><tr><th>Date</th><th>Time In</th><th>Time Out</th><th>Rendered Hrs</th><th>Late (min)</th><th>Undertime (min)</th><th>Status</th></tr></thead>' +
+          '<tbody>' + days.map(function (d) {
+            return '<tr>' +
+              '<td><strong>' + escapeHtml(d.date) + (d.is_holiday ? ' <span class="badge bg-purple text-white" style="background:#7c3aed;">Holiday</span>' : '') + '</strong></td>' +
+              '<td>' + escapeHtml(d.time_in ? new Date(d.time_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—') + '</td>' +
+              '<td>' + escapeHtml(d.time_out ? new Date(d.time_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—') + '</td>' +
+              '<td>' + (d.rendered_hours != null ? d.rendered_hours + ' hrs' : '—') + '</td>' +
+              '<td>' + (d.late_minutes || 0) + '</td>' +
+              '<td>' + (d.undertime_minutes != null ? d.undertime_minutes : '—') + '</td>' +
+              '<td><span class="badge ' + dtrStatusBadgeClass(d.status) + '">' + escapeHtml(d.status || '—') + '</span></td>' +
+              '</tr>';
+          }).join('') + '</tbody></table></div>' :
+          '<div class="alert alert-light border text-center text-muted mb-0 py-4">No DTR records found for this cutoff.</div>';
+
+        bodyEl.innerHTML =
+          '<div class="space-y-4">' +
+          '  <div class="rounded-xl bg-slate-50 p-3.5 border border-slate-200">' +
+          '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-primary"><i class="bi bi-person-badge me-1"></i> Employee DTR Summary</h6>' +
+          '    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">' +
+          '      <div><span class="text-slate-500 block text-xs">Position:</span> <strong class="text-slate-800">' + escapeHtml(emp.position || '—') + '</strong></div>' +
+          '      <div><span class="text-slate-500 block text-xs">Total Regular Hrs:</span> <strong class="text-slate-800">' + (emp.total_regular_hours != null ? emp.total_regular_hours : '—') + '</strong></div>' +
+          '      <div><span class="text-slate-500 block text-xs">Total OT Hrs:</span> <strong class="text-slate-800">' + (emp.total_overtime_hours != null ? emp.total_overtime_hours : '—') + '</strong></div>' +
+          '    </div>' +
+          '  </div>' +
+          '  <div>' +
+          '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-slate-600"><i class="bi bi-clock-history me-1"></i> Daily Time Record — This Cutoff</h6>' +
+               daysTable +
+          '  </div>' +
+          '</div>';
+
+        modal.show();
+      }
+      window.openDtrDetailModal = openDtrDetailModal;
+
+      function loadDashboardRoster() {
+        if (window.TlAttendanceSync && typeof TlAttendanceSync.loadRoster === 'function') {
+          return TlAttendanceSync.loadRoster();
+        }
+        var body = document.getElementById('dashboardRosterBody');
+        if (body) {
+          body.innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">Loading attendance roster…</td></tr>';
+        }
+      }
+
+      function loadAssignedCompanies() {
+        var select = document.getElementById('jor-company');
+        if (!select) return;
+        select.innerHTML = '<option value="">Loading assigned company...</option>';
+        fetchJsonWithStatus(TL_DEPLOYMENTS_API, { credentials: 'include' })
+          .then(function (resp) {
+            var data = resp.data || {};
+            if (!resp.ok || !data.success) {
+              var emsg = (data && (data.message || data.error)) || ('Failed to load (' + resp.status + ')');
+              select.innerHTML = '<option value="">' + escapeHtml(emsg) + '</option>';
+              return;
+            }
+            if (!Array.isArray(data.sites) || data.sites.length === 0) {
+              select.innerHTML = '<option value="">No assigned company available</option>';
+              return;
+            }
+            var opts = [];
+            data.sites.forEach(function (site) {
+              opts.push('<option value="' + escapeHtml(String(site.company_id || '')) + '" data-location="' + escapeHtml(site.location || '') + '">' + escapeHtml(site.company_name || 'Company') + '</option>');
+            });
+            select.innerHTML = opts.join('');
+            if (data.sites.length > 0) {
+              select.value = String(data.sites[0].company_id || '');
+              select.disabled = true;
+              select.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-700');
+              var loc = data.sites[0].location || '';
+              if (loc) {
+                var firstSite = document.querySelector('#jor-positions-container .val-site');
+                if (firstSite && !firstSite.value) firstSite.value = loc;
+              }
+            }
+          })
+          .catch(function () {
+            select.innerHTML = '<option value="">Failed to load company</option>';
+          });
+      }
+
+      function loadWorkScheduleLookup() {
+        jorScheduleOptions = [];
+        fetchJsonWithStatus(TL_WORK_SCHEDULES_API, { credentials: 'include' })
+          .then(function (resp) {
+            var data = resp.data || {};
+            if (resp.ok && data.success && Array.isArray(data.schedules)) {
+              data.schedules.forEach(function (item) {
+                var name = item && item.name ? String(item.name) : '';
+                if (name) jorScheduleOptions.push(name);
+              });
+            }
+            document.querySelectorAll('.val-schedule').forEach(function (sel) {
+              sel.innerHTML = jorScheduleOptionsHtml();
+            });
+          })
+          .catch(function () {
+            jorScheduleOptions = [];
+          });
+      }
+
+      function showAgreementBlockedPopup(message) {
+        var text = message || 'Please register your work site before creating a job order.';
+        var overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/55 p-4';
+        overlay.innerHTML =
+          '<div class="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">' +
+          '  <h3 class="text-lg font-bold text-brand-sidebar">Action Required</h3>' +
+          '  <p class="mt-2 text-sm text-slate-600">' + escapeHtml(text) + '</p>' +
+          '  <div class="mt-5 flex justify-end gap-2">' +
+          '    <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" id="popupClose">Close</button>' +
+          '    <button type="button" class="rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent-dark" id="popupRegister">Register Work Site</button>' +
+          '  </div>' +
+          '</div>';
+        
+        var closeBtn = overlay.querySelector('#popupClose');
+        var regBtn = overlay.querySelector('#popupRegister');
+        
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function () { overlay.remove(); });
+        }
+        if (regBtn) {
+          regBtn.addEventListener('click', function () {
+            overlay.remove();
+            showView('scanner');
+          });
+        }
+        overlay.addEventListener('click', function (e) {
+          if (e.target === overlay) overlay.remove();
+        });
+        document.body.appendChild(overlay);
+      }
+
+      function loadJobOrderRequests(silent) {
+        var body = document.getElementById('job-requests-body');
+        if (!body) return;
+        if (!silent && (body.children.length === 0 || body.querySelector('td[colspan]'))) {
+          body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">Loading requests...</td></tr>';
+        }
+        fetchJsonWithStatus(TL_JOR_LIST_API, { credentials: 'include' })
+          .then(function (resp) {
+            var data = resp.data || {};
+            if (!resp.ok || !data.success) {
+              if (!silent) {
+                var emsg = (data && (data.message || data.error)) || ('Could not load requests (' + resp.status + ')');
+                body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">' + escapeHtml(emsg) + '</td></tr>';
+              }
+              return;
+            }
+            var rows = Array.isArray(data.requests) ? data.requests : [];
+            if (!rows.length) {
+              body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">No job order requests yet.</td></tr>';
+              return;
+            }
+            body.innerHTML = rows.map(function (r) {
+              var deployments = Array.isArray(r.deployments) ? r.deployments : [];
+              var status = r.status || 'Pending';
+              return '<tr class="hover:bg-slate-50/50 align-top">' +
+                '<td class="px-3 py-2 whitespace-nowrap">' + escapeHtml(formatShortDate(r.created_at || r.date)) + '</td>' +
+                '<td class="px-3 py-2 font-medium text-slate-900">' + escapeHtml(r.company_name || r.company || '—') + '</td>' +
+                '<td class="px-3 py-2 text-slate-800 leading-relaxed">' + renderJorDeploymentCell(deployments, 'position') + '</td>' +
+                '<td class="px-3 py-2 tabular-nums leading-relaxed">' + renderJorDeploymentCell(deployments, 'workers') + '</td>' +
+                '<td class="px-3 py-2 leading-relaxed">' + renderJorDeploymentCell(deployments, 'site') + '</td>' +
+                '<td class="px-3 py-2">' + statusPill(status) + '</td>' +
+              '</tr>';
+            }).join('');
+          })
+          .catch(function () {
+            if (!silent && body.querySelector('td[colspan]')) {
+              body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">Request failed while loading requests</td></tr>';
+            }
+          });
+      }
+
+      function loadEndorsedApplicants() {
+        var body = document.getElementById('endorsed-applicants-body');
+        if (!body) return;
+        body.innerHTML = '<tr><td colspan="7" class="px-4 py-4 text-center text-slate-500">Loading endorsed applicants...</td></tr>';
+        fetchJsonWithStatus(TL_ENDORSED_API, { credentials: 'include' })
+          .then(function (resp) {
+            var data = resp.data || {};
+            if (!resp.ok || !data.success) {
+              var emsg = (data && (data.message || data.error)) || ('Could not load endorsed applicants (' + resp.status + ')');
+              body.innerHTML = '<tr><td colspan="7" class="px-4 py-4 text-center text-red-600">' + escapeHtml(emsg) + '</td></tr>';
+              return;
+            }
+            var rows = Array.isArray(data.applications) ? data.applications : [];
+            if (!rows.length) {
+              body.innerHTML = '<tr><td colspan="7" class="px-4 py-4 text-center text-slate-500">No endorsed applicants yet for your assigned companies.</td></tr>';
+              return;
+            }
+            body.innerHTML = rows.map(function (a) {
+              var status = String(a.client_status || 'Pending');
+              var isPending = status === 'Pending';
+              var appId = escapeHtml(String(a.application_id || a.id || 0));
+              var viewBtn = '<button type="button" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700" data-act="view" data-id="' + appId + '"><i class="bi bi-eye me-1"></i>View</button>';
+              var btns = isPending
+                ? (
+                  '<div class="flex justify-end gap-2">' +
+                     viewBtn +
+                  '  <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700" data-act="approve" data-id="' + appId + '">Approve</button>' +
+                  '  <button type="button" class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-red-700" data-act="reject" data-id="' + appId + '">Reject</button>' +
+                  '</div>'
+                )
+                : (
+                  '<div class="flex justify-end gap-2">' +
+                     viewBtn +
+                  '</div>'
+                );
+              return '<tr class="hover:bg-slate-50/50">' +
+                '<td class="px-4 py-3 font-semibold text-slate-900">' + escapeHtml(a.applicant_name || '—') + '</td>' +
+                '<td class="px-4 py-3">' + escapeHtml(a.email || '—') + '</td>' +
+                '<td class="px-4 py-3">' + escapeHtml(a.position || '—') + '</td>' +
+                '<td class="px-4 py-3">' + escapeHtml(a.company_name || '—') + '</td>' +
+                '<td class="px-4 py-3">' + escapeHtml(formatShortDate(a.endorsed_date)) + '</td>' +
+                '<td class="px-4 py-3">' + statusPill(status) + '</td>' +
+                '<td class="px-4 py-3">' + btns + '</td>' +
+              '</tr>';
+            }).join('');
+
+            // Bind view, approve, and reject actions.
+            body.querySelectorAll('button[data-act][data-id]').forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                var act = btn.getAttribute('data-act');
+                var id = parseInt(btn.getAttribute('data-id'), 10) || 0;
+                if (!id) return;
+                if (act === 'view') {
+                  openApplicantDetailsModal(id);
+                } else {
+                  var decision = (act === 'approve') ? 'Approved' : 'Rejected';
+                  submitEndorsedDecision(id, decision);
+                }
+              });
+            });
+          })
+          .catch(function () {
+            body.innerHTML = '<tr><td colspan="7" class="px-4 py-4 text-center text-red-600">Request failed while loading endorsed applicants.</td></tr>';
+          });
+      }
+
+      function openApplicantDetailsModal(applicationId) {
+        var modalEl = document.getElementById('applicantDetailsModal');
+        var bodyEl = document.getElementById('applicantDetailsModalBody');
+        if (!modalEl || !bodyEl) return;
+
+        bodyEl.innerHTML = '<div class="text-center text-slate-500 py-6"><div class="spinner-border spinner-border-sm me-2 text-blue-600" role="status"></div>Loading applicant details...</div>';
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+
+        fetch('../../Api/HR/get_application_details.php?id=' + encodeURIComponent(applicationId), { credentials: 'include' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data || !data.success) {
+              bodyEl.innerHTML = '<div class="alert alert-danger mb-0">' + escapeHtml((data && data.message) || 'Failed to load applicant details.') + '</div>';
+              return;
+            }
+
+            var docsHtml = (data.documents && data.documents.length)
+              ? '<ul class="list-group">' + data.documents.map(function (doc) {
+                  var fileUrl = doc.file_path ? '../../' + String(doc.file_path).replace(/\\/g, '/').replace(/^\.\.\/\.\.\//, '').replace(/^\/+/, '') : '#';
+                  var ext = fileUrl.split('.').pop().toLowerCase();
+                  var isImg = ['jpg', 'jpeg', 'png', 'webp', 'gif'].indexOf(ext) !== -1;
+                  var fileType = isImg ? 'image' : (ext === 'pdf' ? 'pdf' : 'other');
+                  var docTitle = (doc.doc_type || 'Document') + ' — ' + (doc.original_filename || 'File');
+
+                  return '<li class="list-group-item d-flex justify-content-between align-items-center small py-2 px-3">' +
+                    '<span class="truncate max-w-[280px]"><i class="bi bi-file-earmark-text me-2 text-primary"></i>' + escapeHtml(doc.doc_type || 'Document') + ' — ' + escapeHtml(doc.original_filename || 'File') + '</span>' +
+                    '<button type="button" class="btn btn-sm btn-outline-primary btn-preview-doc py-1 px-2.5 text-xs font-semibold" ' +
+                    '  data-file-url="' + escapeHtml(fileUrl) + '" ' +
+                    '  data-file-type="' + escapeHtml(fileType) + '" ' +
+                    '  data-doc-title="' + escapeHtml(docTitle) + '">' +
+                    '  <i class="bi bi-box-arrow-up-right me-1"></i>View Document' +
+                    '</button>' +
+                  '</li>';
+                }).join('') + '</ul>'
+              : '<p class="text-slate-500 text-sm italic mb-0">No documents uploaded.</p>';
+
+            bodyEl.innerHTML =
+              '<div class="space-y-4 text-left">' +
+              '  <div class="rounded-xl bg-slate-50 p-3.5 border border-slate-200">' +
+              '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-blue-700"><i class="bi bi-person-vcard me-1"></i> Applicant Profile</h6>' +
+              '    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">' +
+              '      <div><span class="text-slate-500">Full Name:</span> <strong class="text-slate-800">' + escapeHtml(data.applicant_name) + '</strong></div>' +
+              '      <div><span class="text-slate-500">Email:</span> <strong class="text-slate-800">' + escapeHtml(data.email) + '</strong></div>' +
+              '      <div><span class="text-slate-500">Mobile Number:</span> <strong class="text-slate-800">' + escapeHtml(data.mobile || 'N/A') + '</strong></div>' +
+              '      <div><span class="text-slate-500">Application Date:</span> <strong class="text-slate-800">' + escapeHtml(data.application_date || 'N/A') + '</strong></div>' +
+              '    </div>' +
+              '  </div>' +
+
+              '  <div class="rounded-xl bg-slate-50 p-3.5 border border-slate-200">' +
+              '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-blue-700"><i class="bi bi-briefcase me-1"></i> Position &amp; Endorsement Logs</h6>' +
+              '    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">' +
+              '      <div><span class="text-slate-500">Position Applied:</span> <strong class="text-slate-800">' + escapeHtml(data.position) + '</strong></div>' +
+              '      <div><span class="text-slate-500">Client Company:</span> <strong class="text-slate-800">' + escapeHtml(data.company_name) + '</strong></div>' +
+              '      <div><span class="text-slate-500">Interview Logged:</span> <strong class="text-slate-800">' + escapeHtml(data.interview_date || 'N/A') + '</strong></div>' +
+              '      <div><span class="text-slate-500">Endorsed Date:</span> <strong class="text-slate-800">' + escapeHtml(data.endorsed_date || 'N/A') + '</strong></div>' +
+              '    </div>' +
+              '  </div>' +
+
+              '  <div>' +
+              '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-slate-600"><i class="bi bi-folder-check me-1"></i> Uploaded Credentials / Documents</h6>' +
+                   docsHtml +
+              '  </div>' +
+              '</div>';
+
+            // Bind click listeners for "View Document" buttons
+            bodyEl.querySelectorAll('.btn-preview-doc').forEach(function (btn) {
+              btn.addEventListener('click', function () {
+                var url = btn.getAttribute('data-file-url');
+                var type = btn.getAttribute('data-file-type');
+                var title = btn.getAttribute('data-doc-title');
+                openApplicantDocPreview(url, type, title);
+              });
+            });
+          })
+          .catch(function () {
+            bodyEl.innerHTML = '<div class="alert alert-danger mb-0">Error fetching applicant details. Please try again.</div>';
+          });
+      }
+
+      function openApplicantDocPreview(fileUrl, fileType, title) {
+        var modalEl = document.getElementById('documentPreviewModal');
+        var titleEl = document.getElementById('documentPreviewTitle');
+        var frameEl = document.getElementById('documentPreviewFrame');
+        var imageEl = document.getElementById('documentPreviewImage');
+        var emptyEl = document.getElementById('documentPreviewEmpty');
+        var downloadEl = document.getElementById('documentPreviewDownload');
+        if (!modalEl || !titleEl || !frameEl || !imageEl || !emptyEl || !downloadEl) return;
+
+        titleEl.innerHTML = '<i class="bi bi-file-earmark-text text-blue-400 me-2"></i>' + escapeHtml(title || 'Document Preview');
+        downloadEl.href = fileUrl || '#';
+
+        frameEl.style.display = 'none';
+        imageEl.style.display = 'none';
+        emptyEl.classList.add('d-none');
+        frameEl.removeAttribute('src');
+        imageEl.removeAttribute('src');
+
+        if (!fileUrl) {
+          emptyEl.textContent = 'Document path is unavailable.';
+          emptyEl.classList.remove('d-none');
+        } else if (fileType === 'image') {
+          imageEl.src = fileUrl;
+          imageEl.style.display = 'block';
+        } else if (fileType === 'pdf') {
+          frameEl.src = fileUrl;
+          frameEl.style.display = 'block';
+        } else {
+          emptyEl.textContent = 'Direct preview is not available for this file type. Click download to open.';
+          emptyEl.classList.remove('d-none');
+        }
+
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+      }
+      function submitEndorsedDecision(applicationId, decision) {
+        var note = window.prompt('Optional: add a short note (leave blank for none).') || '';
+        fetchJsonWithStatus(TL_ENDORSED_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            application_id: applicationId,
+            decision: decision,
+            comment: String(note || '')
+          })
+        }).then(function (resp) {
+          var data = resp.data || {};
+          if (!resp.ok || !data.success) {
+            window.alert((data && data.message) ? data.message : 'Failed to save decision.');
+            return;
+          }
+          showToast('Decision saved: ' + decision);
+          loadEndorsedApplicants();
+          pollRealtimeCounters();
+        }).catch(function () {
+          window.alert('Network error while saving decision.');
+        });
+      }
+
+      var requestForm = document.getElementById('job-order-request-form');
+      if (requestForm) {
+        var companySelect = document.getElementById('jor-company');
+        var feedback = document.getElementById('jor-feedback');
+        var submitBtn = document.getElementById('jor-submit-btn');
+        var addRowBtn = document.getElementById('jor-add-row-btn');
+
+        if (!document.querySelector('#jor-positions-container .jor-position-row')) {
+          addDeploymentRow('');
+        }
+
+        if (addRowBtn) {
+          addRowBtn.addEventListener('click', function () {
+            var selected = companySelect && companySelect.options[companySelect.selectedIndex];
+            var loc = selected ? (selected.getAttribute('data-location') || '') : '';
+            addDeploymentRow(loc);
+          });
+        }
+
+        if (companySelect) {
+          companySelect.addEventListener('change', function () {
+            var selected = companySelect.options[companySelect.selectedIndex];
+            if (!selected) return;
+            var loc = selected.getAttribute('data-location') || '';
+            if (!loc) return;
+            var firstSite = document.querySelector('#jor-positions-container .val-site');
+            if (firstSite && !firstSite.value) firstSite.value = loc;
+          });
+        }
+
+        requestForm.addEventListener('submit', handleJORSubmit);
+      }
+
+      function showToast(message, isError) {
+        var root = document.getElementById('toast-root');
+        if (!root) return;
+        var t = document.createElement('div');
+        t.className =
+          'toast-animate pointer-events-auto max-w-sm rounded-xl border px-4 py-3 text-sm font-semibold shadow-lg ring-1 ring-slate-200 ' +
+          (isError
+            ? 'border-red-200 bg-red-50 text-red-900'
+            : 'border-emerald-200 bg-white text-emerald-900');
+        t.textContent = message;
+        root.appendChild(t);
+        window.setTimeout(function () {
+          t.style.opacity = '0';
+          t.style.transform = 'translateY(8px)';
+          t.style.transition = 'opacity 0.25s, transform 0.25s';
+          window.setTimeout(function () {
+            t.remove();
+          }, 250);
+        }, 3200);
+      }
+      window.showToast = showToast;
+
+      
+
+      var dtrSelectAllEl = document.getElementById('dtr-select-all');
+      if (dtrSelectAllEl) {
+        dtrSelectAllEl.addEventListener('change', function () {
+          var checked = dtrSelectAllEl.checked;
+          document.querySelectorAll('.dtr-checkbox').forEach(function (cb) {
+            cb.checked = checked;
+          });
+          dtrSelectAllEl.indeterminate = false;
+        });
+      }
+
+      document.getElementById('btn-submit-dtr').addEventListener('click', function () {
+        var btn = this;
+        var selectedIds = [];
+        document.querySelectorAll('.dtr-checkbox').forEach(function (c) {
+          if (c.checked) selectedIds.push(parseInt(c.value, 10));
+        });
+        if (!selectedIds.length) {
+          window.alert('Please select at least one DTR row to submit.');
+          return;
+        }
+
+        // Group selected employees by THEIR OWN resolved cutoff (period_start +
+        // period_end) — normally everyone shares one group (single company per
+        // Team Lead), but a Team Lead overseeing companies on different Payroll
+        // Types must submit each company's cutoff separately, since one DTR
+        // submission = one company + one Team Lead + one cutoff.
+        var groups = {};
+        var groupOrder = [];
+        selectedIds.forEach(function (id) {
+          var emp = dtrReviewState.employeesById[id];
+          if (!emp || !emp.period_start || !emp.period_end) return;
+          var key = emp.period_start + '|' + emp.period_end;
+          if (!groups[key]) {
+            groups[key] = { cutoff_start: emp.period_start, cutoff_end: emp.period_end, employee_ids: [] };
+            groupOrder.push(key);
+          }
+          groups[key].employee_ids.push(id);
+        });
+
+        if (!groupOrder.length) {
+          window.alert('DTR cutoff period is not loaded yet. Please try again.');
+          return;
+        }
+
+        var confirmMsg = groupOrder.length > 1
+          ? ('Submit ' + selectedIds.length + ' DTR(s) across ' + groupOrder.length + ' payroll cutoffs to Accounting? Once submitted, these records are locked and cannot be edited.')
+          : ('Submit ' + selectedIds.length + ' DTR(s) to Accounting? Once submitted, these records are locked and cannot be edited.');
+        if (!window.confirm(confirmMsg)) {
+          return;
+        }
+
+        btn.disabled = true;
+        var originalText = btn.textContent;
+        btn.textContent = 'Submitting...';
+
+        Promise.all(groupOrder.map(function (key) {
+          var g = groups[key];
+          return fetch(TL_DTR_SUBMIT_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              employee_ids: g.employee_ids,
+              cutoff_start: g.cutoff_start,
+              cutoff_end: g.cutoff_end
+            })
+          }).then(function (r) { return r.json(); });
+        }))
+        .then(function (results) {
+          var failed = results.filter(function (res) { return !res || !res.success; });
+          if (failed.length) {
+            showToast((failed[0] && failed[0].message) || 'Some DTR submissions failed.', true);
+          } else {
+            showToast(results.length === 1 ? (results[0].message || 'DTR submitted to Accounting.') : 'DTR submitted to Accounting for all selected cutoffs.');
+          }
+          loadDtrCutoffReview();
+        })
+        .catch(function () {
+          showToast('Network error while submitting DTR.', true);
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = originalText;
+        });
+      });
+
+      var profileBtn = document.getElementById('header-profile-btn');
+      var profileMenu = document.getElementById('header-profile-menu');
+      function setProfileMenuOpen(open) {
+        if (!profileBtn || !profileMenu) return;
+        profileBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+          profileMenu.hidden = false;
+          profileMenu.classList.remove('invisible', 'opacity-0');
+                    } else {
+          profileMenu.classList.add('invisible', 'opacity-0');
+          window.setTimeout(function () {
+            if (profileBtn.getAttribute('aria-expanded') === 'false') profileMenu.hidden = true;
+          }, 120);
+        }
+      }
+      if (profileBtn && profileMenu) {
+        profileBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          setProfileMenuOpen(profileBtn.getAttribute('aria-expanded') !== 'true');
+        });
+        profileMenu.addEventListener('click', function (e) { e.stopPropagation(); });
+        document.addEventListener('click', function () { setProfileMenuOpen(false); });
+      }
+
+      var logoutModal = document.getElementById('logout-modal');
+      var logoutConfirm = document.getElementById('logout-confirm');
+      var logoutCancel = document.getElementById('logout-cancel');
+      function setLogoutModal(open) {
+        if (!logoutModal) return;
+        if (open) {
+          logoutModal.classList.remove('hidden');
+          logoutModal.classList.add('flex');
+                } else {
+          logoutModal.classList.add('hidden');
+          logoutModal.classList.remove('flex');
+        }
+      }
+      document.querySelectorAll('[data-logout]').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+          e.preventDefault();
+          setLogoutModal(true);
+        });
+      });
+      if (logoutCancel) logoutCancel.addEventListener('click', function () { setLogoutModal(false); });
+      if (logoutModal) {
+        logoutModal.addEventListener('click', function (e) {
+          if (e.target === logoutModal) setLogoutModal(false);
+        });
+      }
+      if (logoutConfirm) {
+        logoutConfirm.addEventListener('click', function () {
+          fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'include' })
+            .finally(function () {
+              window.location.href = '../../index.html';
+            });
+        });
+      }
+
+      // Real-time Badge & Notification Poller
+      function loadBellNotificationsDropdown() {
+        var listEl = document.getElementById('bellNotifDropdownList');
+        if (!listEl) return;
+
+        listEl.innerHTML = '<div class="p-4 text-center text-slate-500"><div class="spinner-border spinner-border-sm text-blue-600 me-2" role="status"></div>Loading notifications...</div>';
+
+        fetch('../../Api/TeamLead/get_notifications.php?limit=10', { credentials: 'include' })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (!res || !res.success || !Array.isArray(res.notifications) || !res.notifications.length) {
+              listEl.innerHTML = '<div class="p-4 text-center text-slate-500">No notifications found.</div>';
+              return;
+            }
+            listEl.innerHTML = res.notifications.map(function (n) {
+              var iconCls = 'bi-bell-fill text-blue-600';
+              if (n.type === 'deployed_team') iconCls = 'bi-person-plus-fill text-emerald-600';
+              else if (n.type === 'job_order_request') iconCls = 'bi-file-earmark-check-fill text-amber-600';
+              else if (n.type === 'endorsed_applicant') iconCls = 'bi-person-bounding-box text-blue-600';
+              else if (n.type === 'geofence') iconCls = 'bi-geo-alt-fill text-red-600';
+
+              var bgCls = n.is_read ? 'bg-white' : 'bg-blue-50/60 font-medium';
+              var unreadDot = n.is_read ? '' : '<span class="h-2 w-2 rounded-full bg-blue-600 flex-shrink-0 mt-1"></span>';
+
+              return '<div class="p-3 hover:bg-slate-50 transition cursor-pointer flex gap-3 items-start ' + bgCls + '" onclick="markSingleNotifRead(' + n.id + ')">' +
+                '  <div class="p-2 rounded-lg bg-slate-100 shrink-0"><i class="bi ' + iconCls + ' fs-5"></i></div>' +
+                '  <div class="flex-1 min-w-0">' +
+                '    <div class="flex justify-between items-start gap-1">' +
+                '      <p class="font-bold text-slate-900 text-xs truncate mb-0.5">' + escapeHtml(n.title) + '</p>' +
+                '      ' + unreadDot +
+                '    </div>' +
+                '    <p class="text-slate-600 text-xs leading-snug mb-1 whitespace-pre-line">' + escapeHtml(n.message) + '</p>' +
+                '    <p class="text-slate-400 text-[10px]">' + escapeHtml(n.created_at) + '</p>' +
+                '  </div>' +
+                '</div>';
+            }).join('');
+          })
+          .catch(function () {
+            listEl.innerHTML = '<div class="p-4 text-center text-red-500 text-xs">Failed to load notifications.</div>';
+          });
+      }
+
+      function markSingleNotifRead(notifId) {
+        fetch('../../Api/Common/mark_notification_read.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ id: notifId })
+        }).then(function () {
+          pollRealtimeCounters();
+          loadBellNotificationsDropdown();
+        }).catch(function () {});
+      }
+      window.markSingleNotifRead = markSingleNotifRead;
+
+      function pollRealtimeCounters() {
+        fetch('../../Api/TeamLead/team_lead_counters.php', { credentials: 'include' })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (!res || !res.success || !res.badges) return;
+
+            // 1. Work Site Geofence Badge & Warning Banner
+            var geofenceBadge = document.getElementById('tlGeofenceBadge');
+            var geoWarningBanner = document.getElementById('tlGeofenceWarningBanner');
+            var geoCount = parseInt(res.badges.geofence, 10) || 0;
+
+            if (geofenceBadge) {
+              if (geoCount > 0) {
+                geofenceBadge.textContent = '!';
+                geofenceBadge.classList.remove('d-none');
+              } else {
+                geofenceBadge.classList.add('d-none');
+              }
+            }
+
+            if (geoWarningBanner) {
+              if (geoCount > 0) {
+                geoWarningBanner.classList.remove('hidden');
+              } else {
+                geoWarningBanner.classList.add('hidden');
+              }
+            }
+
+            // 2. Job Order Requests Badge
+            var jorBadge = document.getElementById('tlJobOrdersBadge');
+            if (jorBadge) {
+              var cnt = parseInt(res.badges.job_orders, 10) || 0;
+              jorBadge.textContent = cnt;
+              if (cnt > 0) jorBadge.classList.remove('d-none');
+              else jorBadge.classList.add('d-none');
+            }
+
+            // 3. Endorsed Applicants Badge
+            var endorsedBadge = document.getElementById('tlEndorsedBadge');
+            if (endorsedBadge) {
+              var cnt = parseInt(res.badges.applicants, 10) || 0;
+              endorsedBadge.textContent = cnt;
+              if (cnt > 0) endorsedBadge.classList.remove('d-none');
+              else endorsedBadge.classList.add('d-none');
+            }
+
+            // 4. Global Top Bell Badge
+            var globalBadge = document.querySelector('[data-global-notif-badge]');
+            if (globalBadge) {
+              var unreadCount = parseInt(res.unread_notifications, 10) || 0;
+              globalBadge.textContent = unreadCount;
+              if (unreadCount > 0) globalBadge.classList.remove('d-none');
+              else globalBadge.classList.add('d-none');
+            }
+          })
+          .catch(function () {});
+      }
+
+      // Initial execution & polling interval (10 seconds)
+      pollRealtimeCounters();
+      setInterval(pollRealtimeCounters, 10000);
+      window.pollRealtimeCounters = pollRealtimeCounters;
+
+      // Real-time Job Order Requests Poller (every 5 seconds when active)
+      setInterval(function () {
+        var activePanel = document.querySelector('.view-panel:not(.hidden)');
+        if (activePanel && activePanel.getAttribute('data-view') === 'jobrequests') {
+          loadJobOrderRequests(true);
+        }
+      }, 5000);
+
+      // Bind Bell Icon: trigger fetch on click and dropdown toggle
+      var bellBtn = document.getElementById('owNotifBellBtn');
+      if (bellBtn) {
+        bellBtn.addEventListener('click', loadBellNotificationsDropdown);
+        bellBtn.addEventListener('show.bs.dropdown', loadBellNotificationsDropdown);
+      }
+    })();
+</script>
+
+<script src="../../Js/Shared/ow_collapsible_sidebar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/ow_job_categories.js"></script>
+<script src="../../Js/TeamLead/tl_attendance_sync.js"></script>
+<script src="../../Js/TeamLead/tl_overtime.js"></script>
+<script src="../../Js/TeamLead/tl_profile_company.js"></script>
+
+<!-- Service Agreement Document Modal -->
+<div class="modal fade" id="tlAgreementDocModal" tabindex="-1" aria-labelledby="tlAgreementDocModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tlAgreementDocModalTitle">Service Agreement Document</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="tlAgreementDocLoading" class="text-center text-muted py-5">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          Loading document…
+        </div>
+        <iframe
+          id="tlAgreementDocFrame"
+          title="Service Agreement Document Preview"
+          class="d-none w-100 border-0 rounded-lg"
+          style="height:650px;"
+        ></iframe>
+        <img
+          id="tlAgreementDocImage"
+          alt="Service Agreement Document Preview"
+          class="d-none img-fluid rounded-lg mx-auto d-block"
+          style="max-height:650px;"
+        >
+        <div id="tlAgreementDocEmpty" class="alert alert-info m-3 d-none mb-0">
+          Preview is not available for this file type. Use Download to open the file.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a href="#" id="tlAgreementDocDownload" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-download me-1"></i>Download / Open File
+        </a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../../Js/Shared/messenger_rbac.js"></script>
+<script src="../../Js/Shared/ow_system_events.js"></script>
+<script src="../../Js/Shared/ow_notifications.js"></script>
+<script src="../../Js/Shared/ow_messenger.js"></script>
+<script>
+  if (window.TeamLeadSidebarBadges) {
+    TeamLeadSidebarBadges.init('../../Api/Common/realtime_counters.php', 10000);
+  }
+  if (window.OwNotifications && window.profileShowView) {
+    OwNotifications.init({ sectionId: 'notifications', showSection: window.profileShowView });
+  }
+</script>
+
+<!-- WORK SITE LOCATION REGISTRATION MODAL -->
+<div class="modal fade" id="registerSiteModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header bg-dark text-white">
+              <h5 class="modal-title fw-bold"><i class="bi bi-geo-fill me-2"></i>Register Work Site Location</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body text-center p-4">
+              <p class="text-muted small mb-3">You must physically be at the deployment work site to register its GPS coordinates.</p>
+              
+              <div class="p-3 bg-light rounded border mb-3">
+                  <div class="fw-bold text-dark mb-1" id="tlCurrentGpsStatus">Acquiring current GPS location...</div>
+                  <div class="small text-muted" id="tlGpsAccuracyText">---</div>
+              </div>
+
+              <!-- GEOFENCE RADIUS INPUT -->
+              <div class="mb-3 text-start">
+                  <label for="tlGeofenceRadius" class="form-label text-slate-700 small fw-bold">Allowed Geofence Radius</label>
+                  <div class="input-group">
+                      <input type="number" id="tlGeofenceRadius" class="form-control" value="100" min="30" max="1000" step="10" placeholder="e.g. 100">
+                      <span class="input-group-text">Meters</span>
+                  </div>
+                  <div class="form-text text-muted" style="font-size: 11px;">
+                      <i class="bi bi-info-circle me-1"></i>Min: 30m (due to GPS drift) | Max: 1,000m (1 km).
+                  </div>
+              </div>
+
+              <button type="button" class="btn btn-primary w-100 fw-bold py-2" id="btnConfirmRegisterSite" onclick="submitSiteRegistration()" disabled>
+                  <i class="bi bi-check-circle me-1"></i>Save Work Site Coordinates
+              </button>
+          </div>
+      </div>
+  </div>
+</div>
+
+<!-- Custom Status Notification Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content text-center p-4 rounded-4 border-0 shadow">
+      <div class="modal-body p-0">
+        <div id="statusModalIcon" class="mb-3"></div>
+        <h5 id="statusModalTitle" class="fw-bold mb-2">Notice</h5>
+        <p id="statusModalMessage" class="text-muted small mb-4"></p>
+        <button type="button" class="btn btn-primary w-100 rounded-3 py-2 fw-semibold" id="btnStatusModalOk">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Endorsed Applicant Profile & Documents Modal -->
+<div class="modal fade" id="applicantDetailsModal" tabindex="-1" aria-labelledby="applicantDetailsModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg rounded-2xl">
+      <div class="modal-header bg-slate-900 text-white rounded-t-2xl py-3 px-4">
+        <h5 class="modal-title font-bold text-base flex items-center gap-2" id="applicantDetailsModalTitle">
+          <i class="bi bi-person-bounding-box text-blue-400"></i> Applicant Profile &amp; Document Verification
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" id="applicantDetailsModalBody">
+        <p class="text-slate-500 text-center py-4">Loading applicant details...</p>
+      </div>
+      <div class="modal-footer bg-slate-50 rounded-b-2xl py-2 px-4">
+        <button type="button" class="btn btn-secondary text-sm font-semibold" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Document Preview Modal (Nested over Applicant Details) -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewTitle" aria-hidden="true" style="z-index: 1065;">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-2xl rounded-2xl">
+      <div class="modal-header bg-slate-900 text-white rounded-t-2xl py-3 px-4">
+        <h5 class="modal-title font-bold text-base flex items-center gap-2" id="documentPreviewTitle">
+          <i class="bi bi-file-earmark-text text-blue-400"></i> Document Preview
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-0 flex justify-center items-center bg-slate-100 min-h-[420px]">
+        <iframe id="documentPreviewFrame" title="Document preview" class="w-full rounded-b-2xl border-0" style="display:none; height: 75vh;"></iframe>
+        <img id="documentPreviewImage" alt="Document preview" class="max-w-full max-h-[75vh] object-contain p-3 rounded-lg" style="display:none;">
+        <div id="documentPreviewEmpty" class="alert alert-info m-4 d-none mb-0">
+          Preview is not available for this file type. Please use the download button below.
+        </div>
+      </div>
+      <div class="modal-footer bg-slate-50 rounded-b-2xl py-2 px-4 flex justify-between">
+        <a href="#" id="documentPreviewDownload" class="btn btn-outline-primary text-sm font-semibold" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-download me-1"></i>Download / Open File
+        </a>
+        <button type="button" class="btn btn-secondary text-sm font-semibold" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

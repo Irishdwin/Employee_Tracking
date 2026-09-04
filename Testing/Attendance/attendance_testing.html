@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>⚠ TESTING ONLY — Attendance Testing Tool</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="attendance_testing.css">
+</head>
+<body>
+  <div class="testing-banner">
+    ⚠ DEVELOPMENT / TESTING TOOL ONLY — NOT part of the production Onazul HRIS. Delete the <code>/Testing/</code> folder before deployment.
+  </div>
+
+  <div class="container py-4">
+    <h1 class="h4 fw-bold mb-1">Attendance Testing Dashboard</h1>
+    <p class="text-muted small mb-4">
+      Creates real records in the existing <code>attendance</code> / <code>daily_time_records</code> tables so you can test the
+      Employee Dashboard, Smart Calendar, Team Lead review, DTR submission, Accounting verification, and Payroll — without
+      touching phpMyAdmin. Admin login required.
+    </p>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">1. Select who this record is for</h2>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Client Company</label>
+            <select id="selCompany" class="form-select">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Team Lead</label>
+            <select id="selTeamLead" class="form-select" disabled>
+              <option value="">Select a company first</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Employee</label>
+            <select id="selEmployee" class="form-select" disabled>
+              <option value="">Select a Team Lead first</option>
+            </select>
+          </div>
+        </div>
+        <div id="scheduleInfo" class="alert alert-secondary mt-3 small d-none"></div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4" id="cardAddRecord" style="display:none;">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">2. Add / Render a duty day</h2>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Date</label>
+            <input type="date" id="inpDate" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Time In</label>
+            <input type="time" id="inpTimeIn" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Time Out (optional)</label>
+            <input type="time" id="inpTimeOut" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <button type="button" id="btnSaveRecord" class="btn btn-primary w-100">Save Record</button>
+          </div>
+        </div>
+        <div class="row g-3 mt-1">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Remarks (optional)</label>
+            <input type="text" id="inpRemarks" class="form-control" placeholder="Created via Attendance Testing Tool (development only).">
+          </div>
+        </div>
+        <p class="small text-muted mt-2 mb-0">
+          Leave Time Out blank to simulate "still clocked in." To simulate an <strong>Absent</strong> day, don't add a record for
+          that date (or delete an existing one below) — Absent is inferred automatically on past scheduled working days with no record.
+          Non-working days for this employee's schedule are automatically Rest Days, regardless of what you enter here.
+        </p>
+        <div id="saveResult" class="alert d-none mt-3 small"></div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm" id="cardRecordsList" style="display:none;">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">3. Existing records for this employee (last 30)</h2>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Status</th>
+                <th>Late (min)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="recordsTableBody">
+              <tr><td colspan="6" class="text-center text-muted py-3">Select an employee above.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="attendance_testing.js"></script>
+</body>
+</html>

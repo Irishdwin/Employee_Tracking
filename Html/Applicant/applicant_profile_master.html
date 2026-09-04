@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile &amp; documents — Onazul</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="../../Css/applicant_searchable_select.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../Css/ow_widgets.css">
+    <script>
+        window.REQUIRED_ROLE = 'Applicant';
+        window.ROLE_GUARD_DEFER_ELEVATION = true;
+    </script>
+    <script src="../../Js/Shared/role_guard.js" defer></script>
+    <style>
+        :root{
+            --onazul-navy:#003366;
+            --onazul-primary:#0056b3;
+            --onazul-magenta:#d6336c;
+            --text:#0f172a;
+            --muted:#6b7280;
+            --bg:#f4f5f7;
+            --panel:#ffffff;
+            --border: rgba(15,23,42,0.10);
+        }
+        html,body{ min-height:100%; }
+        body{
+            font-family: "DM Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: var(--bg);
+        }
+        h1, h2, .apm-detail-title, .title { font-family: Sora, system-ui, sans-serif; }
+
+        .topbar{
+            background:#fff;
+            border-bottom: 1px solid rgba(15,23,42,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 20000;
+        }
+        .topbar .brand-logo{ height: 34px; width: auto; object-fit: contain; }
+        .nav-link{
+            color: rgba(15,23,42,0.78);
+            font-weight: 700;
+        }
+        .nav-link:hover{ color: rgba(15,23,42,1); }
+
+        .account-menu-wrap{ position: relative; }
+        .account-trigger{
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+            background:transparent;
+            border:none;
+            padding:4px 8px 4px 4px;
+            border-radius:999px;
+            cursor:pointer;
+        }
+        .account-avatar{
+            width:36px;
+            height:36px;
+            border-radius:50%;
+            background: linear-gradient(145deg, #fed7aa 0%, #fb923c 55%, #ea580c 100%);
+            color:#7c2d12;
+            font-weight:800;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow:0 2px 8px rgba(234,88,12,0.25);
+            border:2px solid rgba(255,255,255,0.85);
+            flex-shrink:0;
+            line-height:1;
+        }
+        .account-chevron{
+            font-size:11px;
+            color:#64748b;
+            transition: transform .2s ease;
+            margin-left:2px;
+        }
+        .account-menu-wrap.is-open .account-chevron{ transform: rotate(180deg); }
+        .account-dropdown{
+            display:none;
+            position:absolute;
+            right:0;
+            top: calc(100% + 10px);
+            min-width: 300px;
+            max-width: min(360px, 96vw);
+            background:#fff;
+            border:1px solid rgba(15,23,42,0.08);
+            border-radius:16px;
+            box-shadow:0 24px 60px rgba(15,23,42,0.18);
+            z-index:12050;
+            overflow:hidden;
+        }
+        .account-dropdown.is-open{ display:block; }
+        .account-dropdown-card-header{
+            padding:16px 16px 12px;
+            border-bottom:1px solid #eef0f3;
+            background: linear-gradient(180deg, #fff 0%, #fafbfc 100%);
+        }
+        .account-dropdown-name{
+            font-weight: 900;
+            font-size: 15px;
+            color:#0f172a;
+            line-height:1.3;
+            margin-bottom:6px;
+        }
+        .account-dropdown-meta{
+            display:flex;
+            gap:6px;
+            align-items:flex-start;
+            font-size:13px;
+            font-weight:700;
+            color:#64748b;
+            margin-bottom:4px;
+        }
+        .account-dropdown-meta i{ color: var(--onazul-primary); margin-top:2px; }
+        .account-dropdown-stats{
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            gap:10px;
+            padding:12px 16px;
+            background:#f8fafc;
+            border-bottom:1px solid #eef0f3;
+        }
+        .account-stat-box{
+            background:#fff;
+            border:1px solid rgba(15,23,42,0.08);
+            border-radius:12px;
+            padding:10px 12px;
+            text-align:center;
+        }
+        .account-stat-num{
+            font-weight:900;
+            font-size:22px;
+            color: var(--onazul-navy);
+            line-height:1.1;
+        }
+        .account-stat-label{
+            font-size:11px;
+            font-weight:900;
+            color:#64748b;
+            margin-top:4px;
+            text-transform:uppercase;
+            letter-spacing:0.04em;
+        }
+        .account-dropdown-item{
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 11px 14px;
+            border-radius: 10px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 650;
+            color: #0f172a;
+            text-decoration: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .account-dropdown-item:hover{ background: #f1f5f9; color: #0f172a; }
+        .account-dropdown-divider{
+            height: 1px;
+            background: #e2e8f0;
+            margin: 4px 6px;
+        }
+        .account-dropdown-signout{
+            color: #dc2626;
+            font-weight: 750;
+        }
+        .account-dropdown-signout:hover{
+            background: #fef2f2;
+            color: #b91c1c;
+        }
+
+        #applicantDocumentPreviewModal { z-index: 1060 !important; }
+
+        .apm-page{ max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+
+        .apm-tabs{
+            display: flex; gap: 8px; flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .apm-tab{
+            border: 1px solid rgba(15,23,42,0.12);
+            background: #fff;
+            border-radius: 999px;
+            padding: 10px 18px;
+            font-weight: 800;
+            font-size: 14px;
+            color: var(--text);
+            cursor: pointer;
+            font-family: Sora, sans-serif;
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        .apm-tab:hover{ border-color: var(--onazul-primary); color: var(--onazul-primary); }
+        .apm-tab.is-active{
+            background: linear-gradient(135deg, rgba(0,86,179,0.12), rgba(214,51,108,0.08));
+            border-color: rgba(0,86,179,0.35);
+            color: var(--onazul-navy);
+        }
+
+        .panel{
+            background: var(--panel);
+            border: 1px solid rgba(0,0,0,0.04);
+            border-radius: 18px;
+            box-shadow: 0 18px 55px rgba(0,0,0,0.08);
+            overflow: visible;
+        }
+        .panel-header{
+            padding: 28px 26px 12px;
+            background: linear-gradient(135deg, rgba(0,86,179,0.10), rgba(214,51,108,0.08));
+            border-radius: 18px 18px 0 0;
+            overflow: hidden;
+        }
+        .title{
+            color: var(--text);
+            font-weight: 1000;
+            font-size: 30px;
+            line-height: 1.05;
+            margin: 0;
+        }
+        .subtitle{
+            color: var(--onazul-navy);
+            font-weight: 800;
+            margin-top: 6px;
+        }
+        .panel-body{ padding: 18px 26px 26px; }
+        .grid-2{
+            display:grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        @media (max-width: 576px){ .grid-2{ grid-template-columns: 1fr; } }
+        .label{ font-weight: 800; color: var(--text); margin-bottom: 6px; }
+        .hint{ color: var(--muted); font-size: 13px; margin-top: 6px; }
+        .toggle-info{
+            border: 1px solid rgba(214,51,108,0.18);
+            background: rgba(214,51,108,0.08);
+            padding: 12px 12px;
+            border-radius: 12px;
+            color: var(--text);
+            font-weight: 700;
+        }
+        .btn-magenta{
+            background: var(--onazul-magenta);
+            border: none;
+            color:#fff;
+            font-weight: 1000;
+            border-radius: 14px;
+            padding: 14px 16px;
+            width: 100%;
+        }
+        .btn-magenta:hover{ filter: brightness(1.03); }
+        .toast-inline{
+            display:none;
+            margin-top: 14px;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-weight: 900;
+        }
+        .toast-inline.danger{
+            background: rgba(220,38,38,0.10);
+            border: 1px solid rgba(220,38,38,0.22);
+            color: #991b1b;
+        }
+        .home-location-field{ position: relative; z-index: 6000; }
+        .home-location-dropdown{
+            display: none;
+            position: absolute;
+            left: 0; right: 0; top: 100%;
+            margin-top: 4px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+            z-index: 7000;
+        }
+        .home-location-dropdown.is-open{ display: block; }
+        .home-location-item{
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text);
+            border-bottom: 1px solid rgba(15,23,42,0.06);
+            line-height: 1.35;
+        }
+        .home-location-item:last-child{ border-bottom: none; }
+        .home-location-item:hover,
+        .home-location-item.is-active{ background: rgba(13, 110, 253, 0.12); }
+        .home-location-match{
+            background: rgba(255, 235, 59, 0.45);
+            color: inherit;
+            font-weight: 800;
+            padding: 0 1px;
+            border-radius: 2px;
+        }
+        .section-heading{
+            font-weight: 900;
+            font-size: 1.05rem;
+            color: var(--onazul-navy);
+            margin-bottom: 4px;
+        }
+        .exp-segment{ display: flex; gap: 10px; flex-wrap: wrap; }
+        .exp-pill{ flex: 1 1 200px; position: relative; }
+        .exp-pill input{ position: absolute; opacity: 0; pointer-events: none; }
+        .exp-pill span{
+            display: block;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 2px solid rgba(15,23,42,0.12);
+            background: #fff;
+            font-weight: 800;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .2s, box-shadow .2s, background .2s;
+        }
+        .exp-pill input:checked + span{
+            border-color: var(--onazul-primary);
+            background: rgba(0,86,179,0.06);
+            box-shadow: 0 0 0 3px rgba(0,86,179,0.12);
+        }
+        .exp-fields-wrap{
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.45s ease, opacity 0.3s ease, margin 0.3s ease;
+            margin-top: 0;
+        }
+        .exp-fields-wrap.is-open{
+            max-height: 1400px;
+            opacity: 1;
+            margin-top: 14px;
+        }
+        .vis-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 576px){ .vis-grid{ grid-template-columns: 1fr; } }
+        .vis-card{ position: relative; margin: 0; cursor: pointer; height: 100%; }
+        .vis-card input{ position: absolute; opacity: 0; width: 0; height: 0; }
+        .vis-card-face{
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            height: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            border: 2px solid rgba(15,23,42,0.1);
+            background: #fafbfc;
+            transition: border-color .2s, background .2s, box-shadow .2s;
+        }
+        .vis-card input:checked + .vis-card-face{
+            border-color: var(--onazul-primary);
+            background: rgba(0,86,179,0.05);
+            box-shadow: 0 4px 14px rgba(0,86,179,0.08);
+        }
+        .vis-card-face i{ font-size: 1.35rem; color: var(--onazul-primary); }
+        .vis-card-face strong{ font-size: 0.95rem; color: var(--text); }
+        .vis-card-face small{ font-size: 12px; color: var(--muted); line-height: 1.35; }
+        .pill-rec{
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(124, 58, 237, 0.12);
+            color: #5b21b6;
+            margin-left: 6px;
+        }
+        .dob-error{ color: #b91c1c; font-size: 13px; font-weight: 800; margin-top: 8px; display: none; }
+        .dob-error.is-visible{ display: block; }
+        #birthDateInput.is-invalid{
+            border-color: #dc2626;
+            box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.15);
+        }
+
+        /* Quick uploads (profile tab) */
+        .apm-quick-grid{
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        @media (max-width: 768px){ .apm-quick-grid{ grid-template-columns: 1fr; } }
+        .apm-quick-upload{
+            border: 2px dashed rgba(0,86,179,0.25);
+            border-radius: 14px;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0,86,179,0.03);
+            position: relative;
+            transition: border-color .2s, background .2s;
+        }
+        .apm-quick-upload:hover{ border-color: var(--onazul-primary); background: rgba(0,86,179,0.06); }
+        .apm-quick-upload i{ font-size: 1.6rem; color: var(--onazul-primary); display: block; margin-bottom: 6px; }
+        .apm-quick-upload strong{ display: block; font-size: 14px; color: var(--text); }
+        .apm-quick-upload span{ font-size: 12px; color: var(--muted); }
+        .apm-quick-upload input[type=file]{ position: absolute; width: 0; height: 0; opacity: 0; }
+        .apm-upload-progress{
+            height: 4px;
+            background: rgba(15,23,42,0.08);
+            border-radius: 999px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .apm-upload-progress-inner{
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--onazul-primary), var(--onazul-magenta));
+            border-radius: 999px;
+            transition: width .2s;
+        }
+
+        /* Master–detail documents */
+        .apm-doc-shell{
+            display: grid;
+            grid-template-columns: minmax(220px, 280px) 1fr;
+            gap: 0;
+            background: #fff;
+            border-radius: 18px;
+            border: 1px solid rgba(15,23,42,0.08);
+            box-shadow: 0 18px 55px rgba(0,0,0,0.06);
+            min-height: 420px;
+            overflow: hidden;
+        }
+        @media (max-width: 900px){
+            .apm-doc-shell{ grid-template-columns: 1fr; }
+        }
+        #apmDocSidebar{
+            border-right: 1px solid rgba(15,23,42,0.08);
+            background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        @media (max-width: 900px){
+            #apmDocSidebar{ border-right: none; border-bottom: 1px solid rgba(15,23,42,0.08); flex-direction: row; flex-wrap: wrap; }
+        }
+        .apm-cat-btn{
+            text-align: left;
+            border: 1px solid rgba(15,23,42,0.08);
+            border-radius: 12px;
+            padding: 12px;
+            background: #fff;
+            cursor: pointer;
+            position: relative;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .apm-cat-btn:hover{ border-color: rgba(0,86,179,0.35); }
+        .apm-cat-btn.is-active{
+            border-color: var(--onazul-primary);
+            box-shadow: 0 4px 14px rgba(0,86,179,0.12);
+        }
+        .apm-cat-label{ font-family: Sora, sans-serif; font-weight: 800; font-size: 14px; color: var(--onazul-navy); display: block; }
+        .apm-cat-meta{ font-size: 11px; color: var(--muted); font-weight: 600; display: block; margin-top: 4px; line-height: 1.35; }
+        .apm-cat-badge{
+            position: absolute;
+            top: 10px; right: 10px;
+            background: rgba(0,86,179,0.12);
+            color: var(--onazul-navy);
+            font-weight: 800;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+        #apmDocDetail{ padding: 20px 22px 28px; }
+        .apm-detail-head{ margin-bottom: 16px; }
+        .apm-detail-title{ font-size: 20px; font-weight: 800; margin: 0; color: var(--onazul-navy); }
+        .apm-detail-sub{ margin: 6px 0 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+        .apm-dropzone{
+            display: block;
+            border: 2px dashed rgba(15,23,42,0.15);
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 18px;
+            cursor: pointer;
+            background: rgba(0,86,179,0.03);
+            transition: border-color .2s, background .2s;
+        }
+        .apm-dropzone.is-drag{ border-color: var(--onazul-primary); background: rgba(0,86,179,0.07); }
+        .apm-drop-inner{ text-align: center; pointer-events: none; }
+        .apm-drop-ico{ font-size: 2rem; color: var(--onazul-primary); }
+        .apm-drop-title{ font-weight: 800; margin-top: 8px; color: var(--text); }
+        .apm-drop-hint{ font-size: 12px; color: var(--muted); margin-top: 4px; }
+        .apm-drop-progress{ height: 5px; background: rgba(15,23,42,0.08); border-radius: 999px; margin-top: 12px; overflow: hidden; display: none; }
+        .apm-drop-progress:not([aria-hidden="true"]){ display: block; }
+        .apm-drop-progress-bar{ height: 100%; width: 0%; background: linear-gradient(90deg, var(--onazul-primary), var(--onazul-magenta)); }
+        .apm-file-grid{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+        .apm-file-card{
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            border: 1px solid rgba(15,23,42,0.08);
+            border-radius: 12px;
+            padding: 12px;
+            background: #fafbfc;
+        }
+        .apm-file-icon{ color: var(--onazul-primary); font-size: 1.4rem; flex-shrink: 0; }
+        .apm-file-body{ flex: 1; min-width: 0; }
+        .apm-file-name{ font-weight: 800; font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .apm-file-meta{ font-size: 11px; color: var(--muted); margin-top: 4px; }
+        .apm-file-actions{ display: flex; gap: 4px; flex-shrink: 0; }
+        .apm-icon-btn{
+            border: none;
+            background: #fff;
+            width: 34px; height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--onazul-primary);
+            box-shadow: 0 1px 4px rgba(15,23,42,0.08);
+        }
+        .apm-icon-btn:hover{ background: rgba(0,86,179,0.08); }
+        .apm-btn-delete{ color: #dc2626; }
+        .apm-empty{ grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 24px; font-weight: 600; }
+
+        /* Toast */
+        .apm-toast{
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 30000;
+            max-width: min(360px, 92vw);
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: 0 18px 50px rgba(15,23,42,0.2);
+            opacity: 0;
+            transform: translateY(12px);
+            pointer-events: none;
+            transition: opacity .25s, transform .25s;
+        }
+        .apm-toast.is-visible{ opacity: 1; transform: translateY(0); }
+        .apm-toast.is-success{ background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+        .apm-toast.is-error{ background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .lookup-input-wrap{
+            position: relative;
+        }
+        .lookup-input-wrap .form-control{
+            padding-right: 2.3rem;
+            cursor: text;
+        }
+        .lookup-input-wrap .lookup-arrow{
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            font-size: 0.9rem;
+            pointer-events: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <div class="container-fluid px-3 py-2">
+        <div class="d-flex align-items-center justify-content-between gap-3">
+            <a href="../../Html/Applicant/applicant_landing.html" class="text-decoration-none d-flex align-items-center gap-2">
+                <img src="../../Images/images.jpg" alt="Onazul logo" class="brand-logo">
+                <span class="fw-bold" style="color: var(--onazul-navy); font-family: Sora, sans-serif;">Onazul Manpower Services</span>
+            </a>
+
+            <nav class="d-none d-md-flex align-items-center gap-4">
+                <a class="nav-link" href="../../Html/Applicant/applicant_landing.html">Job search</a>
+                <a class="nav-link" href="applicant_career_advice.html">Career advice</a>
+                <a class="nav-link" href="applicant_companies.html">Companies</a>
+            </nav>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="dropdown">
+                    <a href="#" class="text-decoration-none text-dark dropdown-toggle position-relative" id="notificationBell" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-bell-fill" style="font-size:18px;color:#0f172a;opacity:0.9;"></i>
+                        <span class="ow-notif-badge d-none" id="notificationBadge" aria-hidden="true">0</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow" id="notificationDropdown" style="min-width:280px;max-height:320px;overflow-y:auto;">
+                        <li class="dropdown-header">Notifications</li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><div id="notificationList">Loading...</div></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item small text-center" href="#" id="markAllRead">Mark all as read</a></li>
+                    </ul>
+                </div>
+
+                <div class="account-menu-wrap d-none" id="accountMenuWrap">
+                    <button type="button" class="account-trigger" id="accountMenuTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="accountDropdown">
+                        <span class="account-avatar" id="accountAvatarInitial" aria-hidden="true">?</span>
+                        <i class="bi bi-chevron-down account-chevron" aria-hidden="true"></i>
+                    </button>
+                    <div class="account-dropdown" id="accountDropdown" role="menu" aria-labelledby="accountMenuTrigger">
+                        <div class="account-dropdown-card-header">
+                            <div class="account-dropdown-name" id="accountDropdownName">Applicant</div>
+                            <div class="account-dropdown-meta" id="accountDropdownRoleRow"><i class="bi bi-diagram-3"></i><span id="accountDropdownRole">—</span></div>
+                            <div class="account-dropdown-meta" id="accountDropdownLocRow"><i class="bi bi-geo-alt"></i><span id="accountDropdownLoc">—</span></div>
+                        </div>
+                        <div class="account-dropdown-stats">
+                            <div class="account-stat-box">
+                                <div class="account-stat-num" id="accountStatApplications">0</div>
+                                <div class="account-stat-label">Applications</div>
+                            </div>
+                            <div class="account-stat-box">
+                                <div class="account-stat-num" id="accountStatSaved">0</div>
+                                <div class="account-stat-label">Saved jobs</div>
+                            </div>
+                        </div>
+                        <div style="padding: 8px;">
+                            <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#profile">Profile &amp; preferences</a>
+                            <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#documents">My documents</a>
+                            <a class="account-dropdown-item" role="menuitem" href="my_applications.html">Job applications</a>
+                            <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
+                            <a class="account-dropdown-item" role="menuitem" href="../notifications.html">Notifications</a>
+                            <div class="account-dropdown-divider"></div>
+                            <button type="button" class="account-dropdown-item account-dropdown-signout" id="btnSignOut">Logout</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary fw-bold d-none" style="background: var(--onazul-primary); border:none;" id="btnOpenSignIn" type="button">
+                    Sign in
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="apm-page">
+    <nav class="apm-tabs" aria-label="Profile sections">
+        <button type="button" class="apm-tab is-active" id="apmTabProfile">Profile &amp; preferences</button>
+        <button type="button" class="apm-tab" id="apmTabDocuments">My documents</button>
+    </nav>
+
+    <div id="apmPanelProfile">
+        <div class="panel">
+            <div class="panel-header">
+                <h1 class="title">Your profile</h1>
+                <div class="subtitle">Keep your details current and upload supporting documents in one place.</div>
+            </div>
+            <div class="panel-body">
+                <div class="toast-inline danger" id="almostDoneError" role="alert"></div>
+                <div class="alert alert-info py-2 px-3 mb-3 d-none" id="profileCompleteHint" role="status">
+                    <small><strong>Profile complete.</strong> You can still update your details below. For more file categories, open the <a href="#documents" class="alert-link" id="goDocsFromHint">My documents</a> tab.</small>
+                </div>
+
+                <form id="almostDoneForm" novalidate>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <div class="label">First name *</div>
+                            <input type="text" class="form-control" id="firstNameInput" required style="border-radius:8px;" autocomplete="given-name">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="label">Middle name</div>
+                            <input type="text" class="form-control" id="middleNameInput" style="border-radius:8px;" autocomplete="additional-name">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="label">Last name *</div>
+                            <input type="text" class="form-control" id="lastNameInput" required style="border-radius:8px;" autocomplete="family-name">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="hasSuffixCheckbox">
+                            <label class="form-check-label fw-bold text-slate-700" for="hasSuffixCheckbox">I have a suffix</label>
+                        </div>
+                        <div id="suffixWrap" style="max-width: 240px;">
+                            <div class="label">Suffix</div>
+                            <select id="suffixSelect" class="form-select" disabled style="border-radius:8px;">
+                                <option value="" disabled selected>Select suffix</option>
+                                <option value="Jr.">Jr.</option>
+                                <option value="Sr.">Sr.</option>
+                                <option value="II">II</option>
+                                <option value="III">III</option>
+                                <option value="IV">IV</option>
+                                <option value="V">V</option>
+                                <option value="VI">VI</option>
+                                <option value="VII">VII</option>
+                                <option value="VIII">VIII</option>
+                                <option value="IX">IX</option>
+                                <option value="X">X</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="label">Date of birth</div>
+                        <input type="date" class="form-control" id="birthDateInput" required style="border-radius:8px;" autocomplete="bday">
+                        <div class="dob-error" id="birthDateError" role="alert">You must be at least 18 years old to register.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="section-heading">Address</div>
+                        <div class="grid-2 mb-3">
+                            <div>
+                                <div class="label">Province *</div>
+                                <div class="searchable-select" id="addressProvinceWrap">
+                                    <button type="button" class="searchable-select__trigger" id="addressProvinceSelect" aria-label="Province">
+                                        <span class="searchable-select__trigger-label is-placeholder">Select province</span>
+                                        <i class="bi bi-chevron-down searchable-select__chevron" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="searchable-select__panel">
+                                        <input type="text" class="searchable-select__search" aria-label="Search provinces">
+                                        <ul class="searchable-select__list" id="addressProvinceList" role="listbox"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="label">City / Municipality *</div>
+                                <div class="searchable-select is-disabled" id="addressCityWrap">
+                                    <button type="button" class="searchable-select__trigger" id="addressCitySelect" disabled aria-label="City">
+                                        <span class="searchable-select__trigger-label is-placeholder">Select city / municipality</span>
+                                        <i class="bi bi-chevron-down searchable-select__chevron" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="searchable-select__panel">
+                                        <input type="text" class="searchable-select__search" aria-label="Search cities" disabled>
+                                        <ul class="searchable-select__list" id="addressCityList" role="listbox"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="label">Barangay *</div>
+                                <div class="searchable-select is-disabled" id="addressBarangayWrap">
+                                    <button type="button" class="searchable-select__trigger" id="addressBarangaySelect" disabled aria-label="Barangay">
+                                        <span class="searchable-select__trigger-label is-placeholder">Select barangay</span>
+                                        <i class="bi bi-chevron-down searchable-select__chevron" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="searchable-select__panel">
+                                        <input type="text" class="searchable-select__search" aria-label="Search barangays" disabled>
+                                        <ul class="searchable-select__list" id="addressBarangayList" role="listbox"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="label">Postal / ZIP Code *</div>
+                                <input type="text" class="form-control" id="postalCodeInput" placeholder="e.g., 9000" required style="border-radius:8px;">
+                            </div>
+                            <div class="w-100" style="grid-column: 1 / -1;">
+                                <div class="label">Street Address *</div>
+                                <input type="text" class="form-control" id="streetAddressInput" placeholder="e.g., Phase 2, Indahag" required style="border-radius:8px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="label">Job category *</div>
+                        <select class="form-select" id="job-category" required style="border-radius:8px;">
+                            <option value="" disabled selected>Select job category</option>
+                        </select>
+                        <div class="hint">Helps match you with relevant job orders.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="section-heading">Recent experience</div>
+                        <div class="exp-segment" role="radiogroup" aria-label="Experience">
+                            <label class="exp-pill">
+                                <input type="radio" name="expMode" id="expHave" value="1">
+                                <span>I have experience</span>
+                            </label>
+                            <label class="exp-pill">
+                                <input type="radio" name="expMode" id="expNew" value="0" checked>
+                                <span>New to the industry</span>
+                            </label>
+                        </div>
+                        <div id="expNewInfo" class="toggle-info mt-3 d-none">
+                            <i class="bi bi-info-circle me-2"></i>
+                            New to the industry? That's fine. You can always add your work experience later in your profile.
+                        </div>
+                    </div>
+
+                    <div id="expFieldsWrap" class="exp-fields-wrap" aria-hidden="true">
+                    <div id="expFields" class="mb-3">
+                        <div class="grid-2 mb-3">
+                            <div>
+                                <div class="label">Job title</div>
+                                <input type="text" class="form-control" id="jobTitleInput">
+                            </div>
+                            <div>
+                                <div class="label">Company name</div>
+                                <input type="text" class="form-control" id="companyNameInput">
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-2">
+                            <div class="col-md-6">
+                                <div class="label">Started</div>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select" id="startMonthSelect" style="max-width:140px;">
+                                        <option value="">Month</option>
+                                    </select>
+                                    <select class="form-select" id="startYearSelect" style="flex:1;">
+                                        <option value="">Year</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="label d-flex align-items-center justify-content-between">
+                                    <span>Ended</span>
+                                    <div class="form-check mb-0">
+                                        <input class="form-check-input" type="checkbox" id="stillInRoleCheckbox">
+                                        <label class="form-check-label" for="stillInRoleCheckbox">Still in role</label>
+                                    </div>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select" id="endMonthSelect" style="max-width:140px;">
+                                        <option value="">Month</option>
+                                    </select>
+                                    <select class="form-select" id="endYearSelect" style="flex:1;">
+                                        <option value="">Year</option>
+                                    </select>
+                                </div>
+                                <div class="hint d-none" id="endDisabledHint">End date is disabled because you’re still in the role.</div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="section-heading">Preferred classification</div>
+                        <div class="grid-2">
+                            <div>
+                                <select class="form-select" id="classificationSelect" required style="border-radius:8px;">
+                                    <option value="" disabled selected>Select classification</option>
+                                </select>
+                            </div>
+                            <div>
+                                <select class="form-select" id="subClassificationSelect" required style="border-radius:8px;" disabled>
+                                    <option value="" disabled selected>Select sub-classification</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="hint">This helps filter job offers that match your profession.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="section-heading">Profile visibility</div>
+                        <p class="hint mb-3">Choose how employers can find and contact you on Onazul.</p>
+                        <div class="vis-grid">
+                            <label class="vis-card">
+                                <input type="radio" name="profileVisibility" value="Public" id="visPublic" required checked>
+                                <span class="vis-card-face">
+                                    <span class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                        <i class="bi bi-globe2"></i>
+                                        <strong>Public</strong>
+                                        <span class="pill-rec">Recommended</span>
+                                    </span>
+                                    <small>Searchable profile; employers can view your details when matching roles.</small>
+                                </span>
+                            </label>
+                            <label class="vis-card">
+                                <input type="radio" name="profileVisibility" value="Standard" id="visStandard">
+                                <span class="vis-card-face">
+                                    <span class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="bi bi-person-badge"></i>
+                                        <strong>Standard</strong>
+                                    </span>
+                                    <small>Profile and resume visible to matched employers; contact via the platform.</small>
+                                </span>
+                            </label>
+                            <label class="vis-card">
+                                <input type="radio" name="profileVisibility" value="Limited" id="visLimited">
+                                <span class="vis-card-face">
+                                    <span class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="bi bi-eye-slash"></i>
+                                        <strong>Limited</strong>
+                                    </span>
+                                    <small>Profile visible; resume or contact details more restricted.</small>
+                                </span>
+                            </label>
+                            <label class="vis-card">
+                                <input type="radio" name="profileVisibility" value="Hidden" id="visHidden">
+                                <span class="vis-card-face">
+                                    <span class="d-flex align-items-center gap-2 mb-1">
+                                        <i class="bi bi-lock"></i>
+                                        <strong>Hidden</strong>
+                                    </span>
+                                    <small>Not searchable; visible only when you apply to a role.</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 apm-quick-section">
+                        <div class="section-heading">Key documents</div>
+                        <p class="hint mb-3">Upload your resume, a valid ID, and certifications while you complete your profile. Files upload in the background.</p>
+                        <div class="apm-quick-grid">
+                            <div class="apm-quick-upload" data-doc-type="Resume" data-doc-category="employment">
+                                <i class="bi bi-file-earmark-person"></i>
+                                <strong>Resume / CV</strong>
+                                <span class="apm-doc-status text-muted small d-block my-1">PDF, Word, or image</span>
+                                <div class="d-flex gap-2 justify-content-center mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary apm-view-btn d-none"><i class="bi bi-eye"></i> View</button>
+                                    <label class="btn btn-sm btn-outline-secondary mb-0 cursor-pointer apm-upload-label">
+                                        <i class="bi bi-upload"></i> <span class="apm-upload-text">Choose File</span>
+                                        <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" aria-label="Upload resume" style="display:none;">
+                                    </label>
+                                </div>
+                                <div class="apm-upload-progress"><div class="apm-upload-progress-inner"></div></div>
+                            </div>
+                            <div class="apm-quick-upload" data-doc-type="Government ID" data-doc-category="identity">
+                                <i class="bi bi-person-vcard"></i>
+                                <strong>Valid ID</strong>
+                                <span class="apm-doc-status text-muted small d-block my-1">Government-issued ID</span>
+                                <div class="d-flex gap-2 justify-content-center mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary apm-view-btn d-none"><i class="bi bi-eye"></i> View</button>
+                                    <label class="btn btn-sm btn-outline-secondary mb-0 cursor-pointer apm-upload-label">
+                                        <i class="bi bi-upload"></i> <span class="apm-upload-text">Choose File</span>
+                                        <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" aria-label="Upload ID" style="display:none;">
+                                    </label>
+                                </div>
+                                <div class="apm-upload-progress"><div class="apm-upload-progress-inner"></div></div>
+                            </div>
+                            <div class="apm-quick-upload" data-doc-type="Certification" data-doc-category="academic">
+                                <i class="bi bi-award"></i>
+                                <strong>Certifications</strong>
+                                <span class="apm-doc-status text-muted small d-block my-1">Licenses, diplomas, etc.</span>
+                                <div class="d-flex gap-2 justify-content-center mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary apm-view-btn d-none"><i class="bi bi-eye"></i> View</button>
+                                    <label class="btn btn-sm btn-outline-secondary mb-0 cursor-pointer apm-upload-label">
+                                        <i class="bi bi-upload"></i> <span class="apm-upload-text">Choose File</span>
+                                        <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" aria-label="Upload certification" style="display:none;">
+                                    </label>
+                                </div>
+                                <div class="apm-upload-progress"><div class="apm-upload-progress-inner"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-magenta mt-2" id="btnSaveAndContinue" style="border-radius:14px;">
+                        Save &amp; continue
+                    </button>
+
+                    <div class="hint mt-3">
+                        Next: you’ll land on the Job Wall to browse open roles in Mindanao.
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="apmPanelDocuments" class="d-none">
+        <div class="apm-doc-shell">
+            <aside id="apmDocSidebar" aria-label="Document categories"></aside>
+            <div id="apmDocDetail"></div>
+        </div>
+    </div>
+</div>
+
+<div id="apmToast" class="apm-toast" role="status" aria-live="polite"></div>
+
+<div class="modal fade" id="applicantDocumentPreviewModal" tabindex="-1" aria-labelledby="applicantDocumentPreviewTitle" aria-hidden="true" data-bs-backdrop="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="applicantDocumentPreviewTitle">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <iframe id="applicantDocumentPreviewFrame" title="Document preview" style="display:none;width:100%;height:min(70vh,720px);border:1px solid #e5e7eb;border-radius:0.5rem;"></iframe>
+                <img id="applicantDocumentPreviewImage" alt="Document preview" style="display:none;max-width:100%;max-height:70vh;object-fit:contain;border:1px solid #e5e7eb;border-radius:0.5rem;" class="mx-auto">
+                <div id="applicantDocumentPreviewEmpty" class="alert alert-info d-none mb-0">
+                    Preview is not available for this file type. Use Download / Open File.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="applicantDocumentPreviewDownload" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-download me-1"></i>Download / Open File
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/ow_system_events.js"></script>
+<script src="../../Js/Shared/ow_notifications.js"></script>
+<script src="../../Js/Applicant/applicant_notifications.js"></script>
+<script src="../../Js/Applicant/applicant_portal_header.js"></script>
+<script src="../../Js/Applicant/searchable_select.js"></script>
+<script src="../../Js/Applicant/applicant_profile_cascades.js"></script>
+<script src="../../Js/Applicant/applicant_profile_form.js"></script>
+<script src="../../Js/Applicant/applicant_documents_panel.js"></script>
+<script src="../../Js/Applicant/applicant_message_toast.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        ApplicantPortalHeader.init({ requireCompleteProfile: false });
+    });
+</script>
+<script src="../../Js/Applicant/applicant_hire_celebration.js"></script>
+</body>
+</html>

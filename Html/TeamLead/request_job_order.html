@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Request Job Order - Onazul Team Lead</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --brand-primary: #0056b3; --sidebar-bg: #003366; --sidebar-width: 240px; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f5f7fb; }
+        .layout-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff; position: fixed; inset: 0 0 0 0; z-index: 1030; }
+        .sidebar-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.12); }
+        .sidebar-nav { list-style: none; padding: 0; margin: 0; padding-bottom: 4rem; }
+        .sidebar-link { display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1.2rem; color: #e2e8f0; text-decoration: none; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .sidebar-link.active { background: linear-gradient(to right, #0072ff, #00c6ff); color: #fff; }
+        .main-content { flex: 1; margin-left: var(--sidebar-width); padding: 1.25rem 1.75rem; }
+        .page-header-title { font-size: 1.4rem; font-weight: 600; color: #1f2933; }
+        .badge-status { font-size: 0.75rem; }
+        .user-topbar { display: flex; justify-content: flex-end; align-items: center; gap: 0.25rem; margin-bottom: 1rem; }
+        .user-dropdown-toggle { display: flex; align-items: center; gap: 0.6rem; padding: 0.25rem 0.5rem; border-radius: 0.6rem; text-decoration: none; color: inherit; }
+        .user-dropdown-toggle:hover { background: rgba(0, 86, 179, 0.07); }
+        .user-avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(0, 86, 179, 0.12);
+            color: var(--brand-primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        .user-name-top { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sidebar-link { position: relative; }
+        .sidebar-nav-badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 1.125rem; height: 1.125rem; padding: 0 0.35rem; margin-left: auto;
+            border-radius: 999px; background: #ef4444 !important; color: #fff !important;
+            font-size: 0.65rem; font-weight: 700; line-height: 1; flex-shrink: 0;
+            box-shadow: 0 0 0 2px var(--sidebar-bg);
+        }
+    </style>
+    <script>window.REQUIRED_ROLE = 'TeamLead';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+    <script src="../../Js/Shared/hydrate_user_profile.js"></script>
+</head>
+<body>
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header"><span>Onazul Team Lead</span></div>
+        <ul class="sidebar-nav mt-2">
+            <li><a href="team_lead_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span class="flex-grow-1">Dashboard</span><span class="sidebar-nav-badge d-none" id="tlDashboardBadge" aria-label="Team members absent today">0</span></a></li>
+            <li><a href="endorsed_applicants.html" class="sidebar-link"><i class="bi bi-person-check"></i><span class="flex-grow-1">Endorsed Applicants</span><span class="sidebar-nav-badge d-none" id="tlEndorsedBadge" aria-label="Endorsed applicants awaiting decision">0</span></a></li>
+            <li><a href="request_job_order.html" class="sidebar-link active"><i class="bi bi-clipboard-plus"></i><span class="flex-grow-1">Request Job Order</span><span class="sidebar-nav-badge d-none" id="tlJobOrdersBadge" aria-label="New job order updates">0</span></a></li>
+            <li><a href="../Applicant/inbox.html" class="sidebar-link"><i class="bi bi-chat-dots"></i><span class="flex-grow-1">Messages (HR)</span><span class="sidebar-nav-badge d-none" id="tlMessagesBadge" aria-label="Unread messages">0</span></a></li>
+        </ul>
+        <div class="sidebar-footer" style="position:absolute;bottom:0;padding:1rem;font-size:0.75rem;opacity:0.7;"><div id="tlName">Team Lead</div></div>
+    </aside>
+    <main class="main-content">
+        <div class="user-topbar">
+            <div class="dropdown me-2">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle text-dark position-relative" id="tlNotifBell" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                    <i class="bi bi-bell fs-5"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="tlNotifBadge" style="display:none;font-size:0.6rem;">0</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width:300px;max-height:320px;overflow-y:auto;">
+                    <li><h6 class="dropdown-header mb-0">Notifications</h6></li>
+                    <li><div id="tlNotifList" class="px-2 small">Loading…</div></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-center small" href="../notifications.html">View all</a></li>
+                </ul>
+            </div>
+            <div class="dropdown">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle" id="userDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="user-avatar-circle" id="userAvatarCircle">U</span>
+                    <span class="user-name-top" id="userNameTop">User</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="team_lead_dashboard.html#section-profile" id="menuProfile">Profile</a></li>
+                    <li><a class="dropdown-item" href="#" id="menuSystemSettings">System Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="mb-4 d-flex justify-content-between align-items-start">
+            <div>
+                <div class="page-header-title">Request Job Order</div>
+                <div class="text-muted small">Request a job order for your site. Admin and HR will review and post it to the Job Orders tab.</div>
+            </div>
+            <button class="btn btn-primary" id="btnNewRequest"><i class="bi bi-plus-circle me-1"></i> New Request</button>
+        </div>
+
+        <div id="noSitesBlock" class="alert alert-info d-none">
+            <i class="bi bi-info-circle me-2"></i>
+            You need at least one company assigned to you as Team Lead (by Admin when the client was registered, or via HR deployment). Contact HR if you still see this message.
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th>Site / Company</th>
+                            <th>Position</th>
+                            <th>Workers</th>
+                            <th>Location</th>
+                            <th>Work Schedule</th>
+                            <th>Date Requested</th>
+                            <th>Status</th>
+                        </tr>
+                        </thead>
+                        <tbody id="requestsBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal fade" id="requestModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Request Job Order</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="requestAlert" class="alert d-none"></div>
+                <form id="requestForm">
+                    <div class="mb-3">
+                        <label class="form-label">Site / Company *</label>
+                        <select name="company_id" class="form-select" required id="siteSelect">
+                            <option value="">Select your site</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Position / Role *</label>
+                        <input type="text" name="position" class="form-control" placeholder="e.g. Warehouse Staff" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Job Category *</label>
+                        <select name="job_category" id="jor-category" data-job-category-select class="form-select" required>
+                            <option value="" selected disabled>-- Select Job Position --</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Number of Workers *</label>
+                        <input type="number" name="required_count" class="form-control" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deployment Site / Location</label>
+                        <input type="text" name="location" class="form-control" placeholder="Work location" id="locationInput">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Work Schedule</label>
+                        <select name="work_schedule" class="form-select">
+                            <option value="">Select schedule</option>
+                            <option value="Mon-Fri 8AM-5PM">Mon–Fri 8AM–5PM</option>
+                            <option value="Mon-Sat 8AM-5PM">Mon–Sat 8AM–5PM</option>
+                            <option value="Morning Shift (6AM-2PM)">Morning Shift (6AM–2PM)</option>
+                            <option value="Mid Shift (2PM-10PM)">Mid Shift (2PM–10PM)</option>
+                            <option value="Night Shift (10PM-6AM)">Night Shift (10PM–6AM)</option>
+                            <option value="Rotating">Rotating</option>
+                            <option value="Flexible">Flexible</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Remarks</label>
+                        <textarea name="remarks" class="form-control" rows="2" placeholder="Additional notes"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitRequest">Submit Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080">
+    <div id="rtToast" class="toast text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="rtToastBody">Saved successfully.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/ow_job_categories.js"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
+<script src="../../Js/team_lead_notifications.js"></script>
+<script src="../../Js/TeamLead/team_lead_sidebar_badges.js"></script>
+<script>
+const REQ_API = '../../Api/TeamLead/request_job_order.php';
+const DEPLOY_API = '../../Api/TeamLead/team_deployments.php';
+const RT_COUNTERS_API = '../../Api/Common/realtime_counters.php';
+const WORK_SCHEDULES_API = '../../Api/Common/work_schedules.php';
+const requestModalEl = document.getElementById('requestModal');
+
+(function () {
+    function initials(name) {
+        if (!name) return 'U';
+        var parts = String(name).trim().split(/\s+/).filter(Boolean);
+        var a = parts[0] ? parts[0].charAt(0) : '';
+        var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+        return (a + b).toUpperCase() || 'U';
+    }
+    fetch('../../Api/Login/check_session.php', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data || !data.success) return;
+            var fullName = data.full_name || data.fullName || 'User';
+            var nameEl = document.getElementById('userNameTop');
+            var avatarEl = document.getElementById('userAvatarCircle');
+            var footEl = document.getElementById('tlName');
+            if (nameEl) nameEl.textContent = fullName;
+            if (avatarEl) avatarEl.textContent = initials(fullName);
+            if (footEl) footEl.textContent = fullName;
+        })
+        .catch(function () {});
+    function bindComingSoon(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', function (e) {
+            e.preventDefault();
+            alert('This feature is not available yet.');
+        });
+    }
+    bindComingSoon('menuSystemSettings');
+    var logoutEl = document.getElementById('menuLogout');
+    if (logoutEl) {
+        logoutEl.addEventListener('click', function (e) {
+            e.preventDefault();
+            var doLogout = function () {
+                fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'same-origin' })
+                    .then(function () { window.location.href = '/Employee_Tracking/index.html'; })
+                    .catch(function () { window.location.href = '/Employee_Tracking/index.html'; });
+            };
+            if (typeof window.showLogoutConfirm === 'function') window.showLogoutConfirm(doLogout);
+            else doLogout();
+        });
+    }
+})();
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function moveFocusOutOfModal(modalEl) {
+    if (!document.activeElement || !modalEl.contains(document.activeElement)) return;
+    document.activeElement.blur();
+    if (!document.body.hasAttribute('tabindex')) document.body.setAttribute('tabindex', '-1');
+    document.body.focus();
+}
+function safeModalHide(modalEl) {
+    moveFocusOutOfModal(modalEl);
+    const m = bootstrap.Modal.getInstance(modalEl);
+    if (m) m.hide();
+}
+function statusBadge(s) {
+    const c = s === 'Approved' ? 'success' : (s === 'Rejected' ? 'danger' : 'warning');
+    return '<span class="badge bg-' + c + ' badge-status">' + esc(s) + '</span>';
+}
+
+function requestPositionLabel(r) {
+    var p = String((r && (r.position_name || r.position)) || '').trim();
+    if (!p || p === '0') return '—';
+    return p;
+}
+
+function loadRequests() {
+    fetch(REQ_API, { credentials: 'same-origin' }).then(r => r.json()).then(d => {
+        const tbody = document.getElementById('requestsBody');
+        if (!d.success || !d.requests || d.requests.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No job order requests yet.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = d.requests.map(r => `
+            <tr>
+                <td>${esc(r.company_name)}</td>
+                <td>${esc(requestPositionLabel(r))}</td>
+                <td>${r.required_count}</td>
+                <td>${esc(r.location) || '–'}</td>
+                <td>${esc(r.work_schedule) || '–'}</td>
+                <td>${r.created_at ? new Date(r.created_at).toLocaleDateString() : '–'}</td>
+                <td>${statusBadge(r.status)}</td>
+            </tr>`).join('');
+    }).catch(() => { document.getElementById('requestsBody').innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load.</td></tr>'; });
+}
+
+function showToast(msg, ok) {
+    var body = document.getElementById('rtToastBody');
+    var el = document.getElementById('rtToast');
+    if (!body || !el) return;
+    body.textContent = msg || 'Done.';
+    el.classList.remove('text-bg-success', 'text-bg-danger');
+    el.classList.add(ok ? 'text-bg-success' : 'text-bg-danger');
+    try { bootstrap.Toast.getOrCreateInstance(el, { delay: 2200 }).show(); } catch (e) {}
+}
+
+function showAgreementBlockedModal(message) {
+    const text = message || 'Your company needs to upload an agreement before it can request a job.';
+    const html = `
+        <div class="modal fade" id="agreementBlockedModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Request Blocked</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">${esc(text)}</div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    let node = document.getElementById('agreementBlockedModal');
+    if (node) {
+        node.remove();
+    }
+    document.body.insertAdjacentHTML('beforeend', html);
+    node = document.getElementById('agreementBlockedModal');
+    const modal = new bootstrap.Modal(node);
+    node.addEventListener('hidden.bs.modal', function () {
+        node.remove();
+    }, { once: true });
+    modal.show();
+}
+
+function loadWorkSchedules() {
+    const select = document.querySelector('select[name="work_schedule"]');
+    if (!select) return;
+    fetch(WORK_SCHEDULES_API, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(d => {
+            if (!d || !d.success || !Array.isArray(d.schedules) || d.schedules.length === 0) {
+                return;
+            }
+            const options = ['<option value="">Select schedule</option>'];
+            d.schedules.forEach(s => {
+                const name = esc(s.name || '');
+                if (name) options.push(`<option value="${name}">${name}</option>`);
+            });
+            select.innerHTML = options.join('');
+        })
+        .catch(() => {});
+}
+
+function loadSitesAndShowModal() {
+    fetch(DEPLOY_API, { credentials: 'same-origin' }).then(r => r.json()).then(d => {
+        const sel = document.getElementById('siteSelect');
+        const loc = document.getElementById('locationInput');
+        if (!d.success || !d.sites || d.sites.length === 0) {
+            document.getElementById('noSitesBlock').classList.remove('d-none');
+            sel.innerHTML = '<option value="">No sites assigned</option>';
+            return;
+        }
+        document.getElementById('noSitesBlock').classList.add('d-none');
+        document.getElementById('tlName').textContent = d.team_lead_name || 'Team Lead';
+        sel.innerHTML = '<option value="">Select your site</option>' + d.sites.map(s => {
+            const label = s.location ? `${esc(s.company_name)} - ${esc(s.location)}` : esc(s.company_name);
+            return `<option value="${s.company_id}" data-location="${esc(s.location)}">${label}</option>`;
+        }).join('');
+        sel.onchange = function() {
+            const opt = this.options[this.selectedIndex];
+            loc.value = opt && opt.dataset.location ? opt.dataset.location : '';
+        };
+        new bootstrap.Modal(requestModalEl).show();
+    });
+}
+
+document.getElementById('btnNewRequest').onclick = () => {
+    document.getElementById('requestAlert').classList.add('d-none');
+    document.getElementById('requestForm').reset();
+    loadSitesAndShowModal();
+};
+
+document.getElementById('btnSubmitRequest').onclick = () => {
+    const form = document.getElementById('requestForm');
+    const fd = new FormData(form);
+    const alert = document.getElementById('requestAlert');
+    fetch(REQ_API, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(r => r.text().then(text => {
+            try { return { ok: r.ok, data: JSON.parse(text) }; }
+            catch (e) { return { ok: false, data: { success: false, message: 'Server error while submitting request.' } }; }
+        }))
+        .then(resp => {
+        const d = resp.data;
+        if (d.success) {
+            safeModalHide(requestModalEl);
+            form.reset();
+            loadRequests();
+            alert.classList.add('d-none');
+            showToast('Job order request submitted.', true);
+            if (window.TeamLeadSidebarBadges) TeamLeadSidebarBadges.markJobRequestsSeen(RT_COUNTERS_API);
+        } else {
+            alert.textContent = d.message || 'Error';
+            alert.className = (d.error_type === 'invalid_category') ? 'alert alert-warning' : 'alert alert-danger';
+            alert.classList.remove('d-none');
+            if (d && d.error_code === 'NO_ACTIVE_SERVICE_AGREEMENT') {
+                showAgreementBlockedModal(d.message || 'Your company needs to upload an agreement before it can request a job.');
+            }
+            showToast(d.message || 'Request failed.', false);
+        }
+    }).catch(() => {
+        alert.textContent = 'Request failed';
+        alert.className = 'alert alert-danger';
+        alert.classList.remove('d-none');
+        showToast('Request failed.', false);
+    });
+};
+
+requestModalEl.addEventListener('hide.bs.modal', () => moveFocusOutOfModal(requestModalEl));
+requestModalEl.addEventListener('mousedown', (e) => {
+    if (e.target.closest('[data-bs-dismiss="modal"], .btn-close')) moveFocusOutOfModal(requestModalEl);
+}, true);
+
+fetch(DEPLOY_API, { credentials: 'same-origin' }).then(r => r.json()).then(d => {
+    if (d.success && d.team_lead_name) document.getElementById('tlName').textContent = d.team_lead_name;
+});
+loadRequests();
+loadWorkSchedules();
+if (window.TeamLeadSidebarBadges) {
+    TeamLeadSidebarBadges.markJobRequestsSeen(RT_COUNTERS_API);
+    TeamLeadSidebarBadges.init(RT_COUNTERS_API, 10000);
+}
+window.setInterval(function () { loadRequests(); }, 10000);
+</script>
+</body>
+</html>

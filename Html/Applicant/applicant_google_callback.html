@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Sign-in - Onazul</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f6f7fb; min-height: 100vh; }
+    .panel { max-width: 640px; margin: 48px auto; background:#fff; border-radius: 16px; box-shadow:0 18px 55px rgba(0,0,0,0.08); padding: 28px; }
+    .policy-panel { display: none; }
+    .policy-panel.active { display: block; }
+    .policy-scroll { max-height: 220px; overflow-y: auto; font-size: 14px; color: #334155; border: 1px solid rgba(15,23,42,0.1); border-radius: 10px; padding: 14px; background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h3 class="mb-2"><i class="bi bi-google me-2"></i>Google Sign-in</h3>
+    <div id="result" class="alert alert-info mb-0">Verifying Google sign-in...</div>
+
+    <div id="policyPanel" class="policy-panel mt-3">
+      <h5 class="fw-bold mb-2">Terms &amp; conditions</h5>
+      <p class="text-muted small mb-2">Please read and accept to continue to the Job Wall.</p>
+      <div class="policy-scroll mb-3">
+        <p class="mb-2"><strong>Onazul Manpower Services</strong> provides job matching and application services. By using this platform you agree to provide accurate information, comply with applicable labor laws, and accept that employers make final hiring decisions.</p>
+        <p class="mb-0">We process your profile data to recommend roles and share applications with verified clients. You may request corrections or account closure as described in our privacy practices.</p>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="policyAccept" />
+        <label class="form-check-label fw-semibold" for="policyAccept">I have read and agree to the Terms &amp; Conditions</label>
+      </div>
+      <button type="button" class="btn w-100 fw-bold text-white" id="btnPolicyContinue" disabled
+        style="background: #d6336c; border: none; border-radius: 12px; padding: 12px;">
+        Continue
+      </button>
+    </div>
+
+    <div class="mt-3 d-flex gap-2 flex-wrap" id="fallbackLinks">
+      <a class="btn btn-outline-secondary btn-sm" href="../../Html/Applicant/applicant_landing.html">Back to Job Wall</a>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var params = new URLSearchParams(window.location.search);
+      var code = params.get('code') || '';
+      var state = params.get('state') || '';
+      var el = document.getElementById('result');
+      var policyPanel = document.getElementById('policyPanel');
+      var policyAccept = document.getElementById('policyAccept');
+      var btnPolicyContinue = document.getElementById('btnPolicyContinue');
+      var fallbackLinks = document.getElementById('fallbackLinks');
+
+      function landingUrl() {
+        return new URL('../../Html/Applicant/applicant_landing.html', window.location.href).href.replace(/[?#].*$/, '');
+      }
+
+      function resolveRedirectUrl(targetHref) {
+        var href = String(targetHref || '').trim();
+        if (!href) return window.location.origin + '/Employee_Tracking/index.html';
+        if (/^https?:\/\//i.test(href)) return href;
+        if (href.charAt(0) === '/') return window.location.origin + href;
+        try {
+          return new URL(href, window.location.origin + '/Employee_Tracking/').href;
+        } catch (e) {
+          return window.location.origin + '/Employee_Tracking/index.html';
+        }
+      }
+
+      function navigateTo(targetHref) {
+        var href = resolveRedirectUrl(targetHref);
+        if (window.opener && !window.opener.closed) {
+          try {
+            window.opener.postMessage({ type: 'onazul_google_oauth', redirect: href }, window.location.origin);
+            window.close();
+            return;
+          } catch (e) {}
+          try {
+            window.opener.postMessage({ type: 'onazul_google_oauth', redirect: href }, window.location.origin);
+            window.opener.location.href = href;
+            window.close();
+            return;
+          } catch (e2) {}
+        }
+        window.location.href = href;
+      }
+
+      if (!code) {
+        el.classList.remove('alert-info');
+        el.classList.add('alert-warning');
+        el.textContent = 'Missing Google authorization code.';
+        return;
+      }
+
+      var oauthRedirectUri = landingUrl();
+
+      fetch('../../Api/Login/google_login_handler.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ code: code, state: state, redirect_uri: oauthRedirectUri }),
+        credentials: 'include'
+      })
+        .then(function(r){ return r.json().catch(function(){ return null; }); })
+        .then(function(data){
+          if (!data || !data.success) {
+            el.classList.remove('alert-info');
+            el.classList.add('alert-danger');
+            el.textContent = (data && data.message) ? data.message : 'Google verification failed.';
+            return;
+          }
+          el.classList.remove('alert-info');
+          el.classList.add('alert-success');
+          el.textContent = 'Signed in successfully. Redirecting…';
+          if (fallbackLinks) fallbackLinks.classList.add('d-none');
+          var target = data.redirect_path || data.redirect || data.redirect_after_accept || landingUrl();
+          if (data.needs_policy) {
+            policyPanel.classList.add('active');
+            policyAccept.addEventListener('change', function(){
+              btnPolicyContinue.disabled = !policyAccept.checked;
+            });
+            btnPolicyContinue.addEventListener('click', function(){
+              if (!policyAccept.checked) return;
+              btnPolicyContinue.disabled = true;
+              fetch('../../Api/Applicant/accept_applicant_policy.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                credentials: 'include'
+              })
+                .then(function(r){ return r.json().catch(function(){ return null; }); })
+                .then(function(d){
+                  if (!d || !d.success) {
+                    btnPolicyContinue.disabled = false;
+                    alert((d && d.message) ? d.message : 'Could not save your acceptance.');
+                    return;
+                  }
+                  navigateTo(data.redirect_path || data.redirect_after_accept || target);
+                })
+                .catch(function(){
+                  btnPolicyContinue.disabled = false;
+                  alert('Network error. Please try again.');
+                });
+            });
+            return;
+          }
+          navigateTo(target);
+        })
+        .catch(function(){
+          el.classList.remove('alert-info');
+          el.classList.add('alert-danger');
+          el.textContent = 'Network/server error while verifying Google sign-in.';
+        });
+    })();
+  </script>
+</body>
+</html>

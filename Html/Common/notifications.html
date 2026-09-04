@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Onazul Workforce Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f5f7fb; }
+        .page-wrap { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem; }
+        .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap: 1rem; margin-bottom: 1rem; }
+        .title { font-size: 1.4rem; font-weight: 700; color:#1f2933; }
+        .sub { color:#6b7280; font-size: 0.9rem; }
+        .panel { border: none; border-radius: 0.85rem; box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06); background:#fff; }
+        .notif-list { max-height: 560px; overflow:auto; }
+        .notif-item { cursor:pointer; border-left: 4px solid transparent; padding: 0.75rem 0.9rem; }
+        .notif-item:hover { background: #f8fafc; }
+        .notif-item.active { border-left-color: #0056b3; background:#eef6ff; }
+        .muted-small { color:#6b7280; font-size:0.85rem; }
+        .msg { white-space: pre-wrap; }
+    </style>
+    <script>window.REQUIRED_ROLES = 'Admin,HR,TeamLead,Applicant,Employee';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+</head>
+<body>
+<div class="page-wrap">
+    <div class="topbar">
+        <div>
+            <div class="title"><i class="bi bi-bell-fill me-2"></i>Notifications</div>
+            <div class="sub">View full notification details and mark them as read.</div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <div class="badge bg-danger" id="unreadBadge" style="display:none;">0 unread</div>
+            <button class="btn btn-outline-primary btn-sm" id="btnMarkAll">Mark all as read</button>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-5">
+            <div class="panel h-100">
+                <div class="p-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-semibold">Inbox</div>
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" id="chkUnread">
+                            <label class="form-check-label muted-small" for="chkUnread">Unread only</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="notif-list p-2" id="notifList">
+                    <div class="text-muted p-3">Loading…</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-7">
+            <div class="panel h-100">
+                <div class="p-3 border-bottom">
+                    <div class="fw-semibold">Details</div>
+                </div>
+                <div class="p-3" id="notifDetails">
+                    <div class="text-muted">Select a notification to view details.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="small text-muted mt-3">
+        Tip: Some notifications may relate to applications or chat messages.
+    </div>
+</div>
+
+<script>
+const API = '../Api/Common/notifications.php';
+
+function esc(s) {
+    if (s == null) return '';
+    const d = document.createElement('div');
+    d.textContent = String(s);
+    return d.innerHTML;
+}
+
+function renderList(notifications) {
+    const list = document.getElementById('notifList');
+    if (!notifications || notifications.length === 0) {
+        list.innerHTML = '<div class="text-muted p-3">No notifications.</div>';
+        return;
+    }
+
+    list.innerHTML = notifications.map(n => {
+        const activeCls = (state.activeId === n.id) ? 'active' : '';
+        const unreadDot = n.is_read ? '' : '<span class="badge bg-warning text-dark ms-2">New</span>';
+        return `
+          <div class="notif-item ${activeCls}" data-id="${n.id}">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <div class="fw-semibold">${esc(n.title || 'Notification')}</div>
+                <div class="muted-small">${esc(n.from || 'System')} • ${esc(n.type || '')}</div>
+              </div>
+              ${unreadDot}
+            </div>
+            <div class="muted-small mt-1">${esc((n.message || '').substring(0, 110))}${(n.message || '').length > 110 ? '…' : ''}</div>
+          </div>
+        `;
+    }).join('');
+
+    list.querySelectorAll('.notif-item').forEach(el => {
+        el.addEventListener('click', () => openNotification(parseInt(el.dataset.id, 10)));
+    });
+}
+
+function renderDetails(n) {
+    const details = document.getElementById('notifDetails');
+    if (!n) {
+        details.innerHTML = '<div class="text-muted">Select a notification to view details.</div>';
+        return;
+    }
+    const related = n.related_record ? `${esc(n.related_module || '')} #${esc(n.related_record)}` : (n.related_module ? esc(n.related_module) : '–');
+    details.innerHTML = `
+      <div class="d-flex justify-content-between align-items-start gap-3">
+        <div>
+          <div class="fs-5 fw-semibold">${esc(n.title || 'Notification')}</div>
+          <div class="muted-small">${esc(n.from || 'System')} • ${esc(n.type || '')}</div>
+        </div>
+        <div class="text-end">
+          <span class="badge ${n.is_read ? 'bg-secondary' : 'bg-primary'}">${n.is_read ? 'Read' : 'Unread'}</span>
+          ${n.priority ? `<div class="muted-small mt-1">Priority: ${esc(n.priority)}</div>` : ''}
+        </div>
+      </div>
+      <div class="mt-3 msg">${esc(n.message || '')}</div>
+      <div class="mt-3 muted-small">Related: ${related}</div>
+    `;
+}
+
+async function fetchNotifications() {
+    const unreadOnly = document.getElementById('chkUnread').checked ? 1 : 0;
+    const url = API + '?unread_only=' + unreadOnly + '&limit=50';
+    const r = await fetch(url, { credentials: 'same-origin' });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.message || 'Failed to load notifications');
+
+    state.notifications = d.notifications || [];
+    state.unreadCount = d.unread_count || 0;
+    document.getElementById('unreadBadge').style.display = state.unreadCount > 0 ? 'inline-block' : 'none';
+    document.getElementById('unreadBadge').textContent = state.unreadCount + ' unread';
+
+    if (state.activeId && state.notifications.some(x => x.id === state.activeId)) {
+        const selected = state.notifications.find(x => x.id === state.activeId);
+        renderDetails(selected);
+    } else if (state.notifications.length > 0) {
+        state.activeId = state.notifications[0].id;
+        renderDetails(state.notifications[0]);
+    } else {
+        state.activeId = null;
+        renderDetails(null);
+    }
+    renderList(state.notifications);
+}
+
+async function openNotification(id) {
+    state.activeId = id;
+    const n = state.notifications.find(x => x.id === id);
+    renderDetails(n);
+    if (n && !n.is_read) {
+        await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'mark_read', notification_id: id }),
+            credentials: 'same-origin'
+        });
+        // Refresh list quickly (keeps UI simple)
+        await fetchNotifications();
+    } else {
+        renderList(state.notifications);
+    }
+}
+
+const state = { notifications: [], activeId: null, unreadCount: 0 };
+
+document.getElementById('chkUnread').addEventListener('change', fetchNotifications);
+document.getElementById('btnMarkAll').addEventListener('click', async () => {
+    if (!confirm('Mark all notifications as read?')) return;
+    await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'mark_all_read' }),
+        credentials: 'same-origin'
+    });
+    await fetchNotifications();
+});
+
+fetchNotifications().catch(err => {
+    document.getElementById('notifList').innerHTML = '<div class="text-danger p-3">Failed to load: ' + esc(err.message || 'Error') + '</div>';
+});
+</script>
+</body>
+</html>
+

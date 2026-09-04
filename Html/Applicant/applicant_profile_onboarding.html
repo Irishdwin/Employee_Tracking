@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applicant Profile Onboarding - Onazul</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0056b3 0%, #003366 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem;
+        }
+        .panel {
+            background: #fff;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 620px;
+            box-shadow: 0 18px 55px rgba(0,0,0,0.22);
+            overflow: hidden;
+        }
+        .panel-header {
+            background: linear-gradient(135deg, #0056b3 0%, #003366 100%);
+            color: #fff;
+            padding: 22px 24px;
+        }
+        .panel-header h1 {
+            font-size: 18px;
+            font-weight: 900;
+            margin: 0 0 6px;
+        }
+        .panel-body { padding: 18px 24px 24px; }
+        .btn-brand {
+            background: #0056b3;
+            border: none;
+            color: #fff;
+            font-weight: 900;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+        .btn-brand:hover { filter: brightness(1.03); }
+        .small-muted { color: rgba(15,23,42,0.7); font-size: 13px; }
+        .error-box { display:none; }
+    </style>
+    <script>window.REQUIRED_ROLE = 'Applicant';</script>
+    <script src="../../Js/Shared/role_guard.js" defer></script>
+</head>
+<body>
+<div class="panel">
+    <div class="panel-header">
+        <h1><i class="bi bi-shield-check me-2"></i>Complete your profile (Eligibility Check)</h1>
+        <div class="small-muted">Date of Birth is required to confirm you are legally eligible to apply for jobs.</div>
+    </div>
+    <div class="panel-body">
+        <div id="profileStatusAlert" class="alert alert-info mb-3 d-none"></div>
+        <div id="profileErrorBox" class="alert alert-danger error-box"></div>
+
+        <form id="profileForm">
+            <div class="row g-2 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">First Name *</label>
+                    <input type="text" id="firstNameInput" class="form-control" required minlength="2">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Middle Name</label>
+                    <input type="text" id="middleNameInput" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Last Name *</label>
+                    <input type="text" id="lastNameInput" class="form-control" required minlength="2">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="hasSuffixCheckbox">
+                    <label class="form-check-label fw-bold text-slate-700" for="hasSuffixCheckbox">I have a suffix</label>
+                </div>
+                <div id="suffixWrap">
+                    <label class="form-label fw-bold">Suffix</label>
+                    <select id="suffixSelect" class="form-select" disabled>
+                        <option value="" disabled selected>Select suffix</option>
+                        <option value="Jr.">Jr.</option>
+                        <option value="Sr.">Sr.</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+                        <option value="V">V</option>
+                        <option value="VI">VI</option>
+                        <option value="VII">VII</option>
+                        <option value="VIII">VIII</option>
+                        <option value="IX">IX</option>
+                        <option value="X">X</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Mobile Number *</label>
+                <input type="tel" id="mobileInput" class="form-control" placeholder="e.g., 09171234567 or +639171234567" required>
+                <div class="invalid-feedback" id="mobileFeedback">
+                    Please enter a valid Philippine mobile number.
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Date of Birth *</label>
+                <input type="date" id="birthDateInput" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="eligibleCheckbox" required>
+                    <label class="form-check-label fw-bold" for="eligibleCheckbox">
+                        I confirm I am at least 18 years old and legally eligible to work.
+                    </label>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-brand">
+                    <i class="bi bi-check2-circle me-2"></i>Save & Continue
+                </button>
+                <a href="../../Html/Applicant/applicant_landing.html" class="btn btn-outline-secondary">
+                    Back to home
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const STATUS_API = '../../Api/Applicant/get_profile_status.php';
+    const COMPLETE_API = '../../Api/Applicant/complete_applicant_profile.php';
+
+    function setError(msg) {
+        const el = document.getElementById('profileErrorBox');
+        if (!el) return;
+        el.textContent = msg || 'Something went wrong.';
+        el.style.display = 'block';
+    }
+
+    function hideError() {
+        const el = document.getElementById('profileErrorBox');
+        if (!el) return;
+        el.textContent = '';
+        el.style.display = 'none';
+    }
+
+    function isValidPhMobile(mobile) {
+        if (!mobile) return false;
+        const phMobileRegex = /^(09|\+639|639)\d{9}$/;
+        if (!phMobileRegex.test(mobile)) return false;
+
+        const digitsOnly = mobile.replace(/\D/g, '');
+        if (/^(\d)\1+$/.test(digitsOnly)) return false;
+
+        return true;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        hideError();
+        const statusAlert = document.getElementById('profileStatusAlert');
+        const mobileInput = document.getElementById('mobileInput');
+        const hasSuffixCheckbox = document.getElementById('hasSuffixCheckbox');
+        const suffixSelect = document.getElementById('suffixSelect');
+
+        if (hasSuffixCheckbox && suffixSelect) {
+            hasSuffixCheckbox.addEventListener('change', function () {
+                const checked = this.checked;
+                suffixSelect.disabled = !checked;
+                if (!checked) suffixSelect.value = '';
+            });
+        }
+
+        if (mobileInput) {
+            mobileInput.addEventListener('input', function () {
+                let val = this.value.replace(/\s+/g, '');
+                val = val.replace(/(?!^\+)[^\d]/g, '');
+                this.value = val;
+
+                if (val.length > 0) {
+                    if (isValidPhMobile(val)) {
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+                    } else {
+                        this.classList.remove('is-valid');
+                        this.classList.add('is-invalid');
+                    }
+                } else {
+                    this.classList.remove('is-valid', 'is-invalid');
+                }
+            });
+        }
+
+        fetch(STATUS_API, { credentials: 'include', headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(d => {
+                if (!d || !d.success) return;
+                if (d.logged_in === false) return;
+                if (d.profile_completed) {
+                    window.location.href = '/Employee_Tracking/Html/Applicant/applicant_terms.html';
+                    return;
+                }
+                if (statusAlert) {
+                    statusAlert.classList.remove('d-none');
+                    statusAlert.textContent = d.birth_date ? ('Update your profile to continue.') : 'Complete your profile to proceed with job applications.';
+                }
+                if (d.birth_date) {
+                    const bd = document.getElementById('birthDateInput');
+                    if (bd) bd.value = d.birth_date;
+                }
+            })
+            .catch(() => {});
+    });
+
+    document.getElementById('profileForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        hideError();
+
+        const firstName = document.getElementById('firstNameInput').value.trim();
+        const middleName = document.getElementById('middleNameInput').value.trim();
+        const lastName = document.getElementById('lastNameInput').value.trim();
+        const hasSuffix = document.getElementById('hasSuffixCheckbox').checked;
+        const suffix = hasSuffix ? document.getElementById('suffixSelect').value : '';
+        const mobile = document.getElementById('mobileInput').value.trim();
+        const birthDate = document.getElementById('birthDateInput').value;
+        const eligible = document.getElementById('eligibleCheckbox').checked;
+
+        if (!firstName || !lastName) {
+            setError('First name and Last name are required.');
+            return;
+        }
+
+        const namePattern = /^[A-Za-zÑñ\s\.\'\-]+$/;
+        if (!namePattern.test(firstName) || !namePattern.test(lastName) || (middleName && !namePattern.test(middleName))) {
+            setError('Names can only contain letters, spaces, periods, apostrophes, and hyphens.');
+            return;
+        }
+
+        if (!isValidPhMobile(mobile)) {
+            setError('Please enter a valid Philippine mobile number.');
+            const mobileEl = document.getElementById('mobileInput');
+            if (mobileEl) mobileEl.classList.add('is-invalid');
+            return;
+        }
+
+        if (!eligible) {
+            setError('Please confirm you are eligible (at least 18 years old).');
+            return;
+        }
+
+        fetch(COMPLETE_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                first_name: firstName,
+                middle_name: middleName,
+                last_name: lastName,
+                has_suffix: hasSuffix ? 1 : 0,
+                suffix: suffix,
+                mobile_number: mobile,
+                birth_date: birthDate
+            }),
+            credentials: 'include'
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (!d || !d.success) {
+                setError((d && d.message) ? d.message : 'Failed to save profile.');
+                return;
+            }
+            window.location.href = d.redirect || '/Employee_Tracking/Html/Applicant/applicant_terms.html';
+        })
+        .catch(() => setError('Network/server error. Please try again.'));
+    });
+</script>
+</body>
+</html>

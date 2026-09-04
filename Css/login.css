@@ -1,0 +1,181 @@
+:root {
+    --brand-primary: #0056b3;  
+    --brand-dark: #003366;     
+    --brand-light: #e7f1ff;    
+}
+
+body, html { 
+    height: 100%; 
+    margin: 0; 
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif; 
+}
+
+body { 
+    overflow-x: hidden; 
+}
+
+/* Layout & Branding */
+.branding-section {
+    background: linear-gradient(135deg, rgba(0, 51, 102, 0.95) 0%, rgba(0, 86, 179, 0.85) 100%), 
+                url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2000&auto=format&fit=crop');
+    background-size: cover;
+    background-position: center;
+    color: white;
+    min-height: 100vh;
+}
+
+.branding-content { 
+    padding: 2rem 3rem; 
+    max-width: 85%; 
+}
+
+.client-logo-bar { 
+    margin-top: 3rem; 
+    padding-top: 2rem; 
+    border-top: 1px solid rgba(255,255,255,0.2); 
+}
+
+.client-logo {
+    height: 40px;
+    max-width: 120px;
+    opacity: 0.9;
+    object-fit: contain;
+    transition: opacity 0.3s;
+    margin-right: 20px;
+}
+
+.client-logo:hover { 
+    opacity: 1; 
+}
+
+/* Login Card Container */
+.login-section {
+    background-color: white;
+    min-height: 100vh;
+    max-height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.login-card {
+    background: white;
+    padding: 1.25rem 1.5rem 1.5rem;
+    width: 100%;
+    max-width: 420px;
+}
+
+.login-card .form-label { 
+    margin-bottom: 0.35rem; 
+}
+
+.login-card .form-control,
+.login-card .input-group-text { 
+    padding: 0.55rem 0.75rem; 
+    font-size: 0.95rem; 
+}
+
+.login-card .captcha-input { 
+    max-width: 88px !important; 
+    padding: 0.45rem 0.35rem !important; 
+}
+
+.login-card .captcha-num { 
+    max-width: 68px !important; 
+    padding: 0.45rem 0.35rem !important; 
+}
+
+.form-control { 
+    background-color: #f8f9fa; 
+    border: 1px solid #dee2e6; 
+}
+
+.form-control:focus { 
+    background-color: white; 
+    border-color: var(--brand-primary); 
+    box-shadow: 0 0 0 0.25rem rgba(0, 86, 179, 0.15); 
+}
+
+/* Buttons & Elements */
+.btn-brand { 
+    background: linear-gradient(to right, var(--brand-dark), var(--brand-primary)); 
+    border: none; 
+    color: white; 
+    font-weight: 600; 
+    padding: 10px 12px; 
+    transition: all 0.3s; 
+}
+
+.btn-brand:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 5px 15px rgba(0, 86, 179, 0.3); 
+    color: white; 
+}
+
+.captcha-container { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    background: #f8f9fa; 
+    border: 1px solid #dee2e6; 
+    padding: 5px; 
+    border-radius: 5px; 
+}
+
+.captcha-img { 
+    height: 40px; 
+    border-radius: 3px; 
+}
+
+.cursor-pointer { 
+    cursor: pointer; 
+}
+
+/* Auth Divider & Google Button */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0.75rem 0;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #dadce0;
+    border-radius: 999px;
+    background: #fff;
+    color: #3c4043;
+    font-weight: 600;
+    transition: box-shadow .2s ease, border-color .2s ease;
+}
+
+.btn-google:hover {
+    background: #f8f9fa;
+    border-color: #c6c9cc;
+    box-shadow: 0 1px 3px rgba(60,64,67,.15);
+    color: #202124;
+}
+
+.btn-google .g-mark {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}

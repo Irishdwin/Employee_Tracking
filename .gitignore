@@ -1,0 +1,28 @@
+# Dependencies
+/vendor/
+
+# Local secrets — never commit live credentials
+Api/config/mail_config.php
+Api/config/google_oauth.php
+.env
+.env.*
+!.env.example
+
+# Runtime / user data
+/logs/
+/uploads/
+*.log
+
+# OS / editor
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Archives and local backups
+*.zip
+*.bak
+*_backup_*
+mysql_backup_*

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Dashboard - Onazul Workforce Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../Css/ow_widgets.css">
+    <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css">
+    <link rel="stylesheet" href="../../Css/ow_collapsible_sidebar.css">
+    <style>
+        .validation-block { display: none; }
+        .filter-badge { cursor: pointer; }
+        #documentPreviewModal { z-index: 1060 !important; }
+    </style>
+    <script>window.REQUIRED_ROLE = 'HR';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+    <script src="../../Js/Shared/hydrate_user_profile.js"></script>
+</head>
+<body class="ow-dashboard">
+<div id="sidebar-overlay" aria-hidden="true"></div>
+<div id="dashboard-wrapper" class="layout-wrapper">
+    <aside id="main-sidebar">
+        <div class="sidebar-header sidebar-brand-block">
+            <span class="sidebar-brand-text">Onazul HR</span>
+            <span class="sidebar-brand-compact" aria-hidden="true">H</span>
+        </div>
+        <div class="sidebar-nav-scroll">
+        <ul class="sidebar-nav mt-2">
+            <li><a href="#" class="sidebar-link active" data-target="section-overview"><i class="bi bi-speedometer2"></i><span class="sidebar-label">Dashboard</span></a></li>
+            <li><a href="#" class="sidebar-link" data-target="section-job-orders"><i class="bi bi-briefcase"></i><span class="sidebar-label">Job Orders</span><span class="badge bg-danger rounded-pill ms-auto d-none sidebar-nav-badge" id="hrJobOrdersBadge">0</span></a></li>
+            <li><a href="#" class="sidebar-link" data-target="section-applicant-review"><i class="bi bi-people"></i><span class="sidebar-label">Applicant Review</span></a></li>
+            <li><a href="#" class="sidebar-link" data-target="section-applicant-contracts"><i class="bi bi-file-earmark-text"></i><span class="sidebar-label">Applicant Contracts</span></a></li>
+            <li><a href="#" class="sidebar-link" data-target="section-employee-conversion"><i class="bi bi-person-check"></i><span class="sidebar-label">Employee Conversion</span></a></li>
+            <li><a href="#" class="sidebar-link" data-target="section-deployments"><i class="bi bi-geo-alt"></i><span class="sidebar-label">Deployments</span></a></li>
+        </ul>
+        </div>
+        <div class="sidebar-user-block">
+            <div class="sidebar-user-details sidebar-footer">
+                <div id="sidebarUserName" class="sidebar-label fw-semibold text-white">User</div>
+                <div id="sidebarUserRole" class="sidebar-label small">HR</div>
+            </div>
+            <div class="sidebar-user-compact">
+                <span class="sidebar-initial-avatar" id="sidebarUserInitialCompact">U</span>
+            </div>
+        </div>
+    </aside>
+    <div class="dashboard-shell">
+        <header id="top-navbar" class="border-bottom bg-white px-3 py-2 mb-0">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+                <div class="top-navbar-start d-flex align-items-center gap-2">
+                    <button type="button" id="hamburger-toggle" class="hamburger-toggle-btn" aria-label="Toggle sidebar menu" aria-controls="main-sidebar">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    <span class="fw-semibold text-secondary d-none d-sm-inline">HR Dashboard</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+            <button class="topbar-notif-btn me-2 position-relative" id="owNotifBellBtn" type="button" aria-label="Open notifications">
+                <i class="bi bi-bell"></i>
+                <span class="ow-notif-badge d-none" aria-hidden="true">0</span>
+            </button>
+            <div class="dropdown">
+                <a href="#" class="user-dropdown-toggle dropdown-toggle text-decoration-none" id="userDropdownToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="user-avatar-circle" id="userAvatarCircle">U</span>
+                    <span class="user-name-top" id="userNameTop">User</span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li><a class="dropdown-item" href="#section-profile" id="menuProfile" data-show-section="section-profile">Profile</a></li>
+                    <li><a class="dropdown-item" href="#" id="menuSystemSettings">System Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
+                </ul>
+            </div>
+                </div>
+            </div>
+        </header>
+        <main id="main-content-area">
+        <!-- Section: Overview -->
+        <div id="section-overview" class="dashboard-section active">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">HR Dashboard</div>
+                    <div class="page-header-subtitle">Welcome, <span data-user-field="full_name">HR User</span>. Use the links on the left to manage Job Orders and other HR activities.</div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div>
+                                <h5 class="card-title"><i class="bi bi-briefcase me-2"></i>Job Orders</h5>
+                                <p class="card-text text-muted mb-3">Create and monitor client Job Orders. Requires an active Service Agreement with uploaded document.</p>
+                            </div>
+                            <div>
+                                <a href="#" class="btn btn-primary btn-sm" data-target="section-job-orders">Go to Job Orders</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div>
+                                <h5 class="card-title"><i class="bi bi-geo-alt me-2"></i>Deployments</h5>
+                                <p class="card-text text-muted mb-3">Assign employees to Client Company, site, and Team Lead.</p>
+                            </div>
+                            <div>
+                                <a href="#" class="btn btn-primary btn-sm" data-target="section-deployments">Manage Deployments</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Job Orders -->
+        <div id="section-job-orders" class="dashboard-section d-none">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">Job Orders</div>
+                    <div class="page-header-subtitle">Create Job Orders. Requires an active Service Agreement with uploaded document for the selected client.</div>
+                </div>
+                <button class="btn btn-primary" id="btnCreateJobOrder"><i class="bi bi-plus-circle me-1"></i> Create Job Order</button>
+            </div>
+            <div id="noAgreementBlock" class="alert alert-warning validation-block">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Job Order creation blocked.</strong> No active Service Agreement with uploaded signed document exists for the selected client.
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead><tr><th>Client</th><th>Position</th><th>Workers</th><th>Deployment Site</th><th>Work Schedule</th><th>Request Date</th></tr></thead>
+                            <tbody id="ordersBody">
+                                <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Applicant Review -->
+        <div id="section-applicant-review" class="dashboard-section d-none">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">Applicant Review</div>
+                    <div class="page-header-subtitle">Review applications, schedule interviews, and manage endorsements</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <select id="filterStatus" class="form-select" style="max-width: 260px;">
+                        <option value="">All Status</option>
+                        <option value="Applied">Applied</option>
+                        <option value="Scheduled for Interview">Scheduled for Interview</option>
+                        <option value="Endorsed to Client">Endorsed to Client</option>
+                        <option value="Approved by Company">Approved by Company</option>
+                        <option value="Hired">Hired</option>
+                        <option value="Rejected">Declined</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Applicant</th>
+                                    <th>Position</th>
+                                    <th>Company</th>
+                                    <th>Applied Date</th>
+                                    <th>Status</th>
+                                    <th>Documents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="applicationsBody">
+                                <tr><td colspan="7" class="text-center text-muted py-4">Loading applications...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Messages -->
+        <div id="section-messages" class="dashboard-section d-none">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">Messages (HR)</div>
+                    <div class="page-header-subtitle">Respond to applicants and team members. Interview updates also appear here.</div>
+                </div>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-header">Conversations</div>
+                        <div class="card-body p-2" style="max-height: 520px; overflow: auto;" id="msgThreads">
+                            <div class="text-muted p-2">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <div class="fw-semibold" id="msgActiveTitle">Select a conversation</div>
+                            <div class="text-muted small" id="msgActiveSub">Messages will appear here.</div>
+                        </div>
+                        <div class="card-body" style="height: 440px; overflow: auto;" id="msgMessages"></div>
+                        <div class="card-footer d-flex gap-2">
+                            <textarea id="msgInput" class="form-control" rows="2" placeholder="Type your reply..."></textarea>
+                            <button class="btn btn-primary" id="btnMsgSend"><i class="bi bi-send"></i> Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Applicant Contracts (embedded) -->
+        <div id="section-applicant-contracts" class="dashboard-section d-none">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">Applicant Contracts</div>
+                    <div class="page-header-subtitle">Upload, lookup, and open contract files (open / expiring / expired)</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body" style="padding:0;">
+                    <iframe
+                        id="applicantContractsIframe"
+                        title="Applicant Contracts"
+                        src="applicant_contracts.html?embedded=1"
+                        style="width:100%; min-height:640px; height:70vh; border:0; background:#fff;"
+                    ></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Employee Conversion (embedded) -->
+        <div id="section-employee-conversion" class="dashboard-section d-none">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">Employee Conversion</div>
+                    <div class="page-header-subtitle">Convert approved applicants with a contract on file to active employees</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body" style="padding:0;">
+                    <iframe
+                        id="employeeConversionIframe"
+                        title="Employee Conversion"
+                        src="employee_conversion.html?embedded=1"
+                        style="width:100%; min-height:640px; height:70vh; border:0; background:#fff;"
+                    ></iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Deployments -->
+        <div id="section-deployments" class="dashboard-section d-none">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">Deployments</div>
+                    <div class="page-header-subtitle">Assign employees to Client Company, site, and Team Lead</div>
+                </div>
+                <button class="btn btn-primary" id="btnAddDeployment"><i class="bi bi-plus-circle me-1"></i> Assign Employee</button>
+            </div>
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Company</th>
+                                    <th>Position</th>
+                                    <th>Site</th>
+                                    <th>Team Lead</th>
+                                    <th>Start</th>
+                                    <th>End</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deploymentsBody">
+                                <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Notifications -->
+        <div id="section-notifications" class="dashboard-section d-none">
+            <div class="d-flex justify-content-between align-items-start mb-4">
+                <div>
+                    <div class="page-header-title">Notifications</div>
+                    <div class="page-header-subtitle">View full notification details and mark them as read.</div>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <div class="form-check form-switch m-0">
+                        <input class="form-check-input" type="checkbox" id="chkUnread">
+                        <label class="form-check-label" for="chkUnread" style="font-size:0.85rem;color:#6b7280;">Unread only</label>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="owBtnRefreshNotif"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                    <button class="btn btn-outline-primary btn-sm" id="btnMarkAll">Mark all as read</button>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <div class="panel h-100" style="border:none;border-radius:0.85rem;box-shadow:0 4px 14px rgba(15, 23, 42, 0.06);background:#fff;">
+                        <div class="p-3 border-bottom">
+                            <div class="fw-semibold">Inbox</div>
+                        </div>
+                        <div class="p-2 notif-list" id="notifList" style="max-height:560px;overflow:auto;">
+                            <div class="text-muted p-3">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="panel h-100" style="border:none;border-radius:0.85rem;box-shadow:0 4px 14px rgba(15, 23, 42, 0.06);background:#fff;">
+                        <div class="p-3 border-bottom">
+                            <div class="fw-semibold">Details</div>
+                        </div>
+                        <div class="p-3" id="notifDetails">
+                            <div class="text-muted">Select a notification to view details.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: My Account (Profile — opened from header dropdown) -->
+        <div id="section-profile" class="dashboard-section d-none" aria-labelledby="profile-section-title">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div>
+                    <h1 id="profile-section-title" class="page-header-title mb-1">My Account</h1>
+                    <p class="page-header-subtitle mb-0">Your signed-in HR profile and account details.</p>
+                </div>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-show-section="section-overview">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+                </button>
+            </div>
+            <div id="userProfileCard" class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Account Details</h5>
+                    <dl class="row g-3 mb-0 small">
+                        <div class="col-md-4"><dt class="text-muted">Full name</dt><dd id="upcFullName" class="mb-0 fw-semibold">—</dd></div>
+                        <div class="col-md-4"><dt class="text-muted">Email</dt><dd id="upcEmail" class="mb-0 fw-semibold">—</dd></div>
+                        <div class="col-md-4"><dt class="text-muted">Role</dt><dd id="upcRole" class="mb-0 fw-semibold">—</dd></div>
+                        <div class="col-md-8"><dt class="text-muted">Address</dt><dd id="upcAddress" class="mb-0 fw-semibold">—</dd></div>
+                        <div class="col-md-4"><dt class="text-muted">Position</dt><dd id="upcPosition" class="mb-0 fw-semibold">—</dd></div>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </main>
+    </div>
+</div>
+
+<button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger" aria-expanded="false" aria-controls="owMessengerPanel">
+    <i class="bi bi-chat-dots fs-4"></i>
+    <span id="globalMessageBadge" data-global-message-badge class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-2 border-light d-none" style="font-size:0.65rem; min-width:1.1rem;" aria-hidden="true">0</span>
+</button>
+<div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+    <div class="ow-msgr-header">
+        <span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span>
+        <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose" aria-label="Close messenger">&times;</button>
+    </div>
+    <div class="ow-msgr-body">
+        <aside class="ow-msgr-sidebar">
+            <div class="ow-msgr-search-wrap">
+                <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off" aria-label="Search contacts">
+            </div>
+            <div class="ow-msgr-contacts" id="owMessengerContacts">
+                <p class="ow-msgr-empty">Loading contacts…</p>
+            </div>
+        </aside>
+        <div class="ow-msgr-chat">
+            <div class="ow-msgr-chat-head">
+                <div class="fw-semibold" id="owMessengerChatTitle">Messenger</div>
+                <div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div>
+            </div>
+            <div class="ow-msgr-messages" id="owMessengerMessages">
+                <p class="ow-msgr-placeholder">Select a contact to start chatting.</p>
+            </div>
+            <form class="ow-msgr-footer ow-msgr-compose" id="owMessengerComposeForm" autocomplete="off">
+                <input type="text" class="form-control form-control-sm" id="owMessengerInput" placeholder="Type a message…" autocomplete="off" aria-label="Message text" disabled>
+                <button type="submit" class="btn btn-primary btn-sm" id="owMessengerSend" aria-label="Send message" disabled>
+                    <i class="bi bi-send"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Job Order Modal -->
+<div class="modal fade" id="createJobOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Create Job Order</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="createJOAlert" class="alert d-none"></div>
+                <form id="createJobOrderForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Client Company *</label>
+                            <select name="company_id" class="form-select" required id="joCompanySelect"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Service Agreement *</label>
+                            <select name="service_agreement_id" class="form-select" required id="joAgreementSelect">
+                                <option value="">Select client first</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Position / Role *</label>
+                            <input type="text" name="position" class="form-control" placeholder="e.g. Warehouse Staff" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Number of Required Workers *</label>
+                            <input type="number" name="required_count" class="form-control" min="1" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deployment Site</label>
+                        <input type="text" name="deployment_site" class="form-control" placeholder="Work location address">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Work Schedule</label>
+                        <select name="work_schedule" class="form-select" id="joWorkScheduleSelect">
+                            <option value="">Select schedule</option>
+                            <option value="Mon-Fri 8AM-5PM">Mon–Fri 8AM–5PM</option>
+                            <option value="Mon-Sat 8AM-5PM">Mon–Sat 8AM–5PM</option>
+                            <option value="Morning Shift (6AM-2PM)">Morning Shift (6AM–2PM)</option>
+                            <option value="Mid Shift (2PM-10PM)">Mid Shift (2PM–10PM)</option>
+                            <option value="Night Shift (10PM-6AM)">Night Shift (10PM–6AM)</option>
+                            <option value="Rotating">Rotating</option>
+                            <option value="Flexible">Flexible</option>
+                            <option value="Other">Other (specify below)</option>
+                        </select>
+                        <input type="text" name="work_schedule_other" class="form-control mt-2" id="joWorkScheduleOther" placeholder="Custom schedule (if Other selected)" style="display: none;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Request Date</label>
+                        <input type="text" class="form-control" id="joRequestDateDisplay" readonly placeholder="Set when created">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitJobOrder">Create Job Order</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hire Applicant Modal -->
+<div class="modal fade" id="hireApplicantModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Complete Hire &amp; Salary Configuration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="hireApplicantAlert" class="alert d-none"></div>
+                <p class="small text-muted mb-3" id="hireApplicantSummary">Enter government IDs and payroll rates to complete hire and deployment.</p>
+                <form id="hireApplicantForm">
+                    <input type="hidden" id="hireApplicationId" value="">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">Government IDs</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="hireSssNumber">SSS Number *</label>
+                            <input type="text" id="hireSssNumber" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="hirePhilhealthNumber">PhilHealth Number *</label>
+                            <input type="text" id="hirePhilhealthNumber" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="hirePagibigNumber">Pag-IBIG Number *</label>
+                            <input type="text" id="hirePagibigNumber" class="form-control" required>
+                        </div>
+                    </div>
+                    <hr class="my-2">
+                    <h6 class="text-uppercase text-muted small fw-bold mb-3">Salary Configuration</h6>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="hireDailyRate">Daily Rate (PHP) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" id="hireDailyRate" class="form-control" min="0.01" step="0.01" placeholder="0.00" required>
+                            </div>
+                            <div class="form-text">Hourly (÷8) and monthly credit (×26) are computed automatically.</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="hireAllowance">Monthly Allowance (PHP)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" id="hireAllowance" class="form-control" min="0" step="0.01" value="0" placeholder="0.00">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label text-muted small mb-1">Computed Hourly Rate</label>
+                            <div class="form-control bg-light" id="hireHourlyRatePreview" aria-live="polite">—</div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label text-muted small mb-1">Computed Monthly Salary Credit</label>
+                            <div class="form-control bg-light" id="hireMonthlyCreditPreview" aria-live="polite">—</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitHireApplicant">
+                    <i class="bi bi-person-check me-1"></i>Hire Applicant
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Application Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Review Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reviewAlert" class="alert d-none"></div>
+                <div id="reviewContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Applicant Document Preview Modal (nested above review modal) -->
+<div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewTitle" aria-hidden="true" data-bs-backdrop="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentPreviewTitle">Document Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="documentPreviewFrame" title="Document preview" style="display:none;width:100%;height:min(70vh,720px);border:1px solid #e5e7eb;border-radius:0.5rem;"></iframe>
+                <img id="documentPreviewImage" alt="Document preview" style="display:none;max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:0.5rem;" class="d-block mx-auto">
+                <div id="documentPreviewEmpty" class="alert alert-info d-none mb-0">
+                    Preview is not available for this file type. Use Download / Open File.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="documentPreviewDownload" class="btn btn-outline-primary" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-download me-1"></i>Download / Open File
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Deployment Modal -->
+<div class="modal fade" id="addDeploymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Assign Employee to Deployment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="addDeploymentAlert" class="alert d-none"></div>
+                <form id="addDeploymentForm">
+                    <div class="mb-3">
+                        <label class="form-label">Employee *</label>
+                        <select name="employee_id" class="form-select" required id="selEmployee"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Client Company *</label>
+                        <select name="company_id" class="form-select" required id="selCompany"></select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Position *</label>
+                        <input type="text" name="position" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Site / Location</label>
+                        <input type="text" name="location" class="form-control" placeholder="Work site address">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Team Lead</label>
+                        <select name="team_lead_id" class="form-select" id="selTeamLead">
+                            <option value="">None</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Date *</label>
+                            <input type="date" name="start_date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">End Date</label>
+                            <input type="date" name="end_date" class="form-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitDeployment">Assign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/ow_job_categories.js"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
+<script>
+    (function () {
+        function initials(name) {
+            if (!name) return 'U';
+            var parts = String(name).trim().split(/\s+/).filter(Boolean);
+            var a = parts[0] ? parts[0].charAt(0) : '';
+            var b = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+            return (a + b).toUpperCase() || 'U';
+        }
+
+        fetch('../../Api/Login/check_session.php', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data || !data.success) return;
+                var fullName = data.full_name || data.fullName || 'User';
+                var nameEl = document.getElementById('userNameTop');
+                var avatarEl = document.getElementById('userAvatarCircle');
+                if (nameEl) nameEl.textContent = fullName;
+                if (avatarEl) avatarEl.textContent = initials(fullName);
+            })
+            .catch(function () {});
+
+        function bindComingSoon(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('click', function (e) {
+                e.preventDefault();
+                alert('This feature is not available yet.');
+            });
+        }
+        bindComingSoon('menuSystemSettings');
+
+        var logoutEl = document.getElementById('menuLogout');
+        if (logoutEl) {
+            logoutEl.addEventListener('click', function (e) {
+                e.preventDefault();
+                var doLogout = function () {
+                    fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'same-origin' })
+                        .then(function () { window.location.href = '/Employee_Tracking/index.html'; })
+                        .catch(function () { window.location.href = '/Employee_Tracking/index.html'; });
+                };
+                if (typeof window.showLogoutConfirm === 'function') window.showLogoutConfirm(doLogout);
+                else doLogout();
+            });
+        }
+
+    })();
+</script>
+<script src="../../Js/Shared/messenger_rbac.js"></script>
+<script src="../../Js/Shared/ow_system_events.js"></script>
+<script src="../../Js/Shared/ow_notifications.js"></script>
+<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Shared/profile_view_switch.js"></script>
+<script src="../../Js/Shared/ow_collapsible_sidebar.js"></script>
+<script src="../../Js/HR/hr_dashboard.js"></script>
+</body>
+</html>

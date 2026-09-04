@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applicant Contracts - Onazul HR</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --brand-primary: #0056b3;
+            --sidebar-bg: #003366;
+            --sidebar-width: 240px;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #f5f7fb;
+        }
+        .layout-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: #fff;
+            position: fixed;
+            inset: 0 0 0 0;
+            z-index: 1030;
+        }
+        .sidebar-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+        }
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.65rem 1.2rem;
+            color: #e2e8f0;
+            text-decoration: none;
+        }
+        .sidebar-link:hover {
+            background: rgba(255,255,255,0.06);
+            color: #fff;
+        }
+        .sidebar-link.active {
+            background: linear-gradient(to right, #0072ff, #00c6ff);
+            color: #fff;
+        }
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 1.25rem 1.75rem;
+        }
+        .page-header-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1f2933;
+        }
+
+        body.embedded-mode .sidebar { display: none; }
+        body.embedded-mode .main-content {
+            margin-left: 0 !important;
+            min-height: 60vh;
+            padding: 1rem 1.25rem;
+        }
+        body.embedded-mode .layout-wrapper { display: block; min-height: 100vh; }
+        body.embedded-mode .main-content .d-flex.justify-content-between.align-items-start.mb-4 { display: none; }
+        body.embedded-mode .card { min-height: 120px; }
+    </style>
+    <script>window.REQUIRED_ROLES = 'Admin,HR';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+    <script>
+        (function () {
+            try {
+                var params = new URLSearchParams(window.location.search);
+                if (params.get('embedded') !== '1') return;
+                var applyMode = function () {
+                    if (document.body) document.body.classList.add('embedded-mode');
+                };
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', applyMode);
+                } else {
+                    applyMode();
+                }
+            } catch (e) {}
+        })();
+    </script>
+</head>
+<body>
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header"><span>Onazul HR</span></div>
+        <ul class="sidebar-nav mt-2">
+            <li><a href="hr_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="job_orders.html" class="sidebar-link"><i class="bi bi-briefcase"></i><span>Job Orders</span></a></li>
+            <li><a href="applicant_review.html" class="sidebar-link"><i class="bi bi-people"></i><span>Applicant Review</span></a></li>
+            <li><a href="applicant_contracts.html" class="sidebar-link active"><i class="bi bi-file-earmark-text"></i><span>Applicant Contracts</span></a></li>
+            <li><a href="employee_conversion.html" class="sidebar-link"><i class="bi bi-person-check"></i><span>Employee Conversion</span></a></li>
+            <li><a href="hr_dashboard.html#section-messages" class="sidebar-link"><i class="bi bi-chat-dots"></i><span>Messages (HR)</span></a></li>
+            <li><a href="deployments.html" class="sidebar-link"><i class="bi bi-geo-alt"></i><span>Deployments</span></a></li>
+            <li><a href="../../index.html" class="sidebar-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a></li>
+        </ul>
+    </aside>
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+            <div>
+                <div class="page-header-title">Applicant Contracts</div>
+                <div class="page-header-subtitle">Upload, lookup, and open contract files. Use <strong>Employee Conversion</strong> to hire after contract is on file.</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <input type="text" id="contractLookupInput" class="form-control" placeholder="Lookup applicant, company, position...">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="contractStatusFilter" class="form-select">
+                            <option value="all">All Contracts</option>
+                            <option value="open">Open Contract</option>
+                            <option value="expiring">Expiring Contract</option>
+                            <option value="expired">Expired Contract</option>
+                            <option value="pending">Pending Upload</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Applicant</th>
+                                <th>Position</th>
+                                <th>Company</th>
+                                <th>Client Approval</th>
+                                <th>Contract Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contractTableBody">
+                            <tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Contract Upload Modal -->
+<div class="modal fade" id="contractUploadModal" tabindex="-1" data-bs-backdrop="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Employment Contract</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="contractUploadAlert" class="alert d-none"></div>
+                <form id="contractUploadForm">
+                    <input type="hidden" id="uploadContractApplicationId" value="">
+                    <div class="mb-3">
+                        <label class="form-label">Contract File *</label>
+                        <input type="file" id="contractFile" name="contract" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                        <small class="text-muted">Allowed: PDF, JPG, JPEG, PNG (max 10MB)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Contract Type *</label>
+                        <select id="contractTypeSelect" class="form-select" required>
+                            <option value="open" selected>Open Contract</option>
+                            <option value="expiring">Expiring Contract</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Duration *</label>
+                        <div class="d-flex gap-2">
+                            <input type="number" id="contractYearsDisplay" class="form-control" value="2" disabled style="max-width: 120px;">
+                            <input type="number" id="contractMonths" class="form-control" min="0" max="11" placeholder="Months (0-11)" required style="max-width: 180px;">
+                        </div>
+                        <div class="form-text">Total duration will be 2 years + selected months (used for expiry on expiring contracts).</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Date Signed *</label>
+                        <input type="date" id="contractSignedDate" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnUploadContract">
+                    <i class="bi bi-upload me-1"></i>Upload
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API_BASE = '../../Api/HR/';
+    let contractAppsCache = [];
+
+    function getContractState(app) {
+        if (!app || !app.contract_uploaded) return 'pending';
+        var meta = app.contract_meta || {};
+        return meta.contract_state || 'open';
+    }
+
+    function getContractBadgeClass(app) {
+        var state = getContractState(app);
+        if (state === 'expired') return 'bg-danger';
+        if (state === 'expiring') return 'bg-warning text-dark';
+        return 'bg-success';
+    }
+
+    function loadContracts() {
+        fetch(API_BASE + 'get_conversion_list.php', { credentials: 'same-origin' })
+            .then(function (r) {
+                if (!r.ok) return r.json().then(function (j) { throw new Error((j && j.message) || ('HTTP ' + r.status)); });
+                return r.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    contractAppsCache = data.applications || [];
+                    applyContractLookup();
+                } else {
+                    document.getElementById('contractTableBody').innerHTML =
+                        '<tr><td colspan="6" class="text-center text-danger py-4">' + escapeHtml(data.message || 'Failed to load.') + '</td></tr>';
+                }
+            })
+            .catch(function (err) {
+                document.getElementById('contractTableBody').innerHTML =
+                    '<tr><td colspan="6" class="text-center text-danger py-4">Could not load list. ' + escapeHtml(err.message || 'Please refresh or log in again.') + '</td></tr>';
+            });
+    }
+
+    function applyContractLookup() {
+        var q = (document.getElementById('contractLookupInput')?.value || '').toLowerCase().trim();
+        var status = (document.getElementById('contractStatusFilter')?.value || 'all').toLowerCase();
+        var filtered = (contractAppsCache || []).filter(function (app) {
+            var hay = (String(app.applicant_name || '') + ' ' + String(app.company_name || '') + ' ' + String(app.position || '')).toLowerCase();
+            if (q && hay.indexOf(q) === -1) return false;
+            if (status === 'all') return true;
+            return getContractState(app) === status;
+        });
+        renderContractRows(filtered);
+    }
+
+    function renderContractRows(apps) {
+        const tbody = document.getElementById('contractTableBody');
+        if (apps.length === 0) {
+            var emptyMsg = (contractAppsCache.length === 0)
+                ? 'No applications yet. Rows appear here after client approval and before hire (same list used for conversion).'
+                : 'No matching records. Clear the search or filter.';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">' + escapeHtml(emptyMsg) + '</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = apps.map(app => `
+            <tr>
+                <td><strong>${escapeHtml(app.applicant_name)}</strong></td>
+                <td>${escapeHtml(app.position)}</td>
+                <td>${escapeHtml(app.company_name)}</td>
+                <td><span class="badge bg-success">Approved</span></td>
+                <td>
+                    ${app.contract_uploaded ? `
+                        <div><span class="badge ${getContractBadgeClass(app)}">${escapeHtml((app.contract_meta && app.contract_meta.contract_type) ? app.contract_meta.contract_type : 'Open Contract')}</span></div>
+                        <div class="small text-muted">Duration: ${escapeHtml(String(app.contract_meta && app.contract_meta.contract_years != null ? app.contract_meta.contract_years : 2))} years ${escapeHtml(String(app.contract_meta && app.contract_meta.contract_months != null ? app.contract_meta.contract_months : 0))} months</div>
+                        <div class="small">Signed: ${escapeHtml((app.contract_meta && app.contract_meta.signed_date) ? app.contract_meta.signed_date : '—')}</div>
+                        <div class="small">Expiry: ${escapeHtml((app.contract_meta && app.contract_meta.expiry_date) ? app.contract_meta.expiry_date : 'Open')}</div>
+                        <div class="small text-muted">Uploaded: ${escapeHtml((app.contract_meta && app.contract_meta.uploaded_at) ? app.contract_meta.uploaded_at : '—')}</div>
+                        ${app.contract_meta && app.contract_meta.contract_path ? `
+                            <div class="mt-1">
+                                <a class="small" href="${escapeHtml(app.contract_meta.contract_path)}" target="_blank" rel="noopener noreferrer">Open Contract Photo/File</a>
+                            </div>
+                        ` : ''}
+                    ` : `
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    `}
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="openContractUpload(${app.application_id})">
+                        <i class="bi bi-upload me-1"></i>${app.contract_uploaded ? 'Replace Contract' : 'Upload Contract'}
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function openContractUpload(appId) {
+        document.getElementById('uploadContractApplicationId').value = appId;
+        var alertEl = document.getElementById('contractUploadAlert');
+        if (alertEl) {
+            alertEl.className = 'alert d-none';
+            alertEl.textContent = '';
+        }
+        var fileInput = document.getElementById('contractFile');
+        if (fileInput) fileInput.value = '';
+        var typeSelect = document.getElementById('contractTypeSelect');
+        if (typeSelect) typeSelect.value = 'open';
+
+        var monthsInput = document.getElementById('contractMonths');
+        if (monthsInput) monthsInput.value = 0;
+
+        var signedDateInput = document.getElementById('contractSignedDate');
+        if (signedDateInput) {
+            var now = new Date();
+            var yyyy = now.getFullYear();
+            var mm = String(now.getMonth() + 1).padStart(2, '0');
+            var dd = String(now.getDate()).padStart(2, '0');
+            signedDateInput.value = yyyy + '-' + mm + '-' + dd;
+        }
+
+        new bootstrap.Modal(document.getElementById('contractUploadModal')).show();
+    }
+
+    document.getElementById('btnUploadContract').onclick = () => {
+        var appId = parseInt(document.getElementById('uploadContractApplicationId').value, 10);
+        var fileInput = document.getElementById('contractFile');
+        var typeSelect = document.getElementById('contractTypeSelect');
+        var monthsInput = document.getElementById('contractMonths');
+        var signedDateInput = document.getElementById('contractSignedDate');
+        var alertEl = document.getElementById('contractUploadAlert');
+
+        if (!appId || !fileInput || !fileInput.files || !fileInput.files.length || !monthsInput || !signedDateInput || !typeSelect) {
+            if (alertEl) {
+                alertEl.className = 'alert alert-danger';
+                alertEl.textContent = 'Please fill out the contract file, duration months, and date signed.';
+            }
+            return;
+        }
+
+        var contractMonthsVal = parseInt(monthsInput.value, 10);
+        var signedDateVal = signedDateInput.value;
+        var contractTypeVal = typeSelect.value || 'open';
+
+        if (Number.isNaN(contractMonthsVal) || contractMonthsVal < 0 || contractMonthsVal > 11 || !signedDateVal) {
+            if (alertEl) {
+                alertEl.className = 'alert alert-danger';
+                alertEl.textContent = 'Please provide valid months (0-11) and a date signed.';
+                alertEl.classList.remove('d-none');
+            }
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('application_id', appId);
+        fd.append('contract', fileInput.files[0]);
+        fd.append('contract_type', contractTypeVal);
+        fd.append('contract_months', contractMonthsVal);
+        fd.append('signed_date', signedDateVal);
+
+        if (alertEl) {
+            alertEl.className = 'alert d-none';
+            alertEl.textContent = '';
+        }
+
+        fetch(API_BASE + 'upload_contract.php', {
+            method: 'POST',
+            body: fd,
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data || !data.success) {
+                if (alertEl) {
+                    alertEl.className = 'alert alert-danger';
+                    alertEl.textContent = (data && data.message) ? data.message : 'Upload failed.';
+                    alertEl.classList.remove('d-none');
+                }
+                return;
+            }
+            if (alertEl) {
+                alertEl.className = 'alert alert-success';
+                alertEl.textContent = data.message || 'Contract uploaded successfully.';
+                alertEl.classList.remove('d-none');
+            }
+            setTimeout(() => {
+                bootstrap.Modal.getInstance(document.getElementById('contractUploadModal')).hide();
+                loadContracts();
+            }, 1200);
+        })
+        .catch(() => {
+            if (alertEl) {
+                alertEl.className = 'alert alert-danger';
+                alertEl.textContent = 'Contract upload failed due to network/server error.';
+                alertEl.classList.remove('d-none');
+            }
+        });
+    };
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    document.getElementById('contractLookupInput')?.addEventListener('input', applyContractLookup);
+    document.getElementById('contractStatusFilter')?.addEventListener('change', applyContractLookup);
+
+    loadContracts();
+    // Keep embedded dashboards in sync after client decisions (e.g., Team Lead approval).
+    // This page is often opened via an iframe, so polling prevents a manual refresh.
+    setInterval(loadContracts, 12000);
+</script>
+</body>
+</html>

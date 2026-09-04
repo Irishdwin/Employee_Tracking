@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visibility Settings - Onazul</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script>window.REQUIRED_ROLE = 'Applicant';</script>
+    <script src="../../Js/Shared/role_guard.js" defer></script>
+    <style>
+        :root{
+            --onazul-navy:#003366;
+            --onazul-primary:#0056b3;
+            --onazul-magenta:#d6336c;
+            --text:#0f172a;
+            --muted:#6b7280;
+            --bg:#f6f7fb;
+            --panel:#ffffff;
+            --border: rgba(15,23,42,0.10);
+        }
+        body{
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+        }
+        .wrap{
+            max-width: 760px;
+            margin: 44px auto;
+            padding: 0 18px;
+        }
+        .panel{
+            background: var(--panel);
+            border: 1px solid rgba(0,0,0,0.04);
+            border-radius: 18px;
+            box-shadow: 0 18px 55px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .panel-header{
+            padding: 28px 26px 10px;
+            background: linear-gradient(135deg, rgba(214,51,108,0.10), rgba(0,86,179,0.08));
+        }
+        .title{
+            color: var(--text);
+            font-weight: 1000;
+            font-size: 28px;
+            line-height: 1.05;
+            margin: 0;
+        }
+        .subtitle{
+            color: var(--onazul-navy);
+            font-weight: 800;
+            margin-top: 8px;
+        }
+        .panel-body{
+            padding: 16px 26px 26px;
+        }
+        .option{
+            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 16px;
+            padding: 14px 14px;
+            margin-bottom: 12px;
+            background: #fff;
+            display:flex;
+            gap: 12px;
+            align-items:flex-start;
+        }
+        .option input[type="radio"]{
+            margin-top: 3px;
+            accent-color: var(--onazul-magenta);
+        }
+        .opt-head{
+            font-weight: 1000;
+            color: var(--text);
+            display:flex;
+            align-items:center;
+            gap: 10px;
+        }
+        .pill-rec{
+            font-size: 12px;
+            font-weight: 1000;
+            background: rgba(214,51,108,0.12);
+            color: var(--onazul-magenta);
+            border: 1px solid rgba(214,51,108,0.20);
+            padding: 3px 10px;
+            border-radius: 999px;
+            letter-spacing: 0.2px;
+        }
+        .opt-desc{
+            color: var(--text);
+            opacity: 0.92;
+            font-weight: 650;
+            margin-top: 6px;
+            line-height: 1.35;
+        }
+        .toast-inline{
+            display:none;
+            margin-top: 14px;
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-weight: 900;
+        }
+        .toast-inline.danger{
+            background: rgba(220,38,38,0.10);
+            border: 1px solid rgba(220,38,38,0.22);
+            color: #991b1b;
+        }
+        .btn-magenta{
+            background: var(--onazul-magenta);
+            border: none;
+            color:#fff;
+            font-weight: 1000;
+            border-radius: 14px;
+            padding: 14px 16px;
+            width: 100%;
+            margin-top: 8px;
+        }
+        .btn-magenta:hover{ filter: brightness(1.03); }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="panel">
+        <div class="panel-header">
+            <h1 class="title">Maximise your chances of being found on Jobstreet</h1>
+            <div class="subtitle">Choose who can see your profile</div>
+        </div>
+        <div class="panel-body">
+            <div class="toast-inline danger" id="visibilityError" role="alert"></div>
+
+            <form id="visibilityForm">
+                <div class="option">
+                    <input type="radio" name="visibility" value="Public" id="visPublic">
+                    <div>
+                        <div class="opt-head">
+                            <label for="visPublic" class="mb-0">Public</label>
+                            <span class="pill-rec">Recommended</span>
+                        </div>
+                        <div class="opt-desc">Your profile is publicly searchable. Only employers can access your full profile, resume and contact details.</div>
+                    </div>
+                </div>
+
+                <div class="option">
+                    <input type="radio" name="visibility" value="Standard" id="visStandard">
+                    <div>
+                        <div class="opt-head">
+                            <label for="visStandard" class="mb-0">Standard</label>
+                        </div>
+                        <div class="opt-desc">Some employers can view and download your profile and resume. They can also contact you directly via Jobstreet.</div>
+                    </div>
+                </div>
+
+                <div class="option">
+                    <input type="radio" name="visibility" value="Limited" id="visLimited">
+                    <div>
+                        <div class="opt-head">
+                            <label for="visLimited" class="mb-0">Limited</label>
+                        </div>
+                        <div class="opt-desc">Some employers can view your profile, but not your resume. They can only contact you via Jobstreet.</div>
+                    </div>
+                </div>
+
+                <div class="option">
+                    <input type="radio" name="visibility" value="Hidden" id="visHidden">
+                    <div>
+                        <div class="opt-head">
+                            <label for="visHidden" class="mb-0">Hidden</label>
+                        </div>
+                        <div class="opt-desc">Employers cannot search for you. Your profile can only be seen by employers as part of your job applications.</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-magenta" id="btnSaveVisibility">
+                    Save & continue
+                </button>
+            </form>
+
+            <div class="toast-inline" id="visibilityInfo" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var STATUS_API = '../../Api/Applicant/get_profile_status.php';
+        var SETUP_GET_API = '../../Api/Applicant/get_applicant_profile_setup.php';
+        var VIS_SAVE_API = '../../Api/Applicant/save_applicant_visibility.php';
+        var DASHBOARD = '../../Html/Applicant/applicant_landing.html';
+
+        var form = document.getElementById('visibilityForm');
+        var errorBox = document.getElementById('visibilityError');
+
+        function showError(msg) {
+            if (!errorBox) return;
+            errorBox.textContent = msg || 'Something went wrong.';
+            errorBox.style.display = 'block';
+        }
+        function hideError() {
+            if (!errorBox) return;
+            errorBox.textContent = '';
+            errorBox.style.display = 'none';
+        }
+
+        function setSelectedVisibility(val) {
+            var radio = form.querySelector('input[name="visibility"][value="' + val + '"]');
+            if (radio) radio.checked = true;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            hideError();
+
+            fetch(STATUS_API, { credentials: 'include', headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.json(); })
+                .then(function (status) {
+                    if (!status || !status.success) return;
+                    if (status.logged_in === false) return;
+                    if (!status.profile_completed) {
+                        window.location.href = 'applicant_profile_onboarding.html';
+                        return;
+                    }
+                    return fetch(SETUP_GET_API, { credentials: 'include', headers: { 'Accept': 'application/json' } })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (!d || !d.success) return;
+                            if (d.visibility_completed) {
+                                window.location.href = DASHBOARD;
+                                return;
+                            }
+                            if (d.profile && d.profile.profile_visibility) {
+                                setSelectedVisibility(d.profile.profile_visibility);
+                            } else {
+                                // Default choice when user has no saved visibility yet.
+                                setSelectedVisibility('Public');
+                            }
+                        });
+                })
+                .catch(function () {});
+        });
+
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                hideError();
+
+                var selected = form.querySelector('input[name="visibility"]:checked');
+                if (!selected) {
+                    showError('Please choose a visibility setting.');
+                    return;
+                }
+
+                var payload = { visibility: selected.value };
+
+                var btn = document.getElementById('btnSaveVisibility');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Saving...';
+                }
+
+                fetch(VIS_SAVE_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(payload),
+                    credentials: 'include'
+                })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        if (!d || !d.success) {
+                            showError((d && d.message) ? d.message : 'Failed to save visibility.');
+                            if (btn) { btn.disabled = false; btn.textContent = 'Save & continue'; }
+                            return;
+                        }
+                        window.location.href = d.redirect || DASHBOARD;
+                    })
+                    .catch(function () {
+                        showError('Network/server error. Please try again.');
+                        if (btn) { btn.disabled = false; btn.textContent = 'Save & continue'; }
+                    });
+            });
+        }
+    })();
+</script>
+</body>
+</html>
+

@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Onazul Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --brand-primary: #0056b3;
+            --sidebar-bg: #003366;
+            --sidebar-width: 240px;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f5f7fb;
+        }
+
+        .layout-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            inset-block: 0;
+            inset-inline-start: 0;
+            z-index: 1030;
+            transition: width 0.25s ease;
+        }
+
+        .sidebar-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header span {
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        .sidebar-nav {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+            flex: 1;
+        }
+
+        .sidebar-nav li { margin: 0.15rem 0; }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.65rem 1.2rem;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sidebar-link i { font-size: 1.05rem; }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.06); color: #ffffff; }
+        .sidebar-link.active { background: linear-gradient(to right, #0072ff, #00c6ff); color: #ffffff; }
+        .sidebar-link.active i { color: #ffffff; }
+
+        .sidebar-footer {
+            padding: 0.75rem 1.2rem;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .sidebar-collapsed .sidebar { width: 72px; }
+        .sidebar-collapsed .sidebar .sidebar-header span,
+        .sidebar-collapsed .sidebar .sidebar-link span,
+        .sidebar-collapsed .sidebar .sidebar-footer { display: none; }
+        .sidebar-collapsed .main-content { margin-left: 72px; }
+
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 1.25rem 1.75rem;
+            transition: margin-left 0.25s ease;
+        }
+
+        .page-header-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1f2933;
+        }
+
+        .page-header-subtitle {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .badge-role {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .search-input {
+            max-width: 260px;
+        }
+
+        .status-badge {
+            cursor: pointer;
+        }
+
+        .table-users thead th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #6b7280;
+        }
+
+        .table-users tbody td {
+            font-size: 0.88rem;
+        }
+
+        @media (max-width: 767.98px) {
+            .main-content { margin-left: 0; }
+            .sidebar { position: fixed; transform: translateX(0); }
+            .sidebar-collapsed .sidebar { transform: translateX(-100%); }
+            .sidebar-collapsed .main-content { margin-left: 0; }
+        }
+
+        /* When embedded inside another dashboard (iframe), hide sidebar so we don't double-render it. */
+        html.embedded #sidebar { display: none !important; }
+        html.embedded .main-content { margin-left: 0 !important; padding: 1rem 1.25rem !important; }
+        html.embedded .layout-wrapper { display: block !important; }
+    </style>
+    <script>
+        // Standalone visits use Command Center; only iframe embeds keep this page.
+        try {
+            var params = new URLSearchParams(window.location.search);
+            var isEmbedded = params.get('embedded') === '1' || window.top !== window.self;
+            if (!isEmbedded) {
+                location.replace('admin_dashboard.html#section-user-management');
+            } else {
+                document.documentElement.classList.add('embedded');
+            }
+        } catch (e) {
+            var paramsFallback = new URLSearchParams(window.location.search);
+            if (paramsFallback.get('embedded') === '1') {
+                document.documentElement.classList.add('embedded');
+            } else {
+                location.replace('admin_dashboard.html#section-user-management');
+            }
+        }
+    </script>
+    <script>window.REQUIRED_ROLE = 'Admin';</script>
+    <script src="../../Js/Shared/role_guard.js"></script>
+</head>
+<body>
+<div class="layout-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <span>Onazul Admin</span>
+        </div>
+        <ul class="sidebar-nav mt-2">
+            <li>
+                <a href="#section-overview" class="sidebar-link active" data-target="section-overview">
+                    <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="user_management.html" class="sidebar-link">
+                    <i class="bi bi-people"></i><span>User Management</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-clients" class="sidebar-link" data-target="section-clients">
+                    <i class="bi bi-building"></i><span>Client Companies</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-agreements" class="sidebar-link" data-target="section-agreements">
+                    <i class="bi bi-file-earmark-text"></i><span>Service Agreements</span>
+                </a>
+            </li>
+            <li>
+                <a href="payroll_approvals.html" class="sidebar-link">
+                    <i class="bi bi-cash-coin"></i><span>Payroll Approvals</span>
+                </a>
+            </li>
+            <li>
+                <a href="admin_deductions_config.html" class="sidebar-link">
+                    <i class="bi bi-table"></i><span>Deduction Settings</span>
+                </a>
+            </li>
+            <li>
+                <a href="../../Api/Admin/reports.php" class="sidebar-link">
+                    <i class="bi bi-graph-up"></i><span>Reports</span>
+                </a>
+            </li>
+            <li>
+                <a href="../../Api/Admin/system_settings.php" class="sidebar-link">
+                    <i class="bi bi-gear"></i><span>System Settings</span>
+                </a>
+            </li>
+
+            <!-- HR features added to Admin dashboard -->
+            <li>
+                <a href="#section-job-orders" class="sidebar-link" data-target="section-job-orders">
+                    <i class="bi bi-briefcase"></i><span>Job Orders</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-applicant-review" class="sidebar-link" data-target="section-applicant-review">
+                    <i class="bi bi-people"></i><span>Applicant Review</span>
+                </a>
+            </li>
+            <li>
+                <a href="/Employee_Tracking/Html/HR/employee_conversion.html" class="sidebar-link">
+                    <i class="bi bi-person-check"></i><span>Employee Conversion</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-deployments" class="sidebar-link" data-target="section-deployments">
+                    <i class="bi bi-geo-alt"></i><span>Deployments</span>
+                </a>
+            </li>
+            <li>
+                <a href="#" id="logoutBtn" class="sidebar-link">
+                    <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+                <div class="page-header-title">User Management</div>
+                <div class="page-header-subtitle">
+                    Manage accounts, roles, and access across the Onazul Workforce Suite.
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle badge-role">
+                    Admin
+                </span>
+                <button class="btn btn-outline-primary btn-sm" id="sidebarToggleBtn">
+                    <i class="bi bi-layout-sidebar"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls row -->
+        <div class="card mb-3">
+            <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                <div class="d-flex flex-wrap gap-2">
+                    <div class="input-group search-input">
+                        <span class="input-group-text bg-white"><i class="bi bi-search text-secondary"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search by username or name">
+                    </div>
+                    <select id="roleFilter" class="form-select form-select-sm" style="max-width: 180px;">
+                        <option value="">All Roles</option>
+                        <option value="Admin">Admin</option>
+                        <option value="HR">HR</option>
+                        <option value="Accounting">Accounting</option>
+                        <option value="TeamLead">TeamLead</option>
+                        <option value="Employee">Employee</option>
+                        <option value="Applicant">Applicant</option>
+                    </select>
+                    <select id="statusFilter" class="form-select form-select-sm" style="max-width: 150px;">
+                        <option value="">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" id="btnOpenCreateModal">
+                    <i class="bi bi-person-plus me-1"></i> Add User
+                </button>
+            </div>
+        </div>
+
+        <!-- Users table -->
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 table-users">
+                        <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th class="text-end">Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center text-muted small py-4">
+                                Loading users…
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="createUserAlert" class="alert d-none" role="alert"></div>
+                <form id="createUserForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" name="full_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select name="role" class="form-select" required>
+                            <option value="">Select role</option>
+                            <option value="Admin">Admin</option>
+                            <option value="HR">HR</option>
+                            <option value="Accounting">Accounting</option>
+                            <option value="TeamLead">TeamLead</option>
+                            <option value="Employee">Employee</option>
+                            <option value="Applicant">Applicant</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <div class="input-group">
+                            <input type="password" name="password" id="createUserPassword" class="form-control" required>
+                            <button type="button" class="btn btn-outline-secondary" data-toggle-password data-target="createUserPassword" aria-label="Show password">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <ul class="small mb-0 ps-3" id="createUserPasswordChecklist">
+                            <li id="createUserRuleLen" class="text-muted">At least 8 characters</li>
+                            <li id="createUserRuleUpper" class="text-muted">At least 1 uppercase letter</li>
+                            <li id="createUserRuleLower" class="text-muted">At least 1 lowercase letter</li>
+                            <li id="createUserRuleNumber" class="text-muted">At least 1 number</li>
+                            <li id="createUserRuleSpecial" class="text-muted">At least 1 special character</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select" required>
+                            <option value="Active" selected>Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnCreateUser">Create User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View / Edit Employee Profile Modal -->
+<!-- View Complete User Profile Modal -->
+<div class="modal fade" id="viewProfileModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-person-lines-fill me-2"></i>Complete User Profile
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-light">
+                
+                <!-- Loading Spinner State -->
+                <div id="profileLoadingSpinner" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading profile...</span>
+                    </div>
+                    <p class="mt-3 text-muted fw-semibold">Loading complete profile...</p>
+                </div>
+
+                <!-- Profile Content Container -->
+                <div id="profileContent" class="d-none">
+                    
+                    <!-- Top Summary Card -->
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body d-flex align-items-center gap-3">
+                            <img id="pf_picture" src="../../Images/images.jpg" class="rounded-circle img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;" alt="Profile Picture">
+                            <div>
+                                <h4 class="mb-1 fw-bold" id="pf_full_name">---</h4>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span id="pf_sys_role" class="badge bg-primary">---</span>
+                                    <span class="text-muted small">@<span id="pf_username">---</span></span>
+                                </div>
+                                <small class="text-muted"><i class="bi bi-envelope me-1"></i><span id="pf_email">---</span></small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- 1. Basic Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-person me-2 text-primary"></i>1. Basic Information</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">Phone:</td><td id="pf_phone" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Birthday:</td><td id="pf_birthday" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Age:</td><td id="pf_age" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Gender:</td><td id="pf_gender" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Civil Status:</td><td id="pf_civil_status" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Nationality:</td><td id="pf_nationality" class="fw-semibold">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Address Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-geo-alt me-2 text-primary"></i>2. Address Information</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">Complete Address:</td><td id="pf_address" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Barangay:</td><td id="pf_barangay" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">City / Location:</td><td id="pf_city" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Province:</td><td id="pf_province" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">ZIP Code:</td><td id="pf_zip" class="fw-semibold">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Employment Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-briefcase me-2 text-primary"></i>3. Employment Information</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">Employee ID:</td><td id="pf_emp_id" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Position:</td><td id="pf_position" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Department:</td><td id="pf_department" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Employment Type:</td><td id="pf_emp_type" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Date Hired:</td><td id="pf_date_hired" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Status:</td><td id="pf_emp_status" class="fw-semibold">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Deployment Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-building me-2 text-primary"></i>4. Deployment Information</div>
+                                <div class="card-body">
+                                    <div id="deploymentContainer">
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tr><td class="text-muted" style="width: 40%;">Client Company:</td><td id="pf_client" class="fw-semibold">N/A</td></tr>
+                                            <tr><td class="text-muted">Deployment Site:</td><td id="pf_site" class="fw-semibold">N/A</td></tr>
+                                            <tr><td class="text-muted">Branch / Location:</td><td id="pf_branch" class="fw-semibold">N/A</td></tr>
+                                            <tr><td class="text-muted">Shift Schedule:</td><td id="pf_shift" class="fw-semibold">N/A</td></tr>
+                                            <tr><td class="text-muted">Start Date:</td><td id="pf_dep_start" class="fw-semibold">N/A</td></tr>
+                                            <tr><td class="text-muted">End Date:</td><td id="pf_dep_end" class="fw-semibold">N/A</td></tr>
+                                            <tr><td class="text-muted">Team Leader:</td><td id="pf_team_lead" class="fw-semibold">N/A</td></tr>
+                                            <tr><td class="text-muted">Status:</td><td id="pf_dep_status" class="fw-semibold">N/A</td></tr>
+                                        </table>
+                                    </div>
+                                    <div id="notDeployedAlert" class="alert alert-secondary text-center my-3 d-none">
+                                        <i class="bi bi-exclamation-circle me-1"></i>Currently Not Deployed
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. Salary Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-cash-stack me-2 text-primary"></i>5. Salary Information</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">Daily Rate:</td><td id="pf_daily_rate" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Hourly Rate:</td><td id="pf_hourly_rate" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Allowance:</td><td id="pf_allowance" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Monthly Salary Credit:</td><td id="pf_msc" class="fw-semibold">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. Government Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-card-heading me-2 text-primary"></i>6. Government Identification</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">SSS #:</td><td id="pf_sss" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">PhilHealth #:</td><td id="pf_philhealth" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Pag-IBIG #:</td><td id="pf_pagibig" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">TIN #:</td><td id="pf_tin" class="fw-semibold">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 7. Recruitment Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i>7. Recruitment Information</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">Applied Position:</td><td id="pf_applied_pos" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Date Applied:</td><td id="pf_date_applied" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Recruitment Status:</td><td id="pf_rec_status" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Interview Schedule:</td><td id="pf_interview" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Endorsement Date:</td><td id="pf_endorsement" class="fw-semibold">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 8. Uploaded Documents -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>8. Uploaded Documents</div>
+                                <div class="card-body d-flex flex-column gap-2 justify-content-center">
+                                    <a id="btn_resume" href="#" target="_blank" class="btn btn-outline-primary btn-sm disabled"><i class="bi bi-file-pdf me-1"></i>View Resume</a>
+                                    <a id="btn_valid_id" href="#" target="_blank" class="btn btn-outline-primary btn-sm disabled"><i class="bi bi-card-image me-1"></i>View Valid ID</a>
+                                    <a id="btn_certs" href="#" target="_blank" class="btn btn-outline-primary btn-sm disabled"><i class="bi bi-award me-1"></i>View Certificates</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 9. System Information -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-gear me-2 text-primary"></i>9. System Information</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">Account Status:</td><td id="pf_account_status" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Date Created:</td><td id="pf_date_created" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Last Updated:</td><td id="pf_last_updated" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Last Login:</td><td id="pf_last_login" class="fw-semibold">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 10. Payroll Summary -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm h-100">
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-journal-check me-2 text-primary"></i>10. Latest Payroll Summary</div>
+                                <div class="card-body">
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width: 40%;">Latest Payroll Date:</td><td id="pf_pay_date" class="fw-semibold">N/A</td></tr>
+                                        <tr><td class="text-muted">Gross Pay:</td><td id="pf_gross_pay" class="fw-semibold text-success">N/A</td></tr>
+                                        <tr><td class="text-muted">Total Deductions:</td><td id="pf_deductions" class="fw-semibold text-danger">N/A</td></tr>
+                                        <tr><td class="text-muted">Net Pay:</td><td id="pf_net_pay" class="fw-semibold text-primary">N/A</td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 11. Action Buttons -->
+            <div class="modal-footer bg-white border-top-0">
+                <button type="button" class="btn btn-warning btn-sm" id="btn_modal_edit_user"><i class="bi bi-pencil-square me-1"></i>Edit User</button>
+                <button type="button" class="btn btn-danger btn-sm" id="btn_modal_deactivate_user"><i class="bi bi-person-x me-1"></i>Deactivate Account</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn_modal_reset_pwd"><i class="bi bi-key me-1"></i>Reset Password</button>
+                <button type="button" class="btn btn-outline-dark btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    /**
+ * User Management Module - Complete Profile Viewer & User Actions
+ * Onazul Workforce Suite
+ */
+
+// 1. Sidebar Toggle Logic
+(function () {
+    const root = document.body;
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
+    const closeBtn = document.getElementById('sidebarCloseBtn');
+    function toggleSidebar() { root.classList.toggle('sidebar-collapsed'); }
+    if (toggleBtn) toggleBtn.addEventListener('click', toggleSidebar);
+    if (closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+})();
+
+// 2. Main Users Table & Filters Logic
+(function () {
+    const apiUrl = '../../Api/Admin/users.php';
+    const tbody = document.getElementById('usersTableBody');
+    const searchInput = document.getElementById('searchInput');
+    const roleFilter = document.getElementById('roleFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const adminNameEl = document.getElementById('adminName');
+
+    let allUsers = [];
+
+    function renderTable() {
+        const search = (searchInput.value || '').toLowerCase();
+        const role = roleFilter.value;
+        const status = statusFilter.value;
+
+        const filtered = allUsers.filter(u => {
+            const matchSearch =
+                (u.username && u.username.toLowerCase().includes(search)) ||
+                (u.full_name && u.full_name.toLowerCase().includes(search));
+            const matchRole = role ? u.role === role : true;
+            const matchStatus = status ? u.status === status : true;
+            return matchSearch && matchRole && matchStatus;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted small py-4">
+                        No users found for the selected filters.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        tbody.innerHTML = '';
+        filtered.forEach(user => {
+            const tr = document.createElement('tr');
+            const statusClass = user.status === 'Active'
+                ? 'bg-success-subtle text-success border-success-subtle'
+                : 'bg-secondary-subtle text-secondary border-secondary-subtle';
+
+            tr.innerHTML = `
+                <td>${escapeHtml(user.username || 'N/A')}</td>
+                <td>${escapeHtml(user.full_name || 'N/A')}</td>
+                <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle">${escapeHtml(user.role || 'User')}</span></td>
+                <td>
+                    <span class="badge status-badge ${statusClass}" data-user-id="${user.user_id}" data-status="${user.status}">
+                        ${escapeHtml(user.status)}
+                    </span>
+                </td>
+                <td class="text-end text-muted small">${formatDate(user.created_at)}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-secondary me-1 btn-view-user" data-user-id="${user.user_id}" title="View Complete Profile">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary me-1 btn-edit-user" data-user-id="${user.user_id}" title="Edit User">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger btn-delete-user" data-user-id="${user.user_id}" title="Deactivate User">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function loadUsers() {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted small py-4">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Loading users…
+                </td>
+            </tr>`;
+
+        fetch(apiUrl)
+            .then(res => {
+                if (res.status === 401) {
+                    window.location.href = '../../index.html';
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data) return;
+                allUsers = data.users || [];
+                if (data.adminName && adminNameEl) {
+                    adminNameEl.textContent = data.adminName;
+                }
+                renderTable();
+            })
+            .catch(() => {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-danger small py-4">
+                            Failed to load users. Please refresh the page.
+                        </td>
+                    </tr>`;
+            });
+    }
+
+    function toggleStatus(userId, currentStatus) {
+        const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+        const formData = new FormData();
+        formData.append('action', 'update_status');
+        formData.append('user_id', userId);
+        formData.append('status', newStatus);
+
+        fetch(apiUrl, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) return;
+                const user = allUsers.find(u => u.user_id === userId);
+                if (user) user.status = newStatus;
+                renderTable();
+            })
+            .catch(() => {});
+    }
+
+    tbody.addEventListener('click', (e) => {
+        const badge = e.target.closest('.status-badge');
+        if (!badge) return;
+        const userId = parseInt(badge.getAttribute('data-user-id'), 10);
+        const status = badge.getAttribute('data-status');
+        if (!userId || !status) return;
+        if (!confirm('Toggle status for this user?')) return;
+        toggleStatus(userId, status);
+    });
+
+    if (searchInput) searchInput.addEventListener('input', renderTable);
+    if (roleFilter) roleFilter.addEventListener('change', renderTable);
+    if (statusFilter) statusFilter.addEventListener('change', renderTable);
+
+    loadUsers();
+    window.setInterval(loadUsers, 12000);
+})();
+
+// 3. User Creation, View Complete Profile, Edit & Delete Handlers
+(function () {
+    const apiUrl = '../../Api/Admin/users.php';
+    const modalEl = document.getElementById('createUserModal');
+    const createUserForm = document.getElementById('createUserForm');
+    const createUserAlert = document.getElementById('createUserAlert');
+    const btnOpenCreateModal = document.getElementById('btnOpenCreateModal');
+    const btnCreateUser = document.getElementById('btnCreateUser');
+    const usersTableBody = document.getElementById('usersTableBody');
+    const createUserPasswordInput = document.getElementById('createUserPassword');
+
+    const createModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+    function validateStrongPassword(password) {
+        const checks = [
+            { ok: password.length >= 8, message: 'at least 8 characters' },
+            { ok: /[A-Z]/.test(password), message: '1 uppercase letter' },
+            { ok: /[a-z]/.test(password), message: '1 lowercase letter' },
+            { ok: /\d/.test(password), message: '1 number' },
+            { ok: /[^A-Za-z0-9]/.test(password), message: '1 special character' }
+        ];
+        const failed = checks.filter(c => !c.ok).map(c => c.message);
+        return { isValid: failed.length === 0, failed };
+    }
+
+    function updateCreateUserPasswordValidationUI() {
+        if (!createUserPasswordInput) return;
+        const password = String(createUserPasswordInput.value || '');
+        const check = validateStrongPassword(password);
+        const ruleMap = [
+            { id: 'createUserRuleLen', ok: (v) => v.length >= 8 },
+            { id: 'createUserRuleUpper', ok: (v) => /[A-Z]/.test(v) },
+            { id: 'createUserRuleLower', ok: (v) => /[a-z]/.test(v) },
+            { id: 'createUserRuleNumber', ok: (v) => /\d/.test(v) },
+            { id: 'createUserRuleSpecial', ok: (v) => /[^A-Za-z0-9]/.test(v) }
+        ];
+        createUserPasswordInput.classList.remove('is-valid', 'is-invalid');
+        ruleMap.forEach(rule => {
+            const el = document.getElementById(rule.id);
+            if (!el) return;
+            el.classList.remove('text-muted', 'text-danger', 'text-success');
+            if (password.length === 0) {
+                el.classList.add('text-muted');
+                return;
+            }
+            el.classList.add(rule.ok(password) ? 'text-success' : 'text-danger');
+        });
+        if (password.length > 0) {
+            createUserPasswordInput.classList.add(check.isValid ? 'is-valid' : 'is-invalid');
+        }
+    }
+
+    function getPasswordPolicyMessage(password) {
+        const check = validateStrongPassword(password);
+        if (check.isValid) return null;
+        return 'Password must include ' + check.failed.join(', ') + '.';
+    }
+
+    function showAlert(message, type) {
+        if (!createUserAlert) return;
+        createUserAlert.textContent = message;
+        createUserAlert.className = 'alert alert-' + type;
+    }
+
+    if (btnOpenCreateModal) {
+        btnOpenCreateModal.addEventListener('click', () => {
+            if (createUserForm) createUserForm.reset();
+            if (createUserAlert) createUserAlert.className = 'alert d-none';
+            updateCreateUserPasswordValidationUI();
+            if (createModal) createModal.show();
+        });
+    }
+
+    if (createUserPasswordInput) {
+        createUserPasswordInput.addEventListener('input', updateCreateUserPasswordValidationUI);
+    }
+
+    document.querySelectorAll('[data-toggle-password]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            const input = targetId ? document.getElementById(targetId) : null;
+            const icon = btn.querySelector('i');
+            if (!input || !icon) return;
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            icon.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+            btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        });
+    });
+
+    if (btnCreateUser) {
+        btnCreateUser.addEventListener('click', () => {
+            const formData = new FormData(createUserForm);
+            const password = String(formData.get('password') || '');
+            const policyMessage = getPasswordPolicyMessage(password);
+            if (policyMessage) {
+                showAlert(policyMessage, 'warning');
+                return;
+            }
+            formData.append('action', 'create');
+
+            btnCreateUser.disabled = true;
+            btnCreateUser.innerText = 'Creating...';
+
+            fetch(apiUrl, { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        showAlert(data.message || 'Failed to create user.', 'danger');
+                        return;
+                    }
+                    showAlert('User created successfully.', 'success');
+                    setTimeout(() => {
+                        if (createModal) createModal.hide();
+                        window.location.reload();
+                    }, 800);
+                })
+                .catch(() => {
+                    showAlert('Failed to create user. Please try again.', 'danger');
+                })
+                .finally(() => {
+                    btnCreateUser.disabled = false;
+                    btnCreateUser.innerText = 'Create User';
+                });
+        });
+    }
+
+    // --- COMPLETE USER PROFILE VIEWER HANDLER ---
+    if (usersTableBody) {
+        usersTableBody.addEventListener('click', (e) => {
+            const viewBtn = e.target.closest('.btn-view-user');
+            const editBtn = e.target.closest('.btn-edit-user');
+            const deleteBtn = e.target.closest('.btn-delete-user');
+            const row = e.target.closest('tr');
+            if (!row) return;
+
+            const userId = parseInt(
+                viewBtn?.getAttribute('data-user-id') ||
+                editBtn?.getAttribute('data-user-id') ||
+                deleteBtn?.getAttribute('data-user-id') || 0, 10
+            );
+
+            const username = row.children[0]?.textContent || '';
+            const fullName = row.children[1]?.textContent || '';
+            const role = row.children[2]?.innerText.trim();
+            const status = row.querySelector('.status-badge')?.getAttribute('data-status') || '';
+
+            // ----------------------------------------------------
+            // ACTION: VIEW COMPLETE PROFILE
+            // ----------------------------------------------------
+            if (viewBtn) {
+                const profileModalEl = document.getElementById('viewProfileModal');
+                if (!profileModalEl) return;
+                const profileModal = bootstrap.Modal.getOrCreateInstance(profileModalEl);
+
+                const spinner = document.getElementById('profileLoadingSpinner');
+                const content = document.getElementById('profileContent');
+
+                // Toggle loading state
+                if (spinner) spinner.classList.remove('d-none');
+                if (content) content.classList.add('d-none');
+                profileModal.show();
+
+                fetch(`${apiUrl}?user_id=${userId}`)
+                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.success) {
+                            alert(res.message || 'Failed to load profile.');
+                            profileModal.hide();
+                            return;
+                        }
+
+                        const u = res.user || {};
+                        const app = res.applicant || {};
+                        const emp = res.employee || {};
+                        const dep = res.deployment || {};
+                        const sal = res.salary || {};
+                        const rec = res.recruitment || {};
+                        const docs = res.documents || [];
+                        const pay = res.payroll || {};
+
+                        // 1. Basic Information
+                        setText('pf_full_name', emp.FirstName ? `${emp.FirstName} ${emp.LastName}` : (app.FullName || u.full_name || 'N/A'));
+                        setText('pf_username', u.username || 'N/A');
+                        setText('pf_email', u.email || 'N/A');
+                        setText('pf_phone', app.MobileNumber || 'N/A');
+                        
+                        const bday = app.BirthDate || null;
+                        setText('pf_birthday', formatDate(bday));
+                        setText('pf_age', calculateAge(bday));
+                        setText('pf_gender', app.Gender || 'N/A');
+                        setText('pf_civil_status', 'N/A');
+                        setText('pf_nationality', 'Filipino');
+
+                        const photoImg = document.getElementById('pf_picture');
+                        if (photoImg) {
+                            photoImg.src = app.ProfilePhotoPath ? app.ProfilePhotoPath : '../../Images/images.jpg';
+                        }
+
+                        // 2. Address Information
+                        setText('pf_address', app.Address || app.HomeLocation || 'N/A');
+                        setText('pf_barangay', 'N/A');
+                        setText('pf_city', app.HomeLocation || 'N/A');
+                        setText('pf_province', 'N/A');
+                        setText('pf_zip', 'N/A');
+
+                        // 3. Employment Information
+                        setText('pf_emp_id', emp.EmployeeNumber || 'N/A');
+                        setText('pf_emp_status', emp.IsActive === 1 ? 'Active' : (emp.EmployeeID ? 'Inactive' : 'N/A'));
+                        setText('pf_position', emp.Position || 'N/A');
+                        setText('pf_department', emp.DepartmentID ? `Dept #${emp.DepartmentID}` : 'N/A');
+                        setText('pf_sys_role', u.role || 'N/A');
+                        setText('pf_date_hired', formatDate(emp.HiredDate));
+                        setText('pf_emp_type', emp.EmployeeType || 'N/A');
+
+                        // 4. Deployment Information
+                        const depContainer = document.getElementById('deploymentContainer');
+                        const notDepAlert = document.getElementById('notDeployedAlert');
+
+                        if (dep && dep.DeploymentID) {
+                            if (depContainer) depContainer.classList.remove('d-none');
+                            if (notDepAlert) notDepAlert.classList.add('d-none');
+                            setText('pf_client', dep.client_name || 'N/A');
+                            setText('pf_site', dep.Location || 'N/A');
+                            setText('pf_branch', dep.client_address || 'N/A');
+                            setText('pf_shift', 'Standard Shift');
+                            setText('pf_dep_start', formatDate(dep.StartDate));
+                            setText('pf_dep_end', formatDate(dep.EndDate));
+                            setText('pf_team_lead', dep.SiteSuperVisorID ? `Supervisor #${dep.SiteSuperVisorID}` : 'N/A');
+                            setText('pf_dep_status', 'Active Deployment');
+                        } else {
+                            if (depContainer) depContainer.classList.add('d-none');
+                            if (notDepAlert) notDepAlert.classList.remove('d-none');
+                        }
+
+                        // 5. Salary Information
+                        const basicSal = parseFloat(sal.BasicRate || emp.BasicSalary || 0);
+                        const dailyRate = basicSal > 0 ? (basicSal > 1000 ? basicSal / 26 : basicSal) : 0;
+                        setText('pf_daily_rate', formatCurrency(dailyRate));
+                        setText('pf_hourly_rate', formatCurrency(dailyRate / 8));
+                        setText('pf_allowance', formatCurrency(0));
+                        setText('pf_msc', formatCurrency(dailyRate * 26));
+
+                        // 6. Government Information
+                        setText('pf_sss', emp.SSSNumber || 'N/A');
+                        setText('pf_philhealth', emp.PhilHealthNumber || 'N/A');
+                        setText('pf_pagibig', emp.PagIBIGNumber || 'N/A');
+                        setText('pf_tin', emp.TINNumber || 'N/A');
+
+                        // 7. Recruitment Information
+                        setText('pf_applied_pos', rec.job_position || app.JobTitle || 'N/A');
+                        setText('pf_date_applied', formatDate(rec.ApplicationDate));
+                        setText('pf_rec_status', rec.ClientApprovalStatus || 'N/A');
+                        setText('pf_interview', formatDate(rec.InterviewDate));
+                        setText('pf_endorsement', formatDate(rec.EndorsedDate));
+
+                        // 8. Uploaded Documents
+                        const resumeDoc = docs.find(d => /resume/i.test(d.DocType));
+                        const idDoc = docs.find(d => /id/i.test(d.DocType));
+                        const certDoc = docs.find(d => /cert|bio/i.test(d.DocType));
+
+                        setupDocButton('btn_resume', resumeDoc ? resumeDoc.FilePath : null);
+                        setupDocButton('btn_valid_id', idDoc ? idDoc.FilePath : null);
+                        setupDocButton('btn_certs', certDoc ? certDoc.FilePath : null);
+
+                        // 9. System Information
+                        setText('pf_account_status', u.account_status || 'Active');
+                        setText('pf_date_created', formatDate(u.created_at));
+                        setText('pf_last_login', formatDate(u.last_login));
+                        setText('pf_last_updated', formatDate(u.created_at));
+
+                        // 10. Payroll Summary
+                        if (pay && pay.Payroll_ID) {
+                            setText('pf_pay_date', formatDate(pay.PaymentDate || pay.PayPeriodEnd));
+                            setText('pf_gross_pay', formatCurrency(pay.GrossPay));
+                            setText('pf_deductions', formatCurrency(pay.TotalDeductions));
+                            setText('pf_net_pay', formatCurrency(pay.NetPay));
+                        } else {
+                            setText('pf_pay_date', 'N/A');
+                            setText('pf_gross_pay', '₱0.00');
+                            setText('pf_deductions', '₱0.00');
+                            setText('pf_net_pay', '₱0.00');
+                        }
+
+                        // 11. Modal Action Buttons
+                        const btnEdit = document.getElementById('btn_modal_edit_user');
+                        const btnDeact = document.getElementById('btn_modal_deactivate_user');
+                        const btnReset = document.getElementById('btn_modal_reset_pwd');
+
+                        if (btnEdit) {
+                            btnEdit.onclick = () => {
+                                profileModal.hide();
+                                triggerEditUser(userId, u.full_name, u.role, u.account_status);
+                            };
+                        }
+                        if (btnDeact) {
+                            btnDeact.onclick = () => {
+                                if (confirm(`Toggle status for ${u.full_name}?`)) {
+                                    toggleStatus(userId, u.account_status);
+                                    profileModal.hide();
+                                }
+                            };
+                        }
+                        if (btnReset) {
+                            btnReset.onclick = () => {
+                                const newPwd = prompt('Enter new password for ' + u.username + ':');
+                                if (newPwd) {
+                                    const policyErr = getPasswordPolicyMessage(newPwd);
+                                    if (policyErr) {
+                                        alert(policyErr);
+                                        return;
+                                    }
+                                    const fd = new FormData();
+                                    fd.append('action', 'update');
+                                    fd.append('user_id', userId);
+                                    fd.append('full_name', u.full_name);
+                                    fd.append('role', u.role);
+                                    fd.append('status', u.account_status);
+                                    fd.append('password', newPwd);
+
+                                    fetch(apiUrl, { method: 'POST', body: fd })
+                                        .then(r => r.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                alert('Password reset successfully.');
+                                                profileModal.hide();
+                                            } else {
+                                                alert(data.message || 'Failed to reset password.');
+                                            }
+                                        });
+                                }
+                            };
+                        }
+
+                        // Display populated content
+                        if (spinner) spinner.classList.add('d-none');
+                        if (content) content.classList.remove('d-none');
+                    })
+                    .catch(() => {
+                        if (spinner) spinner.classList.add('d-none');
+                        alert('Failed to load complete user profile.');
+                        profileModal.hide();
+                    });
+                return;
+            }
+
+            // ----------------------------------------------------
+            // ACTION: EDIT USER
+            // ----------------------------------------------------
+            if (editBtn) {
+                triggerEditUser(userId, fullName, role, status);
+                return;
+            }
+
+            // ----------------------------------------------------
+            // ACTION: DELETE / DEACTIVATE USER
+            // ----------------------------------------------------
+            if (deleteBtn) {
+                if (!confirm(`Soft delete user "${username}"? They will be marked Inactive.`)) return;
+
+                const formData = new FormData();
+                formData.append('action', 'delete');
+                formData.append('user_id', userId);
+
+                fetch(apiUrl, { method: 'POST', body: formData })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (!data.success) {
+                            alert(data.message || 'Failed to delete user.');
+                            return;
+                        }
+                        window.location.reload();
+                    })
+                    .catch(() => alert('Failed to delete user.'));
+            }
+        });
+    }
+
+    function triggerEditUser(userId, fullName, role, status) {
+        const newFullName = prompt('Edit full name:', fullName);
+        if (newFullName === null || newFullName.trim() === '') return;
+
+        const newRole = prompt('Edit role (Admin, HR, Accounting, TeamLead, Employee, Applicant):', role);
+        if (newRole === null || newRole.trim() === '') return;
+
+        const newStatus = prompt('Edit status (Active or Inactive):', status);
+        if (newStatus === null || newStatus.trim() === '') return;
+
+        const password = prompt('New password (leave blank to keep current):', '');
+        if (password) {
+            const policyMessage = getPasswordPolicyMessage(password);
+            if (policyMessage) {
+                alert(policyMessage);
+                return;
+            }
+        }
+
+        const formData = new FormData();
+        formData.append('action', 'update');
+        formData.append('user_id', userId);
+        formData.append('full_name', newFullName.trim());
+        formData.append('role', newRole.trim());
+        formData.append('status', newStatus.trim());
+        if (password) {
+            formData.append('password', password);
+        }
+
+        fetch(apiUrl, { method: 'POST', body: formData })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    alert(data.message || 'Failed to update user.');
+                    return;
+                }
+                window.location.reload();
+            })
+            .catch(() => alert('Failed to update user.'));
+    }
+})();
+
+// --- Helper Utility Functions ---
+function setText(elementId, value) {
+    const el = document.getElementById(elementId);
+    if (el) el.textContent = value || 'N/A';
+}
+
+function formatCurrency(amount) {
+    if (amount === null || amount === undefined || isNaN(amount)) return '₱0.00';
+    return '₱' + parseFloat(amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDate(dateString) {
+    if (!dateString || dateString === '0000-00-00' || dateString === '0000-00-00 00:00:00') return 'N/A';
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? dateString : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function calculateAge(birthDateString) {
+    if (!birthDateString || birthDateString === '0000-00-00') return 'N/A';
+    const dob = new Date(birthDateString);
+    if (isNaN(dob.getTime())) return 'N/A';
+    const diffMs = Date.now() - dob.getTime();
+    const ageDate = new Date(diffMs);
+    return Math.abs(ageDate.getUTCFullYear() - 1970) + ' yrs old';
+}
+
+function setupDocButton(btnId, path) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (path) {
+        btn.href = path;
+        btn.classList.remove('disabled');
+    } else {
+        btn.href = '#';
+        btn.classList.add('disabled');
+    }
+}
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+</script>
+</body>
+</html>
+

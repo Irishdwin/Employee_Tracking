@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resignation Request - Onazul Employee</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --sidebar-bg: #003366; --sidebar-width: 240px; }
+        body { font-family: system-ui, -apple-system, sans-serif; background-color: #f5f7fb; }
+        .layout-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: var(--sidebar-bg); color: #fff; position: fixed; inset: 0 0 0 0; z-index: 1030; }
+        .sidebar-header { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.12); }
+        .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+        .sidebar-link { display: flex; align-items: center; gap: 0.6rem; padding: 0.65rem 1.2rem; color: #e2e8f0; text-decoration: none; }
+        .sidebar-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+        .sidebar-link.active { background: linear-gradient(to right, #0072ff, #00c6ff); color: #fff; }
+        .main-content { flex: 1; margin-left: var(--sidebar-width); padding: 1.25rem 1.75rem; }
+        .countdown-badge { font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+<div class="layout-wrapper">
+    <aside class="sidebar">
+        <div class="sidebar-header"><span>Onazul Employee</span></div>
+        <ul class="sidebar-nav mt-2">
+            <li><a href="employee_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="gu_tagging.html" class="sidebar-link"><i class="bi bi-camera"></i><span>GU Tagging</span></a></li>
+            <li><a href="leave_request.html" class="sidebar-link"><i class="bi bi-calendar-x"></i><span>Leave Request</span></a></li>
+            <li><a href="payslip.html" class="sidebar-link"><i class="bi bi-receipt"></i><span>My Payslips</span></a></li>
+            <li><a href="resignation_request.html" class="sidebar-link active"><i class="bi bi-door-open"></i><span>Resignation</span></a></li>
+            <li><a href="../../index.html" class="sidebar-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a></li>
+        </ul>
+    </aside>
+    <main class="main-content">
+        <div class="mb-4">
+            <h5 class="fw-bold">Resignation Request</h5>
+            <p class="text-muted small">30 working days notice required. HR will issue Exit Clearance.</p>
+        </div>
+
+        <div class="row">
+            <div class="col-md-5">
+                <div class="card">
+                    <div class="card-header"><h6 class="mb-0">Submit Resignation</h6></div>
+                    <div class="card-body">
+                        <form id="resignForm">
+                            <div class="mb-3">
+                                <label class="form-label">Resignation Type *</label>
+                                <select name="resignation_type" class="form-select" required>
+                                    <option value="Voluntary">Voluntary</option>
+                                    <option value="End of Contract">End of Contract</option>
+                                    <option value="Retirement">Retirement</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Effective Date (Last Day) *</label>
+                                <input type="date" name="effective_date" class="form-control" required>
+                                <small class="text-muted">Must be at least 30 working days from today</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Reason</label>
+                                <textarea name="reason" class="form-control" rows="3"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit Resignation</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <div class="card">
+                    <div class="card-header"><h6 class="mb-0">My Resignation Requests</h6></div>
+                    <div class="card-body">
+                        <div id="resignList">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API = '../../Api/Employee/resignation_request.php';
+
+    document.getElementById('resignForm').onsubmit = (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        fetch(API, { method: 'POST', body: fd }).then(r => r.json()).then(d => {
+            if (d.success) { alert(d.message); e.target.reset(); load(); }
+            else alert(d.message || 'Error');
+        });
+    };
+
+    function load() {
+        fetch(API).then(r => r.json()).then(d => {
+            const el = document.getElementById('resignList');
+            if (!d.success || !d.resignations || d.resignations.length === 0) {
+                el.innerHTML = '<p class="text-muted mb-0">No resignation requests yet.</p>';
+                return;
+            }
+            el.innerHTML = '<table class="table table-sm"><thead><tr><th>Submitted</th><th>Effective</th><th>Type</th><th>Status</th><th>Working Days Left</th></tr></thead><tbody>' +
+                d.resignations.map(r => '<tr><td>' + (r.SubmissionDate||r.CreatedAt||'-') + '</td><td>' + (r.EffectiveDate||'-') + '</td><td>' + (r.ResignationType||'-') + '</td><td><span class="badge bg-' + (r.Status==='Resigned'?'secondary':r.Status==='Resignation Pending'?'warning':'info') + '">' + (r.Status||'-') + '</span></td><td>' + (r.WorkingDaysRemaining != null ? '<span class="countdown-badge">' + r.WorkingDaysRemaining + '</span>' : '-') + '</td></tr>').join('') + '</tbody></table>';
+        });
+    }
+
+    load();
+</script>
+</body>
+</html>
