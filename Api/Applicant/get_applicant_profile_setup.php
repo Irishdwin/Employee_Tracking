@@ -32,6 +32,7 @@ ensureApplicantColumn($conn, 'MiddleName', 'varchar(50) DEFAULT NULL');
 ensureApplicantColumn($conn, 'LastName', 'varchar(50) DEFAULT NULL');
 ensureApplicantColumn($conn, 'Suffix', 'varchar(20) DEFAULT NULL');
 ensureApplicantColumn($conn, 'StreetAddress', 'varchar(255) DEFAULT NULL');
+ensureApplicantColumn($conn, 'Region', 'varchar(120) DEFAULT NULL');
 ensureApplicantColumn($conn, 'City', 'varchar(120) DEFAULT NULL');
 ensureApplicantColumn($conn, 'StateProvince', 'varchar(120) DEFAULT NULL');
 ensureApplicantColumn($conn, 'Barangay', 'varchar(120) DEFAULT NULL');
@@ -63,6 +64,8 @@ $stmt = $conn->prepare("
         COALESCE(NULLIF(TRIM(applicants.FullName), ''), NULLIF(TRIM(users.FullName), '')) AS FullName,
         BirthDate,
         StreetAddress,
+        Region,
+        AddressPSGC,
         City,
         StateProvince,
         Barangay,
@@ -81,6 +84,7 @@ $stmt = $conn->prepare("
         PreferredClassification,
         PreferredSubClassification,
         JobCategory,
+        category_id,classification_id,sub_classification_id,
         ProfileVisibility,
         ProfileDetailsCompleted,
         ProfileVisibilityCompleted
@@ -143,17 +147,47 @@ while ($dRow = $docRes->fetch_assoc()) {
 }
 $docStmt->close();
 
+// IDs survive Admin renames; legacy text remains available for records awaiting mapping.
+require_once __DIR__.'/../Helpers/job_hierarchy.php';
+if($row['sub_classification_id']){
+    $canonical=jh_rows($conn,'SELECT c.category_name,k.classification_name,s.sub_classification_name FROM job_sub_classifications s JOIN job_classifications k ON k.id=s.classification_id JOIN job_categories c ON c.id=k.category_id WHERE c.id=? AND k.id=? AND s.id=?','iii',[(int)$row['category_id'],(int)$row['classification_id'],(int)$row['sub_classification_id']]);
+    if($canonical){$row['JobCategory']=$canonical[0]['category_name'];$row['PreferredClassification']=$canonical[0]['classification_name'];$row['PreferredSubClassification']=$canonical[0]['sub_classification_name'];}
+}
+require_once __DIR__.'/../Helpers/psgc_address.php';
+$addressCodes=json_decode($row['AddressPSGC']??'',true);
+if(is_array($addressCodes)){
+    // The earlier snapshot attached some independent cities to a province.
+    // Restore their official path without rewriting any saved address text.
+    try{
+        $savedCity=psgc_record((string)($addressCodes['city']??''));
+        if($savedCity && ($addressCodes['region']??'')===$savedCity['region']){
+            $restoredCodes=$addressCodes;$restoredCodes['province']=$savedCity['province'];
+            $addressCodes=psgc_validate_address($restoredCodes)['psgc'];
+        }
+    }catch(Throwable $e){error_log('PSGC address restoration: '.$e->getMessage());$addressCodes=null;}
+}
+if(!$addressCodes){
+    try{$addressCodes=psgc_resolve_legacy(['region'=>$row['Region']??'','state_province'=>$row['StateProvince']??'','city'=>$row['City']??'','barangay'=>$row['Barangay']??'']);}
+    catch(Throwable $e){error_log('Legacy address resolution: '.$e->getMessage());$addressCodes=null;}
+}
+
 echo json_encode([
     'success' => true,
     'details_completed' => $detailsCompleted,
     'visibility_completed' => $visibilityCompleted,
     'profile' => [
+        'category_id' => $row['category_id'],
+        'classification_id' => $row['classification_id'],
+        'sub_classification_id' => $row['sub_classification_id'],
         'first_name' => $firstName !== '' ? $firstName : null,
         'middle_name' => $middleName !== '' ? $middleName : null,
         'last_name' => $lastName !== '' ? $lastName : null,
         'suffix' => $suffix !== '' ? $suffix : null,
         'birth_date' => isset($row['BirthDate']) ? $row['BirthDate'] : null,
         'street_address' => $row['StreetAddress'] ?? null,
+        'region' => $row['Region'] ?? null,
+        'address_psgc' => $addressCodes,
+        'address_selector_province' => is_array($addressCodes) ? (psgc_record((string)($addressCodes['city']??''))['selector_province']??'') : '',
         'city' => $row['City'] ?? null,
         'state_province' => $row['StateProvince'] ?? null,
         'barangay' => $row['Barangay'] ?? null,

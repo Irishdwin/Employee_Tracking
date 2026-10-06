@@ -81,7 +81,7 @@
 
     return (
       '<div class="ow-notif-item p-3 border-bottom d-flex align-items-start gap-2' +
-      (isActive ? ' bg-light' : '') +
+      (isActive && !isUnread ? ' bg-light' : '') +
       (isUnread ? ' bg-danger bg-opacity-10 border-start border-danger border-3' : '') +
       '" data-id="' + n.id + '" data-read="' + (isUnread ? '0' : '1') + '" style="cursor:pointer" role="button" tabindex="0"' +
       (n.type ? ' data-type="' + esc(n.type) + '"' : '') + '>' +
@@ -179,6 +179,15 @@
       '<span class="badge ' + (n.is_read ? 'bg-secondary' : 'bg-primary') + '">' + (n.is_read ? 'Read' : 'Unread') + '</span></div>' +
       '<div class="border rounded p-3 bg-light" style="white-space:pre-wrap;">' + esc(n.message || '') + '</div>' +
       '<p class="small text-muted mt-3 mb-0">Related: ' + related + '</p>';
+    if(n.messenger_user_id && global.OwMessenger){var chatButton=document.createElement('button');chatButton.type='button';chatButton.className='btn btn-primary mt-3';chatButton.textContent='Open Conversation';chatButton.onclick=function(){global.OwMessenger.openContact(n.messenger_user_id);};el.appendChild(chatButton);}
+    if (n.type === 'employee_password_setup' && global.EmployeeSecurity) {
+      var settingsButton = document.createElement('button');
+      settingsButton.type = 'button';
+      settingsButton.className = 'btn btn-primary mt-3';
+      settingsButton.textContent = 'Open Settings';
+      settingsButton.addEventListener('click', function () { global.EmployeeSecurity.open(); });
+      el.appendChild(settingsButton);
+    }
   }
 
   function updateUnreadBadge(count) {
@@ -219,6 +228,7 @@
       .then(function (d) {
         if (d && d.success && d.logged_in && d.counts && d.counts.notifications_unread != null) {
           updateUnreadBadge(d.counts.notifications_unread);
+          document.dispatchEvent(new CustomEvent('onazul:realtime-counts', { detail: d }));
           return;
         }
         return fetch(NOTIFICATIONS_API + '?limit=1', { credentials: 'same-origin' })
@@ -291,6 +301,7 @@
   function openNotification(id) {
     var n = state.notifications.find(function (x) { return x.id === id; });
     if (!n) return;
+    document.dispatchEvent(new CustomEvent('onazul:notification-open',{detail:n}));
     state.activeId = id;
     var wasUnread = !n.is_read;
     if (wasUnread) {
@@ -323,7 +334,22 @@
     if (btnRefresh) btnRefresh.addEventListener('click', loadNotifications);
     if (btnMarkAll) {
       btnMarkAll.addEventListener('click', function () {
-        if (typeof global.Swal !== 'undefined') {
+        var confirmEl = document.getElementById('hrMarkAllNotificationsModal') || document.getElementById('tlMarkAllNotificationsModal');
+        if (confirmEl && global.bootstrap) {
+          var modal = global.bootstrap.Modal.getOrCreateInstance(confirmEl);
+          var confirmButton = confirmEl.querySelector('[data-confirm-mark-all]') || document.getElementById('tlConfirmMarkAllNotifications');
+          confirmButton.onclick = function () {
+            // Disable until the modal closes to prevent repeated submissions.
+            confirmButton.disabled = true;
+            modal.hide();
+            executeMarkAllRead();
+          };
+          confirmEl.addEventListener('hidden.bs.modal', function () {
+            confirmButton.disabled = false;
+            btnMarkAll.focus();
+          }, { once: true });
+          modal.show();
+        } else if (typeof global.Swal !== 'undefined') {
           global.Swal.fire({
             title: 'Mark all as read?',
             text: 'Are you sure you want to mark all notifications as read?',
@@ -482,6 +508,17 @@
     load: loadNotifications,
     poll: pollUnreadBadge,
     show: showNotificationsSection,
+    open: function(notification) {
+      if (!notification || !notification.id) return;
+      // Dropdown records may not be in the inbox's most recent loaded page.
+      if (!state.notifications.some(function(n){return n.id === notification.id;})) {
+        state.notifications.unshift(notification);
+      }
+      state.activeId = notification.id;
+      showNotificationsSection();
+      initPanel();
+      openNotification(notification.id);
+    },
     handleRealtime: handleRealtime,
     prependNotification: prependNotification,
     updateUnreadBadge: updateUnreadBadge,

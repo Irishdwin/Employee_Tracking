@@ -11,23 +11,15 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 
 $userId = (int)$_SESSION['user_id'];
 $role = trim((string)$_SESSION['role']);
+if (in_array($role, ['Admin', 'HR'], true)) {
+    require_once __DIR__ . '/../Helpers/contract_expiry_helper.php';
+    employment_contract_open_after_six_months($conn);
+}
+
 $markRequestsSeen = isset($_GET['mark_requests_seen']) && $_GET['mark_requests_seen'] === '1';
 
-// Unread message count via thread participants/read cursors.
-$msgSql = "
-    SELECT COUNT(*) AS unread_count
-    FROM chat_messages m
-    INNER JOIN chat_thread_participants p ON p.ThreadID = m.ThreadID AND p.UserID = ?
-    LEFT JOIN chat_thread_reads r ON r.ThreadID = m.ThreadID AND r.UserID = ?
-    WHERE m.SenderUserID <> ?
-      AND (r.LastReadAt IS NULL OR m.CreatedAt > r.LastReadAt)
-";
-$msgStmt = $conn->prepare($msgSql);
-$msgStmt->bind_param('iii', $userId, $userId, $userId);
-$msgStmt->execute();
-$msgRow = $msgStmt->get_result()->fetch_assoc();
-$msgStmt->close();
-$unreadMessages = (int)($msgRow['unread_count'] ?? 0);
+require_once __DIR__.'/../Helpers/messenger_unread.php';
+$unreadMessages=messenger_get_unread_counts($conn,$userId)['total'];
 
 $jobOrdersCount = 0;
 $jobOrdersRejectedCount = 0;
@@ -166,6 +158,15 @@ function rtSafeCount(mysqli $conn, string $sql): int
     }
 }
 
+// Accounting's action badge counts submitted employee DTRs still awaiting verification.
+$accountingDtrPending = 0;
+if ($role === 'Accounting') {
+    $accountingDtrPending = rtSafeCount($conn,
+        "SELECT COUNT(*) AS c FROM dtr_submissions
+         WHERE SiteSupervisorID IS NOT NULL
+           AND (ReviewedBy IS NULL OR ReviewDate IS NULL)");
+}
+
 // Unread in-app notifications (bell icon).
 $unreadTeam = rtSafeCount($conn, "SELECT COUNT(*) AS c FROM notifications WHERE UserID = {$userId} AND IsRead = 0 AND Type = 'deployed_team'");
 $unreadJobOrders = rtSafeCount($conn, "SELECT COUNT(*) AS c FROM notifications WHERE UserID = {$userId} AND IsRead = 0 AND Type = 'job_order_request'");
@@ -227,9 +228,11 @@ if ($isHrOrAdmin) {
          FROM job_applications ja
          LEFT JOIN status s ON ja.StatusID = s.StatusID
          WHERE ja.HiredDate IS NULL
-           AND ja.ClientApprovalStatus NOT IN ('Approved', 'Rejected')
+           AND ((ja.ClientApprovalStatus NOT IN ('Approved', 'Rejected')
            AND ja.EndorsedDate IS NULL
-           AND (ja.StatusID IS NULL OR s.Name = 'For Interview')"
+           AND (ja.StatusID IS NULL OR s.Name IN ('Pending','For Interview')))
+           OR (ja.ClientApprovalStatus='Rejected' AND ja.EndorsedDate IS NOT NULL
+           AND COALESCE(s.Name,'') NOT IN ('Rejected','Declined','Failed')))"
     );
 
     // Client-approved, not hired, contract file still missing.
@@ -259,6 +262,7 @@ echo json_encode([
     'role' => $role,
     'counts' => [
         'messages' => $unreadMessages,
+        'accounting_dtr_pending' => $accountingDtrPending,
         'job_orders' => $jobOrdersCount,
         'job_orders_rejected' => $jobOrdersRejectedCount,
         'job_orders_updates' => $jobOrdersCount + $jobOrdersRejectedCount,

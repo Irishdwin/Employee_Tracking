@@ -16,7 +16,7 @@ declare(strict_types=1);
 function payroll_status_ensure_schema(mysqli $conn): void
 {
     $conn->query("
-        CREATE TABLE IF NOT EXISTS `payroll_status_history` (
+        CREATE TABLE IF NOT EXISTS `payroll_group_status_history` (
           `PayrollStatusHistoryID` INT UNSIGNED NOT NULL AUTO_INCREMENT,
           `SiteSupervisorID` INT NOT NULL,
           `CompanyID` INT NOT NULL,
@@ -59,7 +59,7 @@ function payroll_status_get_current(mysqli $conn, int $siteSupervisorId, int $co
 {
     $stmt = $conn->prepare("
         SELECT PayrollStatusHistoryID, Status, Remarks, ProofImagePath, UpdatedBy, CreatedAt
-        FROM payroll_status_history
+        FROM payroll_group_status_history
         WHERE SiteSupervisorID = ? AND CompanyID = ? AND CutoffStartDate = ? AND CutoffEndDate = ?
         ORDER BY CreatedAt DESC, PayrollStatusHistoryID DESC
         LIMIT 1
@@ -80,7 +80,7 @@ function payroll_status_get_history(mysqli $conn, int $siteSupervisorId, int $co
     $stmt = $conn->prepare("
         SELECT psh.PayrollStatusHistoryID, psh.Status, psh.Remarks, psh.ProofImagePath, psh.CreatedAt,
                u.FullName AS updated_by_name
-        FROM payroll_status_history psh
+        FROM payroll_group_status_history psh
         LEFT JOIN users u ON u.UsersID = psh.UpdatedBy
         WHERE psh.SiteSupervisorID = ? AND psh.CompanyID = ? AND psh.CutoffStartDate = ? AND psh.CutoffEndDate = ?
         ORDER BY psh.CreatedAt ASC, psh.PayrollStatusHistoryID ASC

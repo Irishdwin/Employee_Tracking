@@ -35,7 +35,7 @@ function isDashboardSectionVisible(sectionId) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  initModalA11y(['createJobOrderModal', 'reviewModal', 'hireApplicantModal', 'addDeploymentModal', 'documentPreviewModal']);
+  initModalA11y(['createJobOrderModal', 'reviewModal', 'hireApplicantModal', 'addDeploymentModal', 'documentPreviewModal', 'viewJorDetailsModal', 'rejectJorModal']);
   var skipNav = window.SKIP_HR_DASHBOARD_NAV === true;
   var skipOverviewLinks = window.SKIP_HR_DASHBOARD_OVERVIEW_LINKS === true;
   var skipLogout = window.SKIP_HR_DASHBOARD_LOGOUT === true;
@@ -113,12 +113,16 @@ function initSPA() {
 
   window.hrShowSection = ProfileViewSwitch.initBootstrapSpa({
     defaultSectionId: 'section-overview',
+    mainContentId: 'main-content-area',
     onShowSection: function (targetId) {
-      if (targetId === 'section-job-orders') { loadJobOrders(); loadJobOrderRequests(); }
+      if (targetId === 'section-overview' && window.HrOverview) window.HrOverview.load();
+      else if (targetId === 'section-employee-management' && window.HrEmployees) window.HrEmployees.load();
+      else if (targetId === 'section-job-orders') { loadJobOrders(); loadJobOrderRequests(); }
       else if (targetId === 'section-applicant-review') loadApplications();
       else if (targetId === 'section-messages') { loadMessageThreads().then(loadThreadMessages); }
       else if (targetId === 'section-notifications' && window.OwNotifications) OwNotifications.load();
       else if (targetId === 'section-deployments') loadDeployments();
+      else if (targetId === 'section-settings' && window.AgencyContactSettings) window.AgencyContactSettings.load();
     }
   });
   if (window.OwNotifications) {
@@ -182,6 +186,7 @@ function loadMessageThreads() {
         el.innerHTML = '<div class="text-danger p-2">Failed to load conversations.</div>';
         return;
       }
+      window.OWMessengerCsrf=d.csrf_token;
       inboxState.threads = d.threads || [];
       if (!inboxState.activeThreadId && inboxState.threads.length > 0) {
         inboxState.activeThreadId = inboxState.threads[0].thread_id;
@@ -264,7 +269,7 @@ function sendInboxMessage() {
   if (!input) return;
   var text = (input.value || '').trim();
   if (!text) return;
-  var payload = { message_text: text };
+  var payload = { message_text: text,csrf_token:window.OWMessengerCsrf };
   if (inboxState.activeThreadId) payload.thread_id = inboxState.activeThreadId;
   fetch(MSG_SEND_API, {
     method: 'POST',
@@ -306,6 +311,7 @@ function initLogout() {
 
 // ---- Job Order Requests (from Team Leads) ----
 var viewJorDetailsModalInstance = null;
+var currentViewJorId = 0;
 
 function formatJorDetailDate(value) {
   if (!value) return '—';
@@ -314,19 +320,33 @@ function formatJorDetailDate(value) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-function viewJorDetails(jorId) {
+// ST-502: Post/Reject now also available inside the preview modal itself
+// (not just the table row), so Admin can review the full request details
+// first. Reuses the exact same approveJobOrderRequest()/
+// rejectJobOrderRequest() functions the table-row buttons already call —
+// no separate/duplicate approve-reject logic.
+function viewJorDetails(jorId, status) {
   jorId = parseInt(jorId, 10) || 0;
   if (!jorId) return;
+  currentViewJorId = jorId;
 
   var modalEl = document.getElementById('viewJorDetailsModal');
   var tbody = document.getElementById('viewJorDetailsTableBody');
   if (!modalEl || !tbody) return;
+
+  var postBtn = document.getElementById('viewJorPostBtn');
+  var rejectBtn = document.getElementById('viewJorRejectBtn');
+  var isPending = false; // Enable actions only after the server returns the current status.
+  if (postBtn) postBtn.classList.toggle('d-none', !isPending);
+  if (rejectBtn) rejectBtn.classList.toggle('d-none', !isPending);
 
   var metaId = document.getElementById('viewJorMetaId');
   var metaCompany = document.getElementById('viewJorMetaCompany');
   var metaLead = document.getElementById('viewJorMetaLead');
   var metaDate = document.getElementById('viewJorMetaDate');
   var metaRemarks = document.getElementById('viewJorMetaRemarks');
+  var rejectionBlock = document.getElementById('viewJorRejectionReasonBlock');
+  var rejectionText = document.getElementById('viewJorRejectionReasonText');
 
   if (metaId) metaId.textContent = 'JOR-' + jorId;
   if (metaCompany) metaCompany.textContent = 'Loading…';
@@ -336,6 +356,8 @@ function viewJorDetails(jorId) {
     metaRemarks.textContent = '';
     metaRemarks.classList.add('d-none');
   }
+  if (rejectionBlock) rejectionBlock.classList.add('d-none');
+  if (rejectionText) rejectionText.textContent = '';
   tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Loading details…</td></tr>';
 
   if (!viewJorDetailsModalInstance) {
@@ -346,11 +368,15 @@ function viewJorDetails(jorId) {
   fetch(JOR_DETAILS_API + '?jor_id=' + encodeURIComponent(String(jorId)), { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
+      if (currentViewJorId !== jorId) return;
       if (!data || !data.success) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">' + esc((data && data.message) || 'Failed to load details.') + '</td></tr>';
         return;
       }
 
+      if (currentViewJorId !== jorId) return;
+      if (postBtn) postBtn.classList.toggle('d-none', data.status !== 'Pending');
+      if (rejectBtn) rejectBtn.classList.toggle('d-none', data.status !== 'Pending');
       if (metaId) metaId.textContent = 'JOR-' + (data.jor_id || jorId);
       if (metaCompany) metaCompany.textContent = data.company_name || '—';
       if (metaLead) metaLead.textContent = data.requested_by || '—';
@@ -366,6 +392,16 @@ function viewJorDetails(jorId) {
         }
       }
 
+      if (rejectionBlock && rejectionText) {
+        var rejectionReason = String(data.rejection_reason || '').trim();
+        if (data.status === 'Rejected' && rejectionReason) {
+          rejectionText.textContent = rejectionReason;
+          rejectionBlock.classList.remove('d-none');
+        } else {
+          rejectionBlock.classList.add('d-none');
+        }
+      }
+
       var positions = Array.isArray(data.positions) ? data.positions : [];
       if (!positions.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No deployment rows found.</td></tr>';
@@ -376,56 +412,63 @@ function viewJorDetails(jorId) {
         var workers = parseInt(p.required_workers, 10) || 0;
         return '<tr>' +
           '<td class="fw-semibold">' + esc(p.position_title || '—') + '</td>' +
-          '<td>' + esc(p.category_name || '—') + '</td>' +
+          '<td>' + esc(p.category_name || '—') + '<div class="small text-muted">Classification: ' + esc(p.classification_name || 'Not provided') + '</div><div class="small text-muted">Sub-classification: ' + esc(p.sub_classification_name || 'Not provided') + '</div></td>' +
           '<td><span class="jor-worker-badge"><i class="bi bi-people-fill"></i> ' + workers + ' worker' + (workers === 1 ? '' : 's') + '</span></td>' +
           '<td>' + esc(p.deployment_site || '—') + '</td>' +
           '<td>' + esc(p.work_schedule || '—') + '</td>' +
-        '</tr>';
+          '</tr>' + (data.status==='Pending' && (!p.category_id || !p.classification_id || !p.sub_classification_id) && window.JobHierarchySelectors ? '<tr><td colspan="5"><div id="jorHierarchy-'+p.detail_id+'" data-detail-id="'+p.detail_id+'"></div></td></tr>' : '');
       }).join('');
+      if(data.status==='Pending' && window.JobHierarchySelectors)positions.forEach(function(p){var root=document.getElementById('jorHierarchy-'+p.detail_id);if(!root)return;root.insertAdjacentHTML('beforeend','<p class="small text-muted">Legacy request: complete missing classification before posting.</p>');window.JobHierarchySelectors.set(root,p).then(function(){['category_id','classification_id','sub_classification_id'].forEach(function(key){if(p[key])root.querySelector('[name="'+key+'"]').disabled=true;});});});
     })
     .catch(function () {
+      if (currentViewJorId !== jorId) return;
       tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Request failed while loading details.</td></tr>';
     });
 }
 window.viewJorDetails = viewJorDetails;
 
+var jobRequestsLoadVersion = 0;
 function loadJobOrderRequests() {
+  var version = ++jobRequestsLoadVersion;
+  var body = document.getElementById('requestsBody');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Loading job order requests…</td></tr>';
   var filterEl = document.getElementById('requestFilter');
   var status = filterEl ? filterEl.value : '';
   var url = status ? REQ_API + '?status=' + encodeURIComponent(status) : REQ_API;
   fetch(url, { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (d) {
+      if (version !== jobRequestsLoadVersion) return;
       var tbody = document.getElementById('requestsBody');
       if (!tbody) return;
-      if (!d.success || !d.requests || d.requests.length === 0) {
+      if (!d.success) { tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">' + esc(d.message || d.error || 'Failed to load job order requests. Use Refresh to retry.') + '</td></tr>'; return; }
+      if (!d.requests || d.requests.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No job order requests.</td></tr>';
         return;
       }
       tbody.innerHTML = d.requests.map(function (r) {
         var requestId = r.request_id || r.jor_id;
-        var actions = '<button type="button" class="btn btn-sm btn-outline-primary me-1" title="View details" onclick="viewJorDetails(' + requestId + ')"><i class="bi bi-eye"></i></button>';
-        if (r.status === 'Pending') {
-          actions += '<button class="btn btn-sm btn-success me-1 btnApprove" data-id="' + requestId + '">Post</button>' +
-            '<button class="btn btn-sm btn-outline-danger btnReject" data-id="' + requestId + '">Reject</button>';
-        }
+        var actions = '<button type="button" class="btn btn-sm btn-outline-primary" title="View details" onclick="viewJorDetails(' + requestId + ', \'' + r.status + '\')"><i class="bi bi-eye"></i></button>';
         var statusCls = r.status === 'Approved' ? 'success' : (r.status === 'Rejected' ? 'danger' : 'warning');
         return '<tr><td>' + esc(r.requested_by) + '</td><td>' + esc(r.company_name) + '</td><td>' + esc(r.position) + '</td><td>' + r.required_count + '</td><td>' + (esc(r.location) || '–') + '</td><td>' + (esc(r.work_schedule) || '–') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleDateString() : '–') + '</td><td><span class="badge bg-' + statusCls + '">' + esc(r.status) + '</span></td><td>' + actions + '</td></tr>';
       }).join('');
-      tbody.querySelectorAll('.btnApprove').forEach(function (btn) {
-        btn.addEventListener('click', function () { approveJobOrderRequest(parseInt(btn.getAttribute('data-id'), 10)); });
-      });
-      tbody.querySelectorAll('.btnReject').forEach(function (btn) {
-        btn.addEventListener('click', function () { rejectJobOrderRequest(parseInt(btn.getAttribute('data-id'), 10)); });
-      });
+      // ST-503: row-level Post/Reject buttons removed — both actions now
+      // live in the View Details modal only (see viewJorDetails() and the
+      // viewJorPostBtn/viewJorRejectBtn handlers below).
     })
     .catch(function () {
+      if (version !== jobRequestsLoadVersion) return;
       var tbody = document.getElementById('requestsBody');
       if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Failed to load.</td></tr>';
     });
 }
 
 function approveJobOrderRequest(id) {
+  var review = {action:'approve',request_id:id,placements:[]};
+  var valid=true;
+  document.querySelectorAll('[data-detail-id]').forEach(function(root){var values=window.JobHierarchySelectors.values(root);if(!values.classification_id||!values.sub_classification_id)valid=false;values.detail_id=parseInt(root.dataset.detailId,10);if(values.detail_id)review.placements.push(values);else{review.category_id=values.category_id;review.classification_id=values.classification_id;review.sub_classification_id=values.sub_classification_id;}});
+  if(!valid){window.alert('Select the classification and sub-classification for each requested placement.');return;}
   if (typeof Swal !== 'undefined') {
     Swal.fire({
       title: 'Post Job Order Request?',
@@ -440,12 +483,13 @@ function approveJobOrderRequest(id) {
         fetch(REQ_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'approve', request_id: id }),
+          body: JSON.stringify(review),
           credentials: 'same-origin'
         })
           .then(function (r) { return r.json(); })
           .then(function (d) {
             if (d.success) {
+              if(viewJorDetailsModalInstance)viewJorDetailsModalInstance.hide();
               Swal.fire({
                 icon: 'success',
                 title: 'Posted!',
@@ -453,7 +497,7 @@ function approveJobOrderRequest(id) {
                 timer: 2000,
                 showConfirmButton: false
               });
-              loadJobOrderRequests();
+              loadJobOrderRequests(); refreshJobRequestCounts();
               loadJobOrders();
             } else {
               Swal.fire({
@@ -475,29 +519,78 @@ function approveJobOrderRequest(id) {
   } else {
     // Fallback if SweetAlert2 isn't loaded
     if (!confirm('Post this request as a Job Order?')) return;
-    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve', request_id: id }), credentials: 'same-origin' })
+    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(review), credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.success) { loadJobOrderRequests(); loadJobOrders(); }
+        if (d.success) { if(viewJorDetailsModalInstance)viewJorDetailsModalInstance.hide(); loadJobOrderRequests(); refreshJobRequestCounts(); loadJobOrders(); }
         else alert(d.message || 'Error');
       });
   }
 }
 
+// ST-503: reject now opens a reason modal instead of a plain confirm().
+// Reused by both the View Details modal's Reject button and (if wired
+// elsewhere in the future) any other trigger — the reason is what actually
+// gets sent to the API and stored in RejectionReason.
+var rejectJorModalInstance = null;
+var pendingRejectJorId = 0;
+
 function rejectJobOrderRequest(id) {
-  if (!confirm('Reject this request?')) return;
-  fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', request_id: id }), credentials: 'same-origin' })
+  pendingRejectJorId = parseInt(id, 10) || 0;
+  if (!pendingRejectJorId) return;
+
+  var reasonEl = document.getElementById('rejectJorReason');
+  var alertEl = document.getElementById('rejectJorAlert');
+  if (reasonEl) reasonEl.value = '';
+  if (alertEl) alertEl.classList.add('d-none');
+
+  var modalEl = document.getElementById('rejectJorModal');
+  if (!modalEl) return;
+  if (!rejectJorModalInstance) rejectJorModalInstance = new bootstrap.Modal(modalEl);
+  rejectJorModalInstance.show();
+}
+
+function submitJobOrderRejection() {
+  var reasonEl = document.getElementById('rejectJorReason');
+  var alertEl = document.getElementById('rejectJorAlert');
+  var reason = reasonEl ? reasonEl.value.trim() : '';
+
+  if (!reason) {
+    if (alertEl) { alertEl.textContent = 'Please enter a reason for rejecting this request.'; alertEl.classList.remove('d-none'); }
+    return;
+  }
+
+  fetch(REQ_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'reject', request_id: pendingRejectJorId, reason: reason }),
+    credentials: 'same-origin'
+  })
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      if (d.success) loadJobOrderRequests();
-      else alert(d.message || 'Error');
+      if (!d.success) {
+        if (alertEl) { alertEl.textContent = d.message || 'Failed to reject request.'; alertEl.classList.remove('d-none'); }
+        return;
+      }
+      if (rejectJorModalInstance) rejectJorModalInstance.hide();
+      loadJobOrderRequests(); refreshJobRequestCounts();
+    })
+    .catch(function () {
+      if (alertEl) { alertEl.textContent = 'Network error while rejecting the request.'; alertEl.classList.remove('d-none'); }
     });
+}
+
+function refreshJobRequestCounts() {
+  if (window.AdminSidebarBadges) window.AdminSidebarBadges.poll(RT_COUNTERS_API);
+  if (window.HrOverview) window.HrOverview.load();
 }
 
 // ---- Job Orders ----
 function initJobOrders() {
   var requestFilter = document.getElementById('requestFilter');
   if (requestFilter) requestFilter.addEventListener('change', loadJobOrderRequests);
+  var refreshRequests = document.getElementById('btnRefreshJobRequests');
+  if (refreshRequests) refreshRequests.addEventListener('click', function () { loadJobOrderRequests(); refreshJobRequestCounts(); });
   const joCompanySelect = document.getElementById('joCompanySelect');
   if (joCompanySelect) {
     joCompanySelect.addEventListener('change', function () {
@@ -594,24 +687,152 @@ function loadJOCompanies() {
     });
 }
 
-function loadJobOrders() {
-  fetch(JO_API, { credentials: 'same-origin' })
+// ST-501: search + status filter + pagination for the Admin dashboard's
+// Job Orders "posted jobs" table (server-side — see Api/HR/job_orders.php,
+// which only paginates/filters when an explicit ?page= param is sent, so
+// Html/HR/job_orders.html's own separate page — which still calls this
+// same endpoint bare — keeps getting its full unpaginated list unchanged).
+var jobOrdersListState = { page: 1, search: '', status: '' };
+
+function jobOrderStatusBadge(status) {
+  // 'Open'/'Closed' are the joborder table's own existing Status enum
+  // values; displayed here as "Still Hiring"/"Filled" for clarity.
+  if (status === 'Closed') return '<span class="badge bg-danger">Filled</span>';
+  return '<span class="badge bg-success">Still Hiring</span>';
+}
+
+function loadJobOrders(page) {
+  if (typeof page === 'number') jobOrdersListState.page = page;
+
+  var searchInput = document.getElementById('jobOrdersSearchInput');
+  var statusSelect = document.getElementById('jobOrdersStatusFilter');
+  jobOrdersListState.search = searchInput ? searchInput.value.trim() : '';
+  jobOrdersListState.status = statusSelect ? statusSelect.value : '';
+
+  var tbody = document.getElementById('ordersBody');
+  if (!tbody) return;
+
+  // Only the Admin dashboard has the search/filter/pagination controls;
+  // if they're not on the page (e.g. a future reuse of this function
+  // elsewhere without them), fall back to the original bare call.
+  var hasListControls = !!(searchInput || statusSelect || document.getElementById('jobOrdersPagination'));
+  var url = JO_API;
+  if (hasListControls) {
+    var query = new URLSearchParams({
+      search: jobOrdersListState.search,
+      status: jobOrdersListState.status,
+      page: jobOrdersListState.page,
+      limit: 10
+    });
+    url = JO_API + '?' + query.toString();
+  }
+
+  fetch(url, { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (d) {
-      const tbody = document.getElementById('ordersBody');
-      if (!tbody) return;
       if (!d.success || !d.job_orders || d.job_orders.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No Job Orders yet.</td></tr>';
-        return;
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No Job Orders found.</td></tr>';
+      } else {
+        tbody.innerHTML = d.job_orders.map(function (o) {
+          return '<tr><td>' + esc(o.CompanyName) + '</td><td>' + esc(o.Position) + '</td><td>' + o.RequiredCount + '</td><td>' + (esc(o.Location) || '–') + '</td><td>' + (esc(o.WorkSchedule) || '–') + '</td><td>' + (o.RequestDate || o.CreatedAt || '–') + '</td><td>' + jobOrderStatusBadge(o.Status) + '</td>'
+            + '<td><button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditJobOrderModal(' + o.JobOrderID + ')"><i class="bi bi-pencil me-1"></i>Edit</button></td></tr>';
+        }).join('');
       }
-      tbody.innerHTML = d.job_orders.map(function (o) {
-        return '<tr><td>' + esc(o.CompanyName) + '</td><td>' + esc(o.Position) + '</td><td>' + o.RequiredCount + '</td><td>' + (esc(o.Location) || '–') + '</td><td>' + (esc(o.WorkSchedule) || '–') + '</td><td>' + (o.RequestDate || o.CreatedAt || '–') + '</td></tr>';
-      }).join('');
+
+      if (hasListControls && d.success && d.pagination && typeof renderPaginationControls === 'function') {
+        renderPaginationControls('jobOrdersPagination', d.pagination, function (targetPage) {
+          loadJobOrders(targetPage);
+        }, 'job orders');
+      }
     })
     .catch(function () {
-      const tbody = document.getElementById('ordersBody');
-      if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Failed to load.</td></tr>';
     });
+}
+
+function openEditJobOrderModal(jobOrderId) {
+  fetch(JO_API + '?job_order_id=' + encodeURIComponent(jobOrderId), { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d.success || !d.job_order) return;
+      fillEditJobOrderModal(d.job_order);
+    });
+}
+
+function fillEditJobOrderModal(order) {
+  if(window.JobHierarchySelectors) window.JobHierarchySelectors.set(document.getElementById('editJobOrderForm'),order);
+  document.getElementById('editJoId').value = order.JobOrderID;
+  document.getElementById('editJoCompanyDisplay').value = order.CompanyName || '';
+  document.getElementById('editJoPosition').value = order.Position || '';
+  document.getElementById('editJoRequiredCount').value = order.RequiredCount || 1;
+  document.getElementById('editJoDeploymentSite').value = order.Location || '';
+  document.getElementById('editJoWorkSchedule').value = order.WorkSchedule || '';
+  document.getElementById('editJoStatus').value = (order.Status === 'Closed') ? 'Closed' : 'Open';
+  var alertEl = document.getElementById('editJOAlert');
+  if (alertEl) alertEl.className = 'alert d-none';
+  var modalEl = document.getElementById('editJobOrderModal');
+  if (modalEl && window.bootstrap) new bootstrap.Modal(modalEl).show();
+}
+
+function setupJobOrdersListHandlers() {
+  var postBtn = document.getElementById('viewJorPostBtn');
+  var rejectBtn = document.getElementById('viewJorRejectBtn');
+  if (postBtn) {
+    postBtn.addEventListener('click', function () {
+      if (!currentViewJorId) return;
+      approveJobOrderRequest(currentViewJorId);
+    });
+  }
+  if (rejectBtn) {
+    rejectBtn.addEventListener('click', function () {
+      if (!currentViewJorId) return;
+      if (viewJorDetailsModalInstance) viewJorDetailsModalInstance.hide();
+      rejectJobOrderRequest(currentViewJorId);
+    });
+  }
+
+  var rejectConfirmBtn = document.getElementById('rejectJorConfirmBtn');
+  if (rejectConfirmBtn) rejectConfirmBtn.addEventListener('click', submitJobOrderRejection);
+
+  var searchInput = document.getElementById('jobOrdersSearchInput');
+  var statusSelect = document.getElementById('jobOrdersStatusFilter');
+  if (searchInput) {
+    var t = null;
+    searchInput.addEventListener('input', function () {
+      clearTimeout(t);
+      t = setTimeout(function () { loadJobOrders(1); }, 300);
+    });
+  }
+  if (statusSelect) statusSelect.addEventListener('change', function () { loadJobOrders(1); });
+
+  var submitBtn = document.getElementById('btnSubmitEditJobOrder');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', function () {
+      var form = document.getElementById('editJobOrderForm');
+      var alertEl = document.getElementById('editJOAlert');
+      var fd = new FormData(form);
+      fd.append('action', 'update');
+      fetch(JO_API, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.success) {
+            if (alertEl) { alertEl.className = 'alert alert-danger'; alertEl.textContent = d.message || 'Failed to update Job Order.'; }
+            return;
+          }
+          var modalEl = document.getElementById('editJobOrderModal');
+          if (modalEl && window.bootstrap) { var inst = bootstrap.Modal.getInstance(modalEl); if (inst) inst.hide(); }
+          loadJobOrders();
+        })
+        .catch(function () {
+          if (alertEl) { alertEl.className = 'alert alert-danger'; alertEl.textContent = 'Network error while saving.'; }
+        });
+    });
+  }
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupJobOrdersListHandlers);
+} else {
+  setupJobOrdersListHandlers();
 }
 
 // ---- Applicant Review ----
@@ -669,6 +890,13 @@ function renderApplications(apps) {
     var docCount = parseInt(app.document_count != null ? app.document_count : app.doc_count, 10) || 0;
     return '<tr><td><strong>' + escapeHtml(app.applicant_name) + '</strong><br><small class="text-muted">' + escapeHtml(app.email) + '</small></td><td>' + escapeHtml(app.position) + '</td><td>' + escapeHtml(app.company_name) + '</td><td>' + app.application_date + '</td><td><span class="badge bg-' + (app.status_badge || getStatusColor(app.status)) + '">' + escapeHtml(app.status) + '</span></td><td><span class="badge bg-' + (docCount > 0 ? 'success' : 'warning') + '">' + docCount + ' doc' + (docCount !== 1 ? 's' : '') + '</span></td><td><button class="btn btn-sm btn-primary" data-app-id="' + app.application_id + '"><i class="bi bi-eye"></i> Review</button></td></tr>';
   }).join('');
+
+  apps.forEach(function (app, i) {
+    if (!app.can_reendorse) return;
+    var cell=tbody.rows[i].lastElementChild;
+    var button=document.createElement('button'); button.type='button'; button.className='btn btn-sm btn-outline-primary ms-1'; button.textContent='Re-Endorse';
+    button.addEventListener('click',function(){ ApplicantReendorsement.open(app.application_id,loadApplications); }); cell.appendChild(button);
+  });
 
   tbody.querySelectorAll('button[data-app-id]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -744,7 +972,7 @@ function renderReviewModal(data, appId) {
         '<div class="row g-2 align-items-center">' +
           '<div class="col-md-5 col-12">' +
             '<label class="form-label mb-1">Interview date</label>' +
-            '<input type="date" class="form-control form-control-sm" id="interviewDate">' +
+            '<input type="date" class="form-control form-control-sm" id="interviewDate" max="9999-12-31">' +
           '</div>' +
           '<div class="col-md-4 col-12">' +
             '<label class="form-label mb-1">Time</label>' +
@@ -767,10 +995,28 @@ function renderReviewModal(data, appId) {
       '</div>' +
     '</div>';
 
+  if (window.ApplicantReendorsement) ApplicantReendorsement.attach(content, data, loadApplications);
+
   // Wire actions
   var btnSchedule = content.querySelector('.btn-schedule');
   var btnEndorse = content.querySelector('.btn-endorse');
   var btnSaveInterview = content.querySelector('.btn-save-interview');
+
+  // Native <input type="date"> year segments let the browser's own picker
+  // accept more than 4 digits while typing (e.g. "312312"), since nothing
+  // previously bounded the year — the max="9999-12-31" attribute above
+  // helps, but typed-in years aren't always re-validated by the browser
+  // until blur/submit. This clears the field back out the moment a
+  // malformed/over-length year is committed, so a bad value never lingers
+  // in the field or reaches Save schedule.
+  var interviewDateInput = content.querySelector('#interviewDate');
+  if (interviewDateInput) {
+    interviewDateInput.addEventListener('change', function () {
+      if (!isValidInterviewDateValue(interviewDateInput.value)) {
+        interviewDateInput.value = '';
+      }
+    });
+  }
 
   if (btnSchedule) {
     btnSchedule.addEventListener('click', function () {
@@ -973,10 +1219,78 @@ function inferApplicantFileType(filename, filePath) {
   return 'other';
 }
 
+// Keep zoom local to the preview; original uploads and download URLs are unchanged.
+var applicantDocumentZoom = 1;
+function setApplicantDocumentZoom(value) {
+  var previousZoom = applicantDocumentZoom;
+  applicantDocumentZoom = Math.max(0.5, Math.min(3, value));
+  var viewport = document.getElementById('documentPreviewViewport');
+  var frame = document.getElementById('documentPreviewFrame');
+  var image = document.getElementById('documentPreviewImage');
+  if (!viewport || !frame || !image) return;
+  var width = Math.max(240, viewport.clientWidth - 26);
+  var height = Math.max(1, viewport.clientHeight - 26);
+  var ratio = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 1;
+  var fittedWidth = Math.min(width, height * ratio);
+  image.style.width = (fittedWidth * applicantDocumentZoom) + 'px';
+  image.style.marginTop = Math.max(0, (height - fittedWidth / ratio * applicantDocumentZoom) / 2) + 'px';
+  frame.style.width = width + 'px';
+  frame.style.height = Math.max(300, viewport.clientHeight - 26) + 'px';
+  image.style.zoom = '1';
+  frame.style.zoom = String(applicantDocumentZoom);
+  if (viewport.classList.contains('image-preview') && previousZoom !== applicantDocumentZoom) {
+    var scale = applicantDocumentZoom / previousZoom;
+    viewport.scrollLeft = (viewport.scrollLeft + viewport.clientWidth / 2) * scale - viewport.clientWidth / 2;
+    viewport.scrollTop = (viewport.scrollTop + viewport.clientHeight / 2) * scale - viewport.clientHeight / 2;
+  }
+  document.getElementById('documentZoomLevel').textContent = Math.round(applicantDocumentZoom * 100) + '%';
+  document.getElementById('documentZoomOut').disabled = applicantDocumentZoom <= 0.5;
+  document.getElementById('documentZoomIn').disabled = applicantDocumentZoom >= 3;
+}
+
 function initApplicantDocumentPreview() {
   var previewEl = document.getElementById('documentPreviewModal');
   if (!previewEl || previewEl.dataset.bound === '1') return;
   previewEl.dataset.bound = '1';
+  var viewport = document.getElementById('documentPreviewViewport');
+  var image = document.getElementById('documentPreviewImage');
+  var drag = null;
+  image.addEventListener('load', function () { setApplicantDocumentZoom(applicantDocumentZoom); });
+  viewport.addEventListener('pointerdown', function (event) {
+    if (!viewport.classList.contains('image-preview') || event.button !== 0) return;
+    // Leave the native scrollbar available as an alternative to dragging.
+    var rect = viewport.getBoundingClientRect();
+    if (event.clientX - rect.left >= viewport.clientWidth || event.clientY - rect.top >= viewport.clientHeight) return;
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop };
+    viewport.setPointerCapture(event.pointerId);
+    viewport.classList.add('is-dragging');
+    event.preventDefault();
+  });
+  viewport.addEventListener('pointermove', function (event) {
+    if (!drag || drag.id !== event.pointerId) return;
+    viewport.scrollLeft = drag.left - (event.clientX - drag.x);
+    viewport.scrollTop = drag.top - (event.clientY - drag.y);
+  });
+  function stopDragging(event) {
+    if (!drag || (event && event.pointerId !== drag.id)) return;
+    var id = drag.id;
+    drag = null;
+    viewport.classList.remove('is-dragging');
+    if (viewport.hasPointerCapture(id)) viewport.releasePointerCapture(id);
+  }
+  viewport.addEventListener('pointerup', stopDragging);
+  viewport.addEventListener('pointercancel', stopDragging);
+  viewport.addEventListener('lostpointercapture', stopDragging);
+  previewEl.addEventListener('hide.bs.modal', function () { stopDragging(); });
+
+  document.getElementById('documentZoomOut').addEventListener('click', function () { setApplicantDocumentZoom(applicantDocumentZoom - 0.25); });
+  document.getElementById('documentZoomIn').addEventListener('click', function () { setApplicantDocumentZoom(applicantDocumentZoom + 0.25); });
+  document.getElementById('documentZoomReset').addEventListener('click', function () { setApplicantDocumentZoom(1); });
+  previewEl.addEventListener('shown.bs.modal', function () { setApplicantDocumentZoom(1); });
+  window.addEventListener('resize', function () {
+    if (previewEl.classList.contains('show')) setApplicantDocumentZoom(applicantDocumentZoom);
+  });
+
 
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('.btn-view-applicant-doc');
@@ -1020,8 +1334,15 @@ function openApplicantDocumentPreview(fileUrl, fileType, title) {
   var downloadEl = document.getElementById('documentPreviewDownload');
   if (!previewEl || !titleEl || !frameEl || !imageEl || !emptyEl || !downloadEl) return;
 
+  applicantDocumentZoom = 1;
+  var viewport = document.getElementById('documentPreviewViewport');
+  if (viewport) { viewport.scrollTop = 0; viewport.scrollLeft = 0; }
+  var canZoom = !!fileUrl && (fileType === 'image' || fileType === 'pdf');
+  var toolbar = previewEl.querySelector('.document-preview-toolbar');
+  if (toolbar) toolbar.classList.toggle('d-none', !canZoom);
   var url = fileUrl || '';
   var type = (fileType || '').toLowerCase();
+  if (viewport) viewport.classList.toggle('image-preview', !!url && type === 'image');
 
   titleEl.textContent = title || 'Document Preview';
   downloadEl.href = url;
@@ -1085,6 +1406,13 @@ function updateStatus(appId, status) {
     });
 }
 
+function isValidInterviewDateValue(value) {
+  // A browser-committed <input type="date"> value is always "YYYY-MM-DD" —
+  // reject anything where the year isn't exactly 4 digits (e.g. a stray
+  // "312312-10-03" the native picker can otherwise produce).
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || '');
+}
+
 function triggerScheduleInterview(appId) {
   var dateInput = document.getElementById('interviewDate');
   var timeInput = document.getElementById('interviewTime');
@@ -1092,24 +1420,43 @@ function triggerScheduleInterview(appId) {
 
   var d = dateInput.value;
   var t = timeInput.value;
+  if (d && !isValidInterviewDateValue(d)) {
+    showInterviewResult(false, 'The interview date year must be exactly 4 digits.', 'Invalid Date');
+    dateInput.value = '';
+    dateInput.focus();
+    return;
+  }
   if (!d || !t) {
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Missing Date/Time',
-        text: 'Please select both interview date and time.',
-        confirmButtonColor: '#0056b3'
-      });
-    } else {
-      alert('Please select both interview date and time.');
-    }
-    if (!d) dateInput.focus();
-    else timeInput.focus();
+    showInterviewResult(false, 'Please select both interview date and time.', 'Missing Date / Time');
+    document.getElementById('interviewResultModal').addEventListener('hidden.bs.modal', function () { (!d ? dateInput : timeInput).focus(); }, { once: true });
     return;
   }
 
   var date = d + ' ' + t;
   scheduleInterview(appId, date);
+}
+
+function showInterviewResult(success, message, title) {
+  var modalEl = document.getElementById('interviewResultModal');
+  document.getElementById('interviewResultTitle').textContent = title || (success ? 'Interview Scheduled' : 'Scheduling Failed');
+  document.getElementById('interviewResultMessage').textContent = message;
+  document.getElementById('interviewResultIcon').className = success ?
+    'bi bi-check-circle-fill text-success fs-1' : 'bi bi-exclamation-circle-fill text-danger fs-1';
+  function showResult() {
+    modalEl.addEventListener('shown.bs.modal', function () {
+      var backs = document.querySelectorAll('.modal-backdrop');
+      if (backs.length) backs[backs.length - 1].style.zIndex = '1065';
+      modalEl.querySelector('.modal-footer button').focus();
+    }, { once: true });
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+  var review = document.getElementById('reviewModal');
+  if (success && review && review.classList.contains('show')) {
+    review.addEventListener('hidden.bs.modal', showResult, { once: true });
+    safeModalHide(review);
+  } else {
+    showResult();
+  }
 }
 
 function scheduleInterview(appId, date) {
@@ -1123,57 +1470,72 @@ function scheduleInterview(appId, date) {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.success) {
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
-            icon: 'success',
-            title: 'Interview Scheduled!',
-            text: 'Interview scheduled successfully!',
-            confirmButtonColor: '#0056b3'
-          });
-        } else {
-          alert('Interview scheduled successfully!');
-        }
-        safeModalHide(document.getElementById('reviewModal'));
+        showInterviewResult(true, 'Interview scheduled successfully!');
         loadApplications();
       } else {
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
-            icon: 'error',
-            title: 'Scheduling Failed',
-            text: data.message || 'Failed to schedule interview.',
-            confirmButtonColor: '#dc3545'
-          });
-        } else {
-          alert(data.message || 'Failed to schedule interview.');
-        }
+        showInterviewResult(false, data.message || 'Failed to schedule interview.');
       }
     })
     .catch(function () {
-      if (typeof Swal !== 'undefined') {
-        Swal.fire({
-          icon: 'error',
-          title: 'Network Error',
-          text: 'Request failed. Please try again.',
-          confirmButtonColor: '#dc3545'
-        });
-      } else {
-        alert('Request failed. Please try again.');
-      }
+      showInterviewResult(false, 'Request failed. Please try again.');
     });
+}
+
+function showApplicantEndorsedModal(message) {
+  var modalEl = document.getElementById('applicantEndorsedModal');
+  document.getElementById('applicantEndorsedMessage').textContent = message || 'Applicant endorsed to client successfully!';
+  function showSuccess() {
+    modalEl.addEventListener('shown.bs.modal', function () {
+      modalEl.querySelector('.modal-footer button').focus();
+    }, { once: true });
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
+  var review = document.getElementById('reviewModal');
+  if (review && review.classList.contains('show')) {
+    review.addEventListener('hidden.bs.modal', showSuccess, { once: true });
+    safeModalHide(review);
+  } else {
+    showSuccess();
+  }
+}
+
+function confirmApplicantEndorsement(onConfirm) {
+  var modalEl = document.getElementById('endorseApplicantConfirmModal');
+  if (modalEl.dataset.pending === '1') return;
+  modalEl.dataset.pending = '1';
+  var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+  var review = document.getElementById('reviewModal');
+  var restoreReview = !!review && review.classList.contains('show');
+  var confirmed = false;
+  var button = document.getElementById('confirmEndorseApplicant');
+  button.disabled = false;
+  button.onclick = function () {
+    if (confirmed) return;
+    confirmed = true;
+    button.disabled = true;
+    modal.hide();
+  };
+  modalEl.addEventListener('hidden.bs.modal', function () {
+    button.onclick = null;
+    button.disabled = false;
+    delete modalEl.dataset.pending;
+    if (confirmed) onConfirm();
+    else if (restoreReview) bootstrap.Modal.getOrCreateInstance(review).show();
+  }, { once: true });
+  modalEl.addEventListener('shown.bs.modal', function () {
+    modalEl.querySelector('.btn-secondary').focus();
+  }, { once: true });
+  if (restoreReview) {
+    review.addEventListener('hidden.bs.modal', function () { modal.show(); }, { once: true });
+    safeModalHide(review);
+  } else {
+    modal.show();
+  }
 }
 
 function endorseToClient(appId, appData) {
   if (appData && !appData.interview_date) {
-    if (typeof Swal !== 'undefined') {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Interview Required',
-        text: 'This applicant is not eligible for endorsement because they have not undergone an interview yet.',
-        confirmButtonColor: '#0056b3'
-      });
-    } else {
-      alert('This applicant cannot be endorsed because they have not undergone an interview yet.');
-    }
+    showInterviewResult(false, 'This applicant cannot be endorsed because they have not undergone an interview yet.', 'Endorsement Failed');
     return;
   }
 
@@ -1196,75 +1558,23 @@ function endorseToClient(appId, appData) {
       .then(function (res) {
         var d = res.data;
         if (res.data === null) {
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: 'Invalid server response (status ' + res.status + ')'
-            });
-          } else {
-            alert('Invalid server response (status ' + res.status + ')');
-          }
+          showInterviewResult(false, 'Invalid server response (status ' + res.status + ')', 'Endorsement Failed');
           return;
         }
         if (res.ok && d && d.success) {
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              icon: 'success',
-              title: 'Applicant Endorsed!',
-              text: d.message || 'Applicant endorsed to client successfully!',
-              confirmButtonColor: '#0056b3'
-            });
-          } else {
-            alert(d.message || 'Applicant endorsed to client successfully!');
-          }
-          safeModalHide(document.getElementById('reviewModal'));
+          showApplicantEndorsedModal(d.message);
           loadApplications();
         } else {
-          if (typeof Swal !== 'undefined') {
-            Swal.fire({
-              icon: 'error',
-              title: 'Endorsement Failed',
-              text: (d && (d.message || d.error)) || 'Failed to endorse applicant.',
-              confirmButtonColor: '#dc3545'
-            });
-          } else {
-            alert((d && (d.message || d.error)) || 'Failed to endorse applicant.');
-          }
+          showInterviewResult(false, (d && (d.message || d.error)) || 'Failed to endorse applicant.', 'Endorsement Failed');
         }
       })
       .catch(function (err) {
-        if (typeof Swal !== 'undefined') {
-          Swal.fire({
-            icon: 'error',
-            title: 'Network Error',
-            text: 'Request failed: ' + (err.message || 'network error'),
-            confirmButtonColor: '#dc3545'
-          });
-        } else {
-          alert('Request failed: ' + (err.message || 'network error'));
-        }
+        showInterviewResult(false, 'Request failed: ' + (err.message || 'network error'), 'Endorsement Failed');
       });
   };
 
-  if (typeof Swal !== 'undefined') {
-    Swal.fire({
-      title: 'Endorse Applicant?',
-      text: 'Are you sure you want to endorse this applicant to the client?',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#0056b3',
-      cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Yes, Endorse'
-    }).then(function (result) {
-      if (result.isConfirmed) {
-        doEndorse();
-      }
-    });
-  } else {
-    if (!confirm('Endorse this applicant to the client?')) return;
-    doEndorse();
-  }
+  confirmApplicantEndorsement(doEndorse);
+
 }
 
 function simulateClientApproval(appId) {

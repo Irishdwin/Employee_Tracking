@@ -27,8 +27,17 @@ require_once __DIR__ . '/../Helpers/attendance_pdo.php';
 require_once __DIR__ . '/../Helpers/dtr_qr_logic.php';
 require_once __DIR__ . '/../Helpers/employee_deployment_context.php';
 require_once __DIR__ . '/../Helpers/employee_payroll_helper.php';
+require_once __DIR__ . '/../Helpers/holidays_helper.php';
 
 try {
+    $rangeStart=null; $rangeEnd=null;
+    if (isset($_GET['start']) || isset($_GET['end'])) {
+        try {
+            $rangeStart=team_schedule_date((string)($_GET['start']??''));
+            $rangeEnd=team_schedule_date((string)($_GET['end']??''));
+            if ($rangeEnd<$rangeStart || (strtotime($rangeEnd)-strtotime($rangeStart))/86400>61) throw new InvalidArgumentException('Choose a date range of at most 62 days.');
+        } catch (InvalidArgumentException $e) { http_response_code(422); echo json_encode(['success'=>false,'message'=>$e->getMessage()]); exit(); }
+    }
     $pdo = attendance_pdo();
     attendance_ensure_table($pdo);
 
@@ -90,10 +99,26 @@ try {
         return $m . 'm';
     };
 
-    $formatEntry = static function (?array $row, string $isoDate) use ($shiftStart, $scheduledWeekdays, $today, $formatTimeManila, $formatBreakDisplay, $breakMinutes): array {
+    // Real holiday info keyed by date, from the SAME `holidays` table the
+    // production payroll engine reads (holidays_fetch_for_range() —
+    // Api/Helpers/holidays_helper.php). The actual peso holiday-pay figure
+    // already surfaces correctly on the Employee's own Payroll tab via
+    // payroll_compute_period() (Api/Employee/get_employee_payroll.php) — this
+    // only attaches which dates were holidays, for the Timesheet/Calendar to
+    // indicate, not a second payroll calculation.
+    // $logs below is the $limit most recent daily_time_records ROWS, which
+    // can span a wider calendar range than $limit days if there are gaps
+    // (e.g. weekends/rest days with no row) — widen the lookup window so a
+    // day's holiday flag isn't missed just because of such gaps.
+    $holidayRangeStart = date('Y-m-d', strtotime('-' . ($limit * 3) . ' days', strtotime($today)));
+    $holidaysByDate = holidays_fetch_for_range($conn, $rangeStart ?? $holidayRangeStart, $rangeEnd ?? $today);
+
+    $formatEntry = static function (?array $row, string $isoDate) use ($conn, $employeeId, $today, $formatTimeManila, $formatBreakDisplay, $holidaysByDate): array {
+        $schedule = payroll_resolve_deployment_schedule($conn, $employeeId, $isoDate);
+        $holiday = isset($holidaysByDate[$isoDate]) ? $holidaysByDate[$isoDate][0] : null;
         if (!$row) {
             $meta = function_exists('payroll_timesheet_day_status') 
-                ? payroll_timesheet_day_status(null, $isoDate, ['working_days' => 'Mon-Fri', 'time_in' => $shiftStart, 'grace_period' => 5, 'break_minutes' => $breakMinutes], $today)
+                ? payroll_timesheet_day_status(null, $isoDate, $schedule, $today)
                 : ['status' => 'No record', 'total_hours' => null, 'break_minutes' => 0, 'undertime_minutes' => null, 'is_late' => false];
             return [
                 'date' => $isoDate,
@@ -107,6 +132,7 @@ try {
                 'total_hours_rendered' => null,
                 'undertime_minutes' => null,
                 'is_late' => false,
+                'holiday' => $holiday,
             ];
         }
 
@@ -121,7 +147,7 @@ try {
             
         $row['total_hours_rendered'] = $totalHours;
         $meta = function_exists('payroll_timesheet_day_status')
-            ? payroll_timesheet_day_status($row, $isoDate, ['working_days' => 'Mon-Fri', 'time_in' => $shiftStart, 'grace_period' => 5, 'break_minutes' => $breakMinutes], $today)
+            ? payroll_timesheet_day_status($row, $isoDate, $schedule, $today)
             : ['status' => $row['status'] ?? 'Present', 'total_hours' => $totalHours, 'break_minutes' => 0, 'undertime_minutes' => null, 'is_late' => false];
 
         return [
@@ -138,24 +164,26 @@ try {
             'undertime_minutes' => $meta['undertime_minutes'] ?? null,
             'is_late' => $meta['is_late'] ?? false,
             'updated_at' => $row['updated_at'] ?? null,
+            'holiday' => $holiday,
         ];
     };
 
     $todayPayload = $formatEntry($todayRow ?: null, $today);
+    $todaySchedule = payroll_resolve_deployment_schedule($conn, $employeeId, $today);
+    $todayPayload['expected_schedule'] = !empty($todaySchedule['deployment_id']) ? team_schedule_public($todaySchedule, $today) : null;
     $todayPayload['employee_id'] = $employeeId;
     $todayPayload['time_in'] = $todayRow['time_in'] ?? null;
     $todayPayload['break_time'] = $todayRow['break_time'] ?? null;
     $todayPayload['time_out'] = $todayRow['time_out'] ?? null;
 
-    $logStmt = $pdo->prepare("
-        SELECT id, date, time_in, break_time, time_out, total_hours_rendered, status, updated_at
-        FROM daily_time_records
-        WHERE employee_id = ?
-        ORDER BY date DESC, id DESC
-        LIMIT ?
-    ");
-    $logStmt->bindValue(1, $employeeId, PDO::PARAM_INT);
-    $logStmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $logSql='SELECT id,date,time_in,break_time,time_out,total_hours_rendered,status,updated_at FROM daily_time_records WHERE employee_id=?';
+    if ($rangeStart!==null) $logSql.=' AND date BETWEEN ? AND ?';
+    $logSql.=' ORDER BY date DESC,id DESC LIMIT ?';
+    $logStmt=$pdo->prepare($logSql);
+    $logStmt->bindValue(1,$employeeId,PDO::PARAM_INT);
+    if ($rangeStart!==null) {
+        $logStmt->bindValue(2,$rangeStart); $logStmt->bindValue(3,$rangeEnd); $logStmt->bindValue(4,90,PDO::PARAM_INT);
+    } else $logStmt->bindValue(2,$limit,PDO::PARAM_INT);
     $logStmt->execute();
 
     $logs = [];

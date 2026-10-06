@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../Common/session_init.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'Admin') {
     http_response_code(401);
@@ -47,28 +47,98 @@ if ($method === 'GET') {
         json_response(['success' => true, 'agreement' => $row]);
     }
 
-    $where = $companyId > 0 ? " WHERE s.ClientCompanyID = ?" : "";
-    $params = $companyId > 0 ? [$companyId] : [];
-    $sql = "SELECT s.ServiceAgreementID, s.ClientCompanyID, s.ContractNumber, s.ContractStartDate, s.ContractEndDate, s.SignedDocumentPath, s.Status, s.CreatedDate, c.Name AS CompanyName
-            FROM serviceagreement s
-            LEFT JOIN clientcompany c ON s.ClientCompanyID = c.CompanyID
-            {$where}
-            ORDER BY s.CreatedDate DESC";
     if ($companyId > 0) {
-        $stmt = $conn->prepare($sql);
+        // Unchanged: existing "agreements for one company" lookup (used by
+        // the client company view/edit modal) — not paginated, since that
+        // caller expects the full list for a single company, not a page of
+        // the overall Admin table.
+        $stmt = $conn->prepare(
+            "SELECT s.ServiceAgreementID, s.ClientCompanyID, s.ContractNumber, s.ContractStartDate, s.ContractEndDate, s.SignedDocumentPath, s.Status, s.CreatedDate, c.Name AS CompanyName
+             FROM serviceagreement s
+             LEFT JOIN clientcompany c ON s.ClientCompanyID = c.CompanyID
+             WHERE s.ClientCompanyID = ?
+             ORDER BY s.CreatedDate DESC"
+        );
         $stmt->bind_param("i", $companyId);
         $stmt->execute();
         $result = $stmt->get_result();
-    } else {
-        $result = $conn->query($sql);
+        $list = [];
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $list[] = $row;
+            }
+        }
+        json_response(['success' => true, 'agreements' => $list]);
     }
+
+    // ST-500: search + status filter + pagination for the main Admin
+    // Service Agreements list (no company_id given). `Status` is the real
+    // DB enum('Active','Expired') column already used for the Status badge
+    // in the UI, so the filter matches it exactly.
+    $search = trim($_GET['search'] ?? '');
+    $statusFilter = trim($_GET['status'] ?? '');
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $limit = max(1, min(100, (int)($_GET['limit'] ?? 10)));
+    $offset = ($page - 1) * $limit;
+
+    $whereClauses = [];
+    $types = '';
+    $bindValues = [];
+
+    if ($search !== '') {
+        $whereClauses[] = '(s.ContractNumber LIKE ? OR c.Name LIKE ?)';
+        $searchTerm = "%{$search}%";
+        array_push($bindValues, $searchTerm, $searchTerm);
+        $types .= 'ss';
+    }
+
+    if ($statusFilter === 'Active' || $statusFilter === 'Expired') {
+        $whereClauses[] = 's.Status = ?';
+        $bindValues[] = $statusFilter;
+        $types .= 's';
+    }
+
+    $whereSql = $whereClauses ? ('WHERE ' . implode(' AND ', $whereClauses)) : '';
+
+    $countStmt = $conn->prepare(
+        "SELECT COUNT(*) FROM serviceagreement s LEFT JOIN clientcompany c ON s.ClientCompanyID = c.CompanyID {$whereSql}"
+    );
+    if (!empty($bindValues)) {
+        $countStmt->bind_param($types, ...$bindValues);
+    }
+    $countStmt->execute();
+    $totalRecords = (int)$countStmt->get_result()->fetch_row()[0];
+    $countStmt->close();
+
+    $listSql = "SELECT s.ServiceAgreementID, s.ClientCompanyID, s.ContractNumber, s.ContractStartDate, s.ContractEndDate, s.SignedDocumentPath, s.Status, s.CreatedDate, c.Name AS CompanyName
+                FROM serviceagreement s
+                LEFT JOIN clientcompany c ON s.ClientCompanyID = c.CompanyID
+                {$whereSql}
+                ORDER BY s.CreatedDate DESC
+                LIMIT ? OFFSET ?";
+    $stmt = $conn->prepare($listSql);
+    $paginationTypes = $types . 'ii';
+    $paginationValues = array_merge($bindValues, [$limit, $offset]);
+    $stmt->bind_param($paginationTypes, ...$paginationValues);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
     $list = [];
     if ($result) {
         while ($row = $result->fetch_assoc()) {
             $list[] = $row;
         }
     }
-    json_response(['success' => true, 'agreements' => $list]);
+    json_response([
+        'success' => true,
+        'agreements' => $list,
+        'pagination' => [
+            'total' => $totalRecords,
+            'page' => $page,
+            'limit' => $limit,
+            'pages' => max(1, (int)ceil($totalRecords / $limit)),
+        ],
+    ]);
 }
 
 if ($method === 'POST') {

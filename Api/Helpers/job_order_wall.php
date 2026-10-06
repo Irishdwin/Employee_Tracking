@@ -237,8 +237,60 @@ function job_order_fetch_placement_slots_pdo(PDO $pdo, int $jobOrderId, int $req
 }
 
 /**
- * @param array<int, array<string,mixed>> $slots
- * @return array{total_slots:int,filled_slots:int,open_slots:int,all_filled:bool}
+ * Recompute and persist joborder.Status from actual hire data, using the
+ * same slot/fill calculation the Job Wall already relies on to decide
+ * whether a Job Order still has open slots. Call this any time a hire (or
+ * un-hire) could have changed a Job Order's fill state — e.g. right after
+ * hireApplicantFromApplication() successfully fills a slot.
+ *
+ * Idempotent and safe to call repeatedly: it always reflects current data,
+ * so it closes a Job Order once every required slot is filled by an
+ * employee, and reopens it again if a slot later becomes available.
+ */
+function updateJobOrderFillStatus(mysqli $conn, int $jobOrderId): void
+{
+    if ($jobOrderId <= 0) {
+        return;
+    }
+
+    $requiredCountRow = null;
+    $rcStmt = $conn->prepare('SELECT RequiredCount, Status FROM joborder WHERE JobOrderID = ? LIMIT 1');
+    if (!$rcStmt) {
+        return;
+    }
+    $rcStmt->bind_param('i', $jobOrderId);
+    $rcStmt->execute();
+    $requiredCountRow = $rcStmt->get_result()->fetch_assoc();
+    $rcStmt->close();
+    if (!$requiredCountRow) {
+        return;
+    }
+
+    $slots = job_order_fetch_placement_slots_mysqli($conn, $jobOrderId, (int)($requiredCountRow['RequiredCount'] ?? 1));
+    $summary = job_order_summarize_slots($slots);
+    $newStatus = $summary['all_filled'] ? 'Closed' : 'Open';
+
+    if ($newStatus !== $requiredCountRow['Status']) {
+        $updStmt = $conn->prepare('UPDATE joborder SET Status = ? WHERE JobOrderID = ?');
+        if ($updStmt) {
+            $updStmt->bind_param('si', $newStatus, $jobOrderId);
+            $updStmt->execute();
+            $updStmt->close();
+        }
+    }
+}
+
+/**
+ * Tally total/filled/open slots from job_order_fetch_placement_slots_mysqli()'s
+ * output, and whether every slot is filled. Used by updateJobOrderFillStatus()
+ * above to decide whether a Job Order's Status should flip to 'Closed'.
+ *
+ * This function's own signature line was missing (left as a bare `{` block),
+ * which meant it was never actually defined — calling it threw
+ * "Call to undefined function job_order_summarize_slots()", which is what
+ * broke the Applicant Job Wall entirely (Api/Applicant/job_board.php calls
+ * this indirectly via updateJobOrderFillStatus(), so every request fatally
+ * errored before it could return any jobs).
  */
 function job_order_summarize_slots(array $slots): array
 {

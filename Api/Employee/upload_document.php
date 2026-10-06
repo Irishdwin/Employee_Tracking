@@ -16,7 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-applicant_doc_ensure_schema($conn);
+if (!isset($_SESSION['employee_document_csrf']) || !is_string($_POST['csrf_token'] ?? null) || !hash_equals($_SESSION['employee_document_csrf'], $_POST['csrf_token'])) {
+    http_response_code(403); echo json_encode(['success'=>false,'message'=>'Please refresh the documents page and try again.']); exit;
+}
 
 $userId = (int)$_SESSION['user_id'];
 $stmt = $conn->prepare('SELECT ApplicantID FROM applicants WHERE UserID = ? LIMIT 1');
@@ -56,44 +58,45 @@ if (!in_array($ext, $allowedExts, true)) {
     exit();
 }
 
-$uploadDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'Uploads' . DIRECTORY_SEPARATOR . 'Documents' . DIRECTORY_SEPARATOR;
-if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true)) {
-    echo json_encode(['success' => false, 'message' => 'Failed to create upload directory.']);
-    exit();
+$mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+$mimeTypes=['pdf'=>['application/pdf'],'png'=>['image/png'],'jpg'=>['image/jpeg'],'jpeg'=>['image/jpeg'],'doc'=>['application/msword','application/x-ole-storage','application/CDFV2'],'docx'=>['application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/zip']];
+$valid=in_array($mime,$mimeTypes[$ext],true);
+if ($valid && in_array($ext,['png','jpg','jpeg'],true)) $valid=getimagesize($file['tmp_name'])!==false;
+if ($valid && $ext==='docx') {
+    $zip=new ZipArchive(); $valid=$zip->open($file['tmp_name'])===true;
+    if($valid) { $valid=$zip->locateName('[Content_Types].xml')!==false && $zip->locateName('word/document.xml')!==false; $zip->close(); }
 }
-
-$newName = 'empdoc_' . $applicantId . '_' . time() . '_' . uniqid('', true) . '.' . $ext;
-$fullPath = $uploadDir . $newName;
-$dbPath = '../../Uploads/Documents/' . $newName;
-
-if (!move_uploaded_file((string)$file['tmp_name'], $fullPath)) {
-    echo json_encode(['success' => false, 'message' => 'Failed to save uploaded file.']);
-    exit();
+if (!$valid) { http_response_code(415); echo json_encode(['success'=>false,'message'=>'The file content does not match an allowed document format.']); exit; }
+$replaceId=filter_var($_POST['replace_doc_id']??0,FILTER_VALIDATE_INT);
+if ($replaceId===false || $replaceId<0) { http_response_code(422); echo json_encode(['success'=>false,'message'=>'Invalid document selection.']); exit; }
+$fullPath=null;
+try {
+    $conn->begin_transaction();
+    if ($replaceId>0) {
+        $owner=$conn->prepare('SELECT DocID FROM applicant_uploaded_docs WHERE DocID=? AND ApplicantID=? FOR UPDATE');
+        $owner->bind_param('ii',$replaceId,$applicantId); $owner->execute();
+        $owned=$owner->get_result()->fetch_assoc(); $owner->close();
+        if (!$owned) { $conn->rollback(); http_response_code(403); echo json_encode(['success'=>false,'message'=>'You can only replace your own documents.']); exit; }
+    }
+    $uploadDir=dirname(__DIR__,2).'/Uploads/Documents/';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir,0755,true)) throw new RuntimeException('Upload directory unavailable');
+    $newName='empdoc_'.$applicantId.'_'.bin2hex(random_bytes(16)).'.'.$ext;
+    $fullPath=$uploadDir.$newName; $dbPath='../../Uploads/Documents/'.$newName;
+    if (!move_uploaded_file($file['tmp_name'],$fullPath)) throw new RuntimeException('Unable to save file');
+    $size=(int)$file['size']; $origName=basename(str_replace('\\','/',(string)$file['name']));
+    if ($replaceId>0) {
+        $save=$conn->prepare('UPDATE applicant_uploaded_docs SET FilePath=?,OriginalFileName=?,FileSize=?,UploadedAt=NOW(),IsVerified=0,VerifiedBy=NULL,VerifiedDate=NULL WHERE DocID=? AND ApplicantID=?');
+        $save->bind_param('ssiii',$dbPath,$origName,$size,$replaceId,$applicantId);
+    } else {
+        if ($docType==='' || strlen($docType)>100) throw new RuntimeException('Invalid document type');
+        $save=$conn->prepare('INSERT INTO applicant_uploaded_docs (ApplicationID,ApplicantID,DocType,DocCategory,FilePath,OriginalFileName,FileSize) VALUES (NULL,?,?,?,?,?,?)');
+        $save->bind_param('issssi',$applicantId,$docType,$docCategory,$dbPath,$origName,$size);
+    }
+    $save->execute(); $save->close(); $conn->commit();
+    echo json_encode(['success'=>true,'message'=>$replaceId>0?'Document replaced successfully.':'Document uploaded successfully.']);
+} catch(Throwable $e) {
+    $conn->rollback();
+    if($fullPath && is_file($fullPath)) unlink($fullPath);
+    error_log('Employee document upload failed.');
+    http_response_code(500); echo json_encode(['success'=>false,'message'=>'Unable to save your document. Please try again.']);
 }
-
-$size = (int)$file['size'];
-$ins = $conn->prepare(
-    'INSERT INTO applicant_uploaded_docs (ApplicationID, ApplicantID, DocType, DocCategory, FilePath, OriginalFileName, FileSize)
-     VALUES (NULL, ?, ?, ?, ?, ?, ?)'
-);
-$origName = (string)$file['name'];
-$ins->bind_param('issssi', $applicantId, $docType, $docCategory, $dbPath, $origName, $size);
-
-if (!$ins->execute()) {
-    @unlink($fullPath);
-    $err = $conn->error;
-    $ins->close();
-    echo json_encode(['success' => false, 'message' => 'Failed to save document record: ' . $err]);
-    exit();
-}
-$ins->close();
-
-echo json_encode([
-    'success' => true,
-    'message' => 'Document uploaded successfully.',
-    'document' => [
-        'name' => $origName,
-        'type' => $docType,
-        'path' => $dbPath,
-    ],
-]);

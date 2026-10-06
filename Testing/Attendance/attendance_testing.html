@@ -24,19 +24,23 @@
       <div class="card-body">
         <h2 class="h6 fw-bold mb-3">1. Select who this record is for</h2>
         <div class="row g-3">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label small fw-semibold">Client Company</label>
             <select id="selCompany" class="form-select">
               <option value="">Loading…</option>
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Deployment Site</label>
+            <select id="selSite" class="form-select" disabled><option value="">Select a company first</option></select>
+          </div>
+          <div class="col-md-3">
             <label class="form-label small fw-semibold">Team Lead</label>
             <select id="selTeamLead" class="form-select" disabled>
-              <option value="">Select a company first</option>
+              <option value="">Select a site first</option>
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <label class="form-label small fw-semibold">Employee</label>
             <select id="selEmployee" class="form-select" disabled>
               <option value="">Select a Team Lead first</option>
@@ -47,9 +51,64 @@
       </div>
     </div>
 
+    <div class="card shadow-sm mb-4 d-none" id="employeeRateCard">
+      <div class="card-body">
+        <h2 class="h6 fw-bold">Employee Payroll Rate — Actual Employee Test</h2>
+        <div id="employeeRateDetails" aria-live="polite"></div>
+        <p class="small text-muted mt-2">Rates are read-only and re-resolved by the server. The selected worked scenario uses an anonymous disposable fixture with this employee's rates and schedule; no real holiday, attendance or salary is changed. Allowances and deductions are excluded from the compensation comparison.</p>
+        <button id="btnRunEmployeeScenario" class="btn btn-outline-primary" disabled>Run Selected Employee Holiday Scenario</button>
+        <div id="employeeScenarioResult" class="mt-3" aria-live="polite"></div>
+      </div>
+    </div>
+    <div class="card shadow-sm mb-4" id="controlledHolidayTests">
+      <div class="card-body">
+        <h2 class="h6 fw-bold">Controlled Holiday Pay — Production End-to-End Test</h2>
+        <p class="small text-muted">Runs scenarios A–K and a preceding-holiday boundary check at ₱1,000/day (₱125/hour). Uses synthetic employees in a disposable database, then calls the current production Attendance, Team Lead DTR, Accounting verification and payroll code. No employee selection or real holiday this month is needed.</p>
+        <button type="button" id="btnRunHolidaySuite" class="btn btn-primary">Run All Controlled Holiday Tests</button>
+        <div id="controlledHolidayResult" class="mt-3" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4" id="cardScenario" style="display:none;">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">2. Payroll Test Scenario</h2>
+        <p class="small text-muted mb-2">Pick a scenario to pre-fill the fields below, or choose Custom and fill them in yourself.</p>
+        <select id="selScenario" class="form-select">
+          <option value="custom">Custom (fill in manually below)</option>
+          <optgroup label="Normal workday">
+            <option value="t1">TEST 1 — Normal workday, 8 regular hours, 0 OT</option>
+            <option value="t2">TEST 2 — Normal workday, 8 regular hours + 2 OT hours</option>
+          </optgroup>
+          <optgroup label="Regular / Legal Holiday">
+            <option value="t3">TEST 3 — Regular/Legal Holiday, Did Not Work</option>
+            <option value="t4">TEST 4 — Regular/Legal Holiday, Worked 8 hours</option>
+            <option value="t5">TEST 5 — Regular/Legal Holiday, Worked 8 hours + 2 OT hours</option>
+            <option value="t6">TEST 6 — Regular/Legal Holiday + Scheduled Rest Day, Worked</option>
+          </optgroup>
+          <optgroup label="Special Non-Working Holiday">
+            <option value="t7">TEST 7 — Special Non-Working Holiday, Did Not Work</option>
+            <option value="t8">TEST 8 — Special Non-Working Holiday, Worked 8 hours</option>
+            <option value="t9">TEST 9 — Special Non-Working Holiday, Worked 8 hours + 2 OT hours</option>
+            <option value="t10">TEST 10 — Special Non-Working Holiday + Scheduled Rest Day, Worked</option>
+          </optgroup>
+          <optgroup label="Special Working Day">
+            <option value="t11">TEST 11 — Special Working Day, Worked</option>
+          </optgroup>
+          <optgroup label="Double Regular Holiday (use the controlled suite above)">
+            <option value="t12">TEST 12 — Double Regular Holiday, Did Not Work</option>
+            <option value="t13">TEST 13 — Double Regular Holiday, Worked</option>
+            <option value="t14">TEST 14 — Double Regular Holiday, Worked + OT</option>
+          </optgroup>
+        </select>
+        <div id="doubleHolidayWarning" class="alert alert-warning small mt-3 d-none">
+          The current holiday schema supports two distinct Regular Holidays on one date. Use the controlled suite above to verify this safely; manual presets do not create holidays in the official calendar.
+        </div>
+      </div>
+    </div>
+
     <div class="card shadow-sm mb-4" id="cardAddRecord" style="display:none;">
       <div class="card-body">
-        <h2 class="h6 fw-bold mb-3">2. Add / Render a duty day</h2>
+        <h2 class="h6 fw-bold mb-3">3. Attendance Details</h2>
         <div class="row g-3 align-items-end">
           <div class="col-md-3">
             <label class="form-label small fw-semibold">Date</label>
@@ -64,7 +123,7 @@
             <input type="time" id="inpTimeOut" class="form-control">
           </div>
           <div class="col-md-3">
-            <button type="button" id="btnSaveRecord" class="btn btn-primary w-100">Save Record</button>
+            <button type="button" id="btnSaveRecord" class="btn btn-primary w-100">7. Save Test Attendance</button>
           </div>
         </div>
         <div class="row g-3 mt-1">
@@ -82,9 +141,71 @@
       </div>
     </div>
 
+    <div class="card shadow-sm mb-4" id="cardHoliday" style="display:none;">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">4. Holiday Details <span class="text-muted fw-normal small">(from the existing Holidays table, for the Date above)</span></h2>
+        <div id="holidayInfo" class="alert alert-secondary small mb-2">Set a Date above to look up holiday information.</div>
+        <div id="scheduleRestInfo" class="small text-muted"></div>
+        <div id="cutoffInfo" class="small text-muted mt-1"></div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4" id="cardOvertime" style="display:none;">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">5. Overtime Details</h2>
+        <p class="small text-muted mb-2">
+          Creates a real, pre-approved row in the existing <code>overtime</code> table for this employee/date — the same table/
+          columns the Team Lead overtime tool uses, so it is picked up by the real payroll computation.
+          <strong>Don't combine this with a Time Out on the attendance record above that already exceeds 8 working hours</strong> —
+          production adds both sources together and will double-count the extra hours. This section is disabled when your
+          Attendance Details above already imply more than 8 hours.
+        </p>
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Overtime Start</label>
+            <input type="time" id="inpOtStart" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Overtime End</label>
+            <input type="time" id="inpOtEnd" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Overtime Hours</label>
+            <input type="text" id="inpOtHoursPreview" class="form-control" disabled placeholder="auto">
+          </div>
+          <div class="col-md-3">
+            <button type="button" id="btnSaveOt" class="btn btn-outline-primary w-100">Save OT Session</button>
+          </div>
+        </div>
+        <div id="otResult" class="alert d-none mt-3 small"></div>
+        <div class="table-responsive mt-3">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light"><tr><th>Date</th><th>OT Start</th><th>OT End</th><th>Hours</th><th>Action</th></tr></thead>
+            <tbody id="otTableBody"><tr><td colspan="5" class="text-center text-muted py-2">No test overtime sessions yet.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4" id="cardExpected" style="display:none;">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">6. Expected Result <span class="text-muted fw-normal small">(manual reference values — never fed into production)</span></h2>
+        <p class="small text-muted">Enter independent reference amounts manually, or run the controlled suite above for fixed acceptance scenarios.</p>
+        <div class="row g-2">
+          <div class="col-md-3"><label class="form-label small">Regular Pay</label><input type="number" step="0.01" id="expRegular" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Overtime Pay</label><input type="number" step="0.01" id="expOt" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Holiday Pay</label><input type="number" step="0.01" id="expHoliday" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Gross Pay</label><input type="number" step="0.01" id="expGross" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Deductions</label><input type="number" step="0.01" id="expDeductions" class="form-control form-control-sm"></div>
+          <div class="col-md-3"><label class="form-label small">Net Pay</label><input type="number" step="0.01" id="expNet" class="form-control form-control-sm"></div>
+        </div>
+        <p class="small text-muted mt-2 mb-0">These are your own expected figures (typed by hand) — used only to compare against the real computed result below. They are never sent to the actual payroll engine.</p>
+      </div>
+    </div>
+
     <div class="card shadow-sm" id="cardRecordsList" style="display:none;">
       <div class="card-body">
-        <h2 class="h6 fw-bold mb-3">3. Existing records for this employee (last 30)</h2>
+        <h2 class="h6 fw-bold mb-3">Existing attendance records for this employee (last 30)</h2>
         <div class="table-responsive">
           <table class="table table-sm table-hover align-middle">
             <thead class="table-light">
@@ -102,6 +223,19 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mt-4" id="cardVerify" style="display:none;">
+      <div class="card-body">
+        <h2 class="h6 fw-bold mb-3">8. Payroll Verification</h2>
+        <p class="small text-muted mb-2">
+          Runs the REAL production <code>payroll_compute_period()</code> function for this employee, for the payroll cutoff the
+          Date above falls in — the exact same function Accounting's payroll computation and the Employee payslip use. Nothing
+          here is a separate/simulated calculation.
+        </p>
+        <button type="button" id="btnRunVerify" class="btn btn-success">Run Actual Payroll Check</button>
+        <div id="verifyResult" class="mt-3"></div>
       </div>
     </div>
   </div>

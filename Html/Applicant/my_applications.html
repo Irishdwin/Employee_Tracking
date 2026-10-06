@@ -426,54 +426,71 @@
     }
 
     /* Progress stepper */
-    .app-stepper{
+    .app-track{
       display:flex;
-      gap:0;
+      align-items:center;
       margin:14px 0 12px;
-      padding: 10px 0 12px;
+      padding: 14px 4px 16px;
       border-top:1px solid rgba(15,23,42,0.06);
       border-bottom:1px solid rgba(15,23,42,0.06);
+      overflow-x:auto;
     }
-    .app-stepper-step{
-      flex:1;
-      text-align:center;
-      position:relative;
-      padding:0 6px;
+    .app-track-step{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex: 0 0 auto;
     }
-    .app-stepper-step:not(:last-child)::after{
-      content:'';
-      position:absolute;
-      top:18px;
-      left:50%;
-      right:-50%;
-      height:2px;
-      background: rgba(15,23,42,0.12);
-      transform: translateX(6px);
-      z-index:0;
-    }
-    .app-stepper-dot{
-      width:14px;
-      height:14px;
+    .app-track-icon{
+      width:40px;
+      height:40px;
       border-radius:999px;
-      background: rgba(15,23,42,0.15);
-      margin:0 auto;
-      position:relative;
-      z-index:1;
+      flex-shrink:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:16px;
+      background: rgba(15,23,42,0.08);
+      color:#94a3b8;
+      transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
     }
-    .app-stepper-step.is-complete:not(:last-child)::after{ background: var(--onazul-primary); }
-    .app-stepper-step.is-complete .app-stepper-dot{ background: var(--onazul-primary); }
-    .app-stepper-step.is-active .app-stepper-dot{ background: var(--onazul-magenta); }
-    .app-stepper-label{
-      margin-top:8px;
-      font-size:10px;
-      font-weight: 950;
-      color:#64748b;
-      line-height:1.15;
+    .app-track-step.is-complete .app-track-icon{ background: var(--onazul-primary); color:#fff; }
+    .app-track-step.is-current .app-track-icon{
+      background: var(--onazul-primary);
+      color:#fff;
+      box-shadow: 0 0 0 5px rgba(0, 86, 179, 0.18);
     }
-    @media (min-width: 992px){
-      .app-stepper-label{ font-size:11px; }
+    .app-track-text{ white-space:nowrap; }
+    .app-track-label{
+      font-size:12px;
+      font-weight:900;
+      color:#94a3b8;
+      line-height:1.2;
     }
-    .app-stepper-step.is-complete .app-stepper-label{ color:#0f172a; }
+    .app-track-step.is-complete .app-track-label,
+    .app-track-step.is-current .app-track-label{ color: var(--onazul-primary); }
+    .app-track-desc{
+      font-size:11px;
+      font-weight:600;
+      color:#94a3b8;
+      line-height:1.25;
+      margin-top:1px;
+    }
+    .app-track-step.is-complete .app-track-desc,
+    .app-track-step.is-current .app-track-desc{ color:#475569; }
+    .app-track-connector{
+      flex:1 1 40px;
+      min-width:24px;
+      height:3px;
+      background: rgba(15,23,42,0.12);
+      margin:0 10px;
+      border-radius:2px;
+    }
+    .app-track-connector.is-complete{ background: var(--onazul-primary); }
+    @media (max-width: 767.98px){
+      .app-track-desc{ display:none; }
+      .app-track-connector{ flex-basis:20px; margin:0 6px; }
+    }
 
     /* Agency contact widget */
     .app-contact-card{
@@ -503,8 +520,13 @@
     window.ROLE_GUARD_DEFER_ELEVATION = true;
   </script>
   <script src="../../Js/Shared/role_guard.js"></script>
+<link rel="stylesheet" href="../../Css/applicant_navbar.css?v=20261006">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
+<link rel="stylesheet" href="../../Css/ow_widgets.css">
+<style>.ow-msgr-panel,.ow-msgr-fab{z-index:22000}.ow-msgr-panel{background:#f0f5fc}</style>
 </head>
-<body>
+<body class="applicant-blue-ui applicant-page-my-applications">
   <!-- Main Top Header -->
   <header class="topbar">
     <div class="container-fluid px-3 py-2">
@@ -516,8 +538,8 @@
 
         <nav class="d-none d-md-flex align-items-center gap-4">
           <a class="nav-link" href="../../Html/Applicant/applicant_landing.html">Job search</a>
-          <a class="nav-link" href="applicant_career_advice.html">Career advice</a>
-          <a class="nav-link" href="applicant_companies.html">Companies</a>
+          <a class="nav-link" href="#how-to-apply" data-applicant-info="apply">How to Apply</a>
+          <a class="nav-link" href="#agency-contact" data-applicant-info="contact">Contact the Agency</a>
         </nav>
 
         <div class="d-flex align-items-center gap-3">
@@ -561,6 +583,7 @@
                 <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#profile">Profile &amp; preferences</a>
                 <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#documents">My documents</a>
                 <a class="account-dropdown-item" role="menuitem" href="my_applications.html" id="accountLinkApplications">Job applications</a>
+                <a class="account-dropdown-item" role="menuitem" href="saved_jobs.html">Saved jobs</a>
                 <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
                 <a class="account-dropdown-item" role="menuitem" href="../notifications.html">Notifications</a>
                 <div class="account-dropdown-divider"></div>
@@ -738,6 +761,22 @@
       var refreshTimer = null;
       var isRefreshing = false;
       var lastRefreshHash = '';
+      var agencyContactCache = null; // populated once by loadAgencyContact()
+
+      function loadAgencyContact() {
+        fetch('../../Api/Common/agency_contact.php', { credentials: 'include' })
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            if (res && res.success && res.contact) {
+              agencyContactCache = res.contact;
+              // Re-render so the already-displayed card picks up the
+              // real values instead of staying on the loading state.
+              var app = allApplications.find(function (x) { return x.application_id === selectedApplicationId; }) || null;
+              if (app) renderApplicationDetail(app);
+            }
+          })
+          .catch(function () {});
+      }
 
       function escapeHtml(s) {
         return String(s == null ? '' : s)
@@ -751,12 +790,13 @@
 
       function statusBadgeClass(statusBadge) {
         var map = {
-          'Applied': 'bg-secondary',
+          'Applied': 'bg-success',
           'Scheduled for Interview': 'bg-info',
           'Endorsed to Client': 'bg-primary',
           'Approved by Company': 'bg-warning',
           'Hired': 'bg-success',
           'Declined': 'bg-danger',
+          'Client Review Unsuccessful — For Reassignment': 'bg-warning',
           // Legacy labels (backward compatibility)
           'In Review': 'bg-primary',
           'Interview Scheduled': 'bg-info',
@@ -772,30 +812,49 @@
         if (b === 'Endorsed to Client' || b === 'In Review') return 2;
         if (b === 'Approved by Company' || b === 'Approved') return 3;
         if (b === 'Hired') return 4;
-        if (b === 'Declined') return 2;
+        if (b === 'Declined' || b === 'Client Review Unsuccessful — For Reassignment') return 2;
         return 0;
       }
 
       function renderProgressStepper(badge) {
         var activeIdx = progressStepIndex(badge);
         var completeAll = (String(badge || '').trim() === 'Hired');
+        // icon: shown on the step's own circle once it's complete or current.
+        // descPending/descDone: the description swaps once a step is reached,
+        // same as the two different captions a step shows before/after it
+        // becomes the current or a completed stage.
         var steps = [
-          'Applied',
-          'Interview Scheduled',
-          'Endorsed to Client',
-          'Approved by Company',
-          'Hired'
+          { label: 'Applied', icon: 'bi-file-earmark-text', descDone: 'Your application has been received.' },
+          { label: 'Interview Scheduled', icon: 'bi-calendar-event', descPending: 'Waiting for interview schedule.', descDone: 'Your interview is scheduled.' },
+          { label: 'Endorsed to Client', icon: 'bi-send', descPending: 'Pending client endorsement.', descDone: 'Your profile has been endorsed.' },
+          { label: 'Approved by Company', icon: 'bi-shield-check', descPending: 'Pending company approval.', descDone: 'You are now approved.' },
+          { label: 'Hired', icon: 'bi-person-check', descPending: "You'll be notified once hired.", descDone: 'Welcome to the team!' }
         ];
 
-        var html = '<div class="app-stepper" aria-label="Application progress">';
-        steps.forEach(function (label, idx) {
-          var cls = 'app-stepper-step';
-          if (completeAll || idx < activeIdx) cls += ' is-complete';
-          if (!completeAll && idx === activeIdx) cls += ' is-active';
+        var html = '<div class="app-track" aria-label="Application progress">';
+        steps.forEach(function (step, idx) {
+          var isComplete = completeAll || idx < activeIdx;
+          var isCurrent = !completeAll && idx === activeIdx;
+          var cls = 'app-track-step';
+          if (isComplete) cls += ' is-complete';
+          if (isCurrent) cls += ' is-current';
+
+          var iconHtml = isComplete
+            ? '<i class="bi bi-check-lg"></i>'
+            : '<i class="bi ' + step.icon + '"></i>';
+          var desc = (isComplete || isCurrent) ? step.descDone : (step.descPending || step.descDone);
+
           html += '<div class="' + cls + '">' +
-            '<div class="app-stepper-dot" aria-hidden="true"></div>' +
-            '<div class="app-stepper-label">' + escapeHtml(label) + '</div>' +
+            '<div class="app-track-icon" aria-hidden="true">' + iconHtml + '</div>' +
+            '<div class="app-track-text">' +
+              '<div class="app-track-label">' + escapeHtml(step.label) + '</div>' +
+              '<div class="app-track-desc">' + escapeHtml(desc) + '</div>' +
+            '</div>' +
           '</div>';
+
+          if (idx < steps.length - 1) {
+            html += '<div class="app-track-connector' + (isComplete ? ' is-complete' : '') + '"></div>';
+          }
         });
         html += '</div>';
         return html;
@@ -819,15 +878,24 @@
       }
 
       function renderAgencyContact() {
+        // Values come from the Admin/HR-managed Agency Contact settings
+        // (Api/Common/agency_contact.php), fetched once by loadAgencyContact()
+        // below — no hardcoded contact info here. Shows a brief loading
+        // state only until that first fetch resolves.
+        var contact = agencyContactCache;
+        var body = contact
+          ? (
+              '<div style="font-weight:950;color:#0f172a;margin-bottom:4px;">' + escapeHtml(contact.name || '') + '</div>' +
+              '<div><i class="bi bi-envelope me-2" style="color: var(--onazul-primary);"></i>' + escapeHtml(contact.email || '') + '</div>' +
+              '<div><i class="bi bi-telephone me-2" style="color: #64748b;"></i>' + escapeHtml(contact.phone || '') + '</div>' +
+              '<div style="margin-top:8px;color:#64748b;font-weight:700;">Updates about your application will appear here and in your messages.</div>'
+            )
+          : '<div style="color:#94a3b8;font-style:italic;">Loading contact details…</div>';
+
         return (
           '<div class="app-contact-card">' +
             '<div class="app-contact-title"><i class="bi bi-person-badge me-2"></i>Agency Contact</div>' +
-            '<div class="app-contact-body">' +
-              '<div style="font-weight:950;color:#0f172a;margin-bottom:4px;">Onazul Manpower Agent</div>' +
-              '<div><i class="bi bi-envelope me-2" style="color: var(--onazul-primary);"></i>talent@onazul.example</div>' +
-              '<div><i class="bi bi-telephone me-2" style="color: #64748b;"></i>+63 (000) 000-0000</div>' +
-              '<div style="margin-top:8px;color:#64748b;font-weight:700;">Updates about your application will appear here and in your messages.</div>' +
-            '</div>' +
+            '<div class="app-contact-body">' + body + '</div>' +
           '</div>'
         );
       }
@@ -1074,6 +1142,8 @@
           var params = new URLSearchParams(window.location.search);
           var targetId = parseInt(params.get('id'), 10);
 
+          loadAgencyContact(); // once per page load — same contact for every application
+
           loadApplications().then(function () {
             if (targetId) selectApplication(targetId, false);
 
@@ -1091,6 +1161,37 @@
     })();
   </script>
   <script src="../../Js/Applicant/applicant_hire_celebration.js"></script>
+<script src="../../Js/Applicant/applicant_nav_info.js?v=20261006"></script>
+  <button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger" aria-expanded="false" aria-controls="owMessengerPanel">
+    <i class="bi bi-chat-dots fs-4"></i>
+  </button>
+  <div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+    <div class="ow-msgr-header">
+      <span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span>
+      <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose" aria-label="Close messenger">&times;</button>
+    </div>
+    <div class="ow-msgr-body">
+      <aside class="ow-msgr-sidebar">
+        <div class="ow-msgr-search-wrap">
+          <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off">
+        </div>
+        <div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div>
+      </aside>
+      <div class="ow-msgr-chat">
+        <div class="ow-msgr-chat-head">
+          <div class="fw-semibold" id="owMessengerChatTitle">Messenger</div>
+          <div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div>
+        </div>
+        <div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div>
+        <form class="ow-msgr-footer ow-msgr-compose" id="owMessengerComposeForm" autocomplete="off">
+          <input type="text" class="form-control form-control-sm" id="owMessengerInput" placeholder="Type a message…" autocomplete="off" aria-label="Message text" disabled>
+          <button type="submit" class="btn btn-primary btn-sm" id="owMessengerSend" aria-label="Send message" disabled><i class="bi bi-send"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
+<script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
 </body>
 </html>
-

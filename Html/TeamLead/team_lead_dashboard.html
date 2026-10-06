@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="../../Js/Shared/onazul_dialogs.js"></script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Team Lead Dashboard — Onazul Manpower Services</title>
@@ -42,6 +44,7 @@
       box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
     }
     </style>
+<script src="../../Js/Shared/client_review_reason.js"></script>
 </head>
 <body class="min-h-screen bg-brand-surface text-slate-800 antialiased">
 
@@ -71,12 +74,18 @@
         <span class="sidebar-nav-badge d-none bg-red-500 text-white" id="tlGeofenceBadge" aria-label="Work site not registered">!</span>
       </button>
 
+      <button type="button" data-nav="sites" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors"><i class="bi bi-buildings text-lg"></i><span class="sidebar-label flex-1">Deployment Sites</span></button>
       <button type="button" data-nav="team" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
         <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
         </svg>
         <span class="sidebar-label flex-1">My Deployed Team</span>
         <span class="sidebar-nav-badge d-none" id="tlTeamBadge" aria-label="New team deployments">0</span>
+      </button>
+
+      <button type="button" data-nav="schedule" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
+        <i class="bi bi-calendar-week text-lg" aria-hidden="true"></i>
+        <span class="sidebar-label flex-1">TEAM SCHEDULE</span>
       </button>
 
       <button type="button" data-nav="jobrequests" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
@@ -99,7 +108,7 @@
         <svg class="h-5 w-5 shrink-0 opacity-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
         </svg>
-        <span class="sidebar-label">DTR Cutoff Review</span>
+        <span class="sidebar-label flex-1">DTR Cutoff Review</span><span class="sidebar-nav-badge d-none" id="tlDtrBadge">0</span>
       </button>
 
       <button type="button" data-nav="overtime" class="nav-item group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors">
@@ -229,12 +238,18 @@
         <p class="mt-1 text-sm text-slate-600">Manage and register official work site GPS coordinates for employee clock-ins.</p>
 
         <div class="mx-auto mt-8 max-w-2xl rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100 sm:p-8">
+            <div class="mb-3">
+                <label for="tlWorkSiteCompany" class="form-label fw-bold">Official Work Site</label>
+                <select id="tlWorkSiteCompany" class="form-select" onchange="selectTlWorkSite()" disabled><option value="">Loading assigned sites...</option></select>
+                <p id="tlWorkSiteAddress" class="small text-muted mt-2 mb-0"></p>
+                <button type="button" class="btn btn-link btn-sm px-0" onclick="loadWorkSiteDetails()">Refresh sites</button>
+            </div>
             <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Registered Coordinates</p>
                     <h4 class="fw-bold text-brand-sidebar mb-0" id="registeredSiteCoords">Loading site coordinates...</h4>
                 </div>
-                <button type="button" class="btn btn-primary fw-bold" onclick="openRegisterSiteModal()">
+                <button type="button" id="btnOpenRegisterSite" class="btn btn-primary fw-bold" onclick="openRegisterSiteModal()" disabled>
                     <i class="bi bi-pin-map-fill me-1"></i>Register Location
                 </button>
             </div>
@@ -243,19 +258,21 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <span class="fw-bold text-slate-800 text-sm">Geofence Radius:</span>
-                        <span class="badge bg-info text-dark ms-2" id="registeredGeofenceRadius">100 Meters</span>
+                        <span class="badge bg-info text-dark ms-2" id="registeredGeofenceRadius">Not Set</span>
                     </div>
-                    <span class="badge bg-success" id="siteRegStatusBadge"><i class="bi bi-check-circle-fill me-1"></i>Active Site</span>
+                    <span class="badge bg-secondary" id="siteRegStatusBadge">Loading sites</span>
                 </div>
             </div>
         </div>
       </section>
 
       <!-- VIEW C: Team -->
+      <section id="view-sites" class="view-panel hidden" data-view="sites"><h1 class="text-2xl font-bold text-brand-sidebar sm:text-3xl">My Deployment Sites</h1><button type="button" class="btn btn-outline-primary mt-3" onclick="TeamLeadSites.load()">Refresh sites</button><div id="tlSitesGrid" class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status"></div></section>
       <section id="view-team" class="view-panel hidden" data-view="team" aria-labelledby="team-title">
         <h1 id="team-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Deployed Personnel</h1>
         <p class="mt-1 text-sm text-slate-600">Personnel assigned to your site roster.</p>
 
+        <label for="tlTeamSite" class="form-label mt-4">Deployment Site</label><select id="tlTeamSite" class="form-select"><option value="">Select deployment site</option></select>
         <div id="deployed-team-grid" class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <article class="rounded-xl border border-slate-100 bg-white p-4 shadow-card">
             <p class="text-sm text-slate-500">Loading deployed personnel...</p>
@@ -264,6 +281,52 @@
       </section>
 
       <!-- VIEW D: Job Order Requests -->
+      <section id="view-schedule" class="view-panel hidden" data-view="schedule" aria-labelledby="team-schedule-title">
+        <h1 id="team-schedule-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Team Schedule</h1>
+        <p class="mt-1 text-sm text-slate-600">Assign expected work hours for your deployed employees. Actual attendance is recorded separately.</p>
+        <div id="tlScheduleMessage" class="alert d-none mt-4" role="status" aria-live="polite"></div>
+        <form id="tlScheduleForm" class="mt-6 rounded-2xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+          <div class="row g-3">
+            <div class="col-12"><label for="tlScheduleSite" class="form-label">Deployment Site</label><select id="tlScheduleSite" class="form-select"><option value="">Select deployment site</option></select></div>
+            <div class="col-md-6"><label for="tlScheduleEmployee" class="form-label">Employee</label><select id="tlScheduleEmployee" class="form-select" required><option value="">Select an employee</option></select></div>
+            <div class="col-md-3"><label for="tlScheduleType" class="form-label">Schedule Type</label><select id="tlScheduleType" class="form-select"><option>Fixed</option><option>Rotating</option><option>Flexible</option></select></div>
+            <div class="col-md-3"><label for="tlScheduleDate" class="form-label">Date / Effective Date</label><input id="tlScheduleDate" type="date" class="form-control" required></div>
+            <div class="col-md-3"><label for="tlScheduleTimeIn" class="form-label">Expected Time In</label><input id="tlScheduleTimeIn" type="time" class="form-control" required></div>
+            <div class="col-md-3"><label for="tlScheduleTimeOut" class="form-label">Expected Time Out</label><input id="tlScheduleTimeOut" type="time" class="form-control" required></div>
+            <div class="col-md-3"><label for="tlScheduleBreak" class="form-label">Break (minutes)</label><input id="tlScheduleBreak" type="number" min="0" max="720" value="60" class="form-control" required></div>
+            <div class="col-md-3"><label for="tlScheduleGrace" class="form-label">Grace Period (minutes)</label><input id="tlScheduleGrace" type="number" min="0" max="180" value="5" class="form-control" required></div>
+          </div>
+          <fieldset id="tlScheduleDays" class="mt-4"><legend class="text-sm font-semibold">Recurring working days</legend>
+            <div class="d-flex flex-wrap gap-3">
+              <label><input type="checkbox" name="schedule_day" value="Sun"> Sun</label>
+              <label><input type="checkbox" name="schedule_day" value="Mon" checked> Mon</label>
+              <label><input type="checkbox" name="schedule_day" value="Tue" checked> Tue</label>
+              <label><input type="checkbox" name="schedule_day" value="Wed" checked> Wed</label>
+              <label><input type="checkbox" name="schedule_day" value="Thu" checked> Thu</label>
+              <label><input type="checkbox" name="schedule_day" value="Fri" checked> Fri</label>
+              <label><input type="checkbox" name="schedule_day" value="Sat"> Sat</label>
+            </div>
+          </fieldset>
+          <p id="tlScheduleHelp" class="mt-3 text-sm text-slate-500">Fixed changes take effect today. Earlier recurring settings are preserved.</p>
+          <div class="mt-4 d-flex gap-2"><button id="tlScheduleSave" type="submit" class="btn btn-primary">Save Schedule</button><button id="tlScheduleReset" type="button" class="btn btn-outline-secondary">Reset</button></div>
+        </form>
+        <div class="mt-6 rounded-2xl bg-white p-5 shadow-card ring-1 ring-slate-100">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><h2 class="text-lg font-bold text-brand-sidebar mb-0">Team Schedules</h2><button type="button" id="tlScheduleRefresh" class="btn btn-sm btn-outline-primary">Refresh</button></div>
+          <p class="text-sm text-slate-500">Dated shifts override recurring hours for their date. Deleting a dated shift restores the recurring schedule. Recorded attendance and submitted DTR/payroll dates are locked.</p>
+          <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Employee</th><th>Date / Days</th><th>Type</th><th>Expected In</th><th>Expected Out</th><th>Break</th><th>Status</th><th>Actions</th></tr></thead><tbody id="tlScheduleRows"><tr><td colspan="8" class="text-muted">Select Team Schedule to load your team.</td></tr></tbody></table></div>
+        </div>
+      </section>
+
+      <style>
+        #jor-request-list-card { display: flex; flex-direction: column; min-width: 0; }
+        #jor-request-list-card > :first-child { flex-shrink: 0; }
+        #job-requests-body { min-height: 0; max-height: 65vh; scrollbar-gutter: stable; }
+        @media (min-width: 1024px) {
+          #jor-request-list-card { min-height: 440px; }
+          #job-requests-body { flex: 1 1 0; height: 0; max-height: none; }
+        }
+      </style>
+
       <section id="view-job-requests" class="view-panel hidden" data-view="jobrequests" aria-labelledby="jor-title">
         <h1 id="jor-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Job Order Requests</h1>
         <p class="mt-1 text-sm text-slate-600">Create new requests and monitor HR approval status.</p>
@@ -306,25 +369,22 @@
               </div>
             </form>
           </div>
-          <div class="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
-            <h2 class="text-lg font-bold text-brand-sidebar">Your Job Order Requests</h2>
-            <p class="text-xs text-slate-500">Shows requests you submitted and HR approval status.</p>
-            <div class="mt-4 max-h-[350px] overflow-auto rounded-lg border border-slate-100">
-              <table class="w-full min-w-[620px] text-left text-sm">
-                <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-bold uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th class="px-3 py-2">Date</th>
-                    <th class="px-3 py-2">Company</th>
-                    <th class="px-3 py-2">Position</th>
-                    <th class="px-3 py-2">Workers</th>
-                    <th class="px-3 py-2">Site</th>
-                    <th class="px-3 py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="job-requests-body" class="divide-y divide-slate-100">
-                  <tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">Loading requests...</td></tr>
-                </tbody>
-              </table>
+          <div id="jor-request-list-card" class="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 class="text-lg font-bold text-brand-sidebar">Your Job Order Requests</h2>
+                <p class="text-xs text-slate-500">Shows requests you submitted and HR approval status.</p>
+              </div>
+              <select id="jor-status-filter" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25">
+                <option value="all">All statuses</option>
+                <option value="Pending">Pending HR</option>
+                <option value="Approved">Approved</option>
+                <option value="Posted">Posted</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+            <div id="job-requests-body" class="mt-4 space-y-3 overflow-y-auto pr-1">
+              <p class="px-1 py-4 text-center text-sm text-slate-500">Loading requests...</p>
             </div>
           </div>
         </div>
@@ -360,6 +420,7 @@
       <!-- VIEW F: DTR -->
       <section id="view-dtr" class="view-panel hidden" data-view="dtr" aria-labelledby="dtr-title">
         <h1 id="dtr-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Timesheet Submission</h1>
+        <div class="row g-3 mt-3"><div class="col-md-7"><label for="tlDtrSite" class="form-label">Deployment Site</label><select id="tlDtrSite" class="form-select"><option value="">Select deployment site</option></select></div><div class="col-md-5"><label for="tlDtrCutoffRef" class="form-label">Date within cutoff (optional)</label><input type="date" id="tlDtrCutoffRef" class="form-control"></div></div>
         <p class="mt-1 text-sm text-slate-600" id="dtr-cutoff-label">Reviewing Cutoff: —</p>
 
         <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950">
@@ -706,6 +767,7 @@
   <!-- Toast -->
   <div id="toast-root" class="pointer-events-none fixed bottom-6 right-6 z-[100] flex flex-col gap-2" aria-live="polite"></div>
 
+<script src="../../Js/Shared/job_hierarchy_selects.js"></script>
 <script>
     (function () {
       'use strict';
@@ -742,6 +804,8 @@
       }
 
       function showView(viewId) {
+        if (viewId === 'schedule' && window.TlTeamSchedule) window.TlTeamSchedule.load();
+        if (viewId === 'sites') { window.TeamLeadSites.load(); }
         if (viewId === 'dashboard') {
           loadDashboardRoster();
         }
@@ -764,7 +828,7 @@
         }
         if (viewId === 'endorsed') {
           loadEndorsedApplicants();
-          clearModuleNotifications('endorsed');
+
         }
         if (viewId === 'dtr') {
           loadDtrCutoffReview();
@@ -867,6 +931,20 @@
         });
       }
 
+      function selectedJorCompanyAddress() {
+        var select = document.getElementById('jor-company');
+        var selected = select && select.options[select.selectedIndex];
+        return selected ? (selected.getAttribute('data-location') || '') : '';
+      }
+
+      function syncJorDeploymentAddresses() {
+        var address = selectedJorCompanyAddress();
+        document.querySelectorAll('#jor-positions-container .val-site').forEach(function(input) {
+          input.value = address;
+          input.title = address;
+        });
+      }
+
       function addDeploymentRow(prefillSite) {
         var container = document.getElementById('jor-positions-container');
         if (!container) return;
@@ -919,6 +997,8 @@
           if (siteInput && !siteInput.value) siteInput.value = prefillSite;
         }
 
+        row.querySelector('.val-category').parentElement.remove();
+        var hierarchyRoot=document.createElement('div');hierarchyRoot.id='tl-jor-hierarchy-'+Date.now()+'-'+Math.random().toString(36).slice(2);hierarchyRoot.dataset.hierarchyStyle='tailwind';row.insertBefore(hierarchyRoot,row.querySelector('.mt-3'));window.JobHierarchySelectors.attach(hierarchyRoot,false);
         container.appendChild(row);
         if (window.OwJobCategories && typeof OwJobCategories.populate === 'function') {
           OwJobCategories.populate();
@@ -931,7 +1011,7 @@
         var container = document.getElementById('jor-positions-container');
         var remarks = document.getElementById('jor-remarks');
         if (container) container.innerHTML = '';
-        addDeploymentRow('');
+        addDeploymentRow(selectedJorCompanyAddress());
         if (remarks) remarks.value = '';
       }
 
@@ -942,13 +1022,16 @@
         var positions = [];
         rows.forEach(function (row, idx) {
           var position = (row.querySelector('.val-position') || {}).value || '';
-          var categoryId = parseInt((row.querySelector('.val-category') || {}).value, 10) || 0;
+          var hierarchy = window.JobHierarchySelectors.values(row.querySelector('[data-hierarchy-style]'));
+          var categoryId = parseInt(hierarchy.category_id,10)||0;
           var workers = parseInt((row.querySelector('.val-workers') || {}).value, 10) || 0;
           var site = (row.querySelector('.val-site') || {}).value || '';
           var schedule = (row.querySelector('.val-schedule') || {}).value || '';
           positions.push({
             position: String(position).trim(),
             category_id: categoryId,
+            classification_id: parseInt(hierarchy.classification_id,10)||0,
+            sub_classification_id: parseInt(hierarchy.sub_classification_id,10)||0,
             workers_needed: workers,
             deployment_site: String(site).trim(),
             work_schedule: String(schedule).trim(),
@@ -965,7 +1048,7 @@
           var pos = String(d.position || d.position_title || '').trim();
           var site = String(d.site || d.deployment_site || '').trim();
           if (type === 'position') {
-            return '• ' + workers + ' ' + (pos || 'Role');
+            return '• ' + workers + ' ' + (pos || 'Role') + ' — ' + [d.job_category,d.classification_name,d.sub_classification_name].filter(Boolean).join(' / ');
           }
           if (type === 'workers') {
             return '• ' + workers;
@@ -991,7 +1074,7 @@
 
         for (var i = 0; i < positions.length; i++) {
           var p = positions[i];
-          if (!p.position || !p.category_id || p.workers_needed <= 0 || !p.deployment_site || !p.work_schedule) {
+          if (!p.position || !p.category_id || !p.classification_id || !p.sub_classification_id || p.workers_needed <= 0 || !p.deployment_site || !p.work_schedule) {
             if (feedback) {
               feedback.textContent = 'Complete all fields in position row ' + p._row + '.';
             }
@@ -1013,6 +1096,8 @@
             return {
               position: p.position,
               category_id: p.category_id,
+              classification_id:p.classification_id,
+              sub_classification_id:p.sub_classification_id,
               workers_needed: p.workers_needed,
               deployment_site: p.deployment_site,
               work_schedule: p.work_schedule
@@ -1079,11 +1164,14 @@
           });
       }
 
-      function loadDeployedPersonnel() {
+      async function loadDeployedPersonnel() {
         var grid = document.getElementById('deployed-team-grid');
         if (!grid) return;
         grid.innerHTML = '<article class="rounded-xl border border-slate-100 bg-white p-4 shadow-card"><p class="text-sm text-slate-500">Loading deployed personnel...</p></article>';
-        fetchJsonWithStatus(TL_DEPLOYMENTS_API, { credentials: 'include' })
+        try { await window.TeamLeadSites.prepare(); } catch(e) { grid.textContent=e.message;return; }
+        var siteId=document.getElementById('tlTeamSite').value;
+        if(!siteId){grid.textContent='Select a deployment site to view employees.';return;}
+        fetchJsonWithStatus(TL_DEPLOYMENTS_API+'?site_id='+encodeURIComponent(siteId), { credentials: 'include' })
           .then(function (resp) {
             if (!resp.ok || !resp.data || !resp.data.success) {
               var msg = (resp.data && (resp.data.message || resp.data.error)) || ('Failed to load (' + resp.status + ')');
@@ -1124,6 +1212,7 @@
           });
       }
 
+      window.loadDeployedPersonnel=loadDeployedPersonnel;
       function openEmployeeAttendanceModal(employeeId, employeeName) {
         var modalEl = document.getElementById('tlAttendanceModal');
         var titleEl = document.getElementById('tlAttendanceModalTitle');
@@ -1204,6 +1293,7 @@
         var selectAll = document.getElementById('dtr-select-all');
         if (!selectAll) return;
         var boxes = document.querySelectorAll('.dtr-checkbox');
+        document.getElementById('btn-submit-dtr').disabled=!boxes.length;
         if (!boxes.length) {
           selectAll.checked = false;
           selectAll.indeterminate = false;
@@ -1216,15 +1306,25 @@
         selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
       }
 
-      function loadDtrCutoffReview() {
+      var dtrRequestSequence=0,dtrSaving=false;
+      async function loadDtrCutoffReview() {
+        if(dtrSaving)return;
         var tbody = document.getElementById('dtrTableBody');
         var cutoffLabelEl = document.getElementById('dtr-cutoff-label');
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">Loading DTR cutoff review...</td></tr>';
 
-        fetch(TL_DTR_REVIEW_API, { credentials: 'include' })
+        var request=++dtrRequestSequence;dtrReviewState={period:null,employeesById:{}};
+        document.getElementById('btn-submit-dtr').disabled=true;
+        try { await window.TeamLeadSites.prepare(); } catch(e) {tbody.textContent=e.message;return;}
+        if(request!==dtrRequestSequence)return;
+        var siteId=document.getElementById('tlDtrSite').value;
+        if(!siteId){tbody.innerHTML='<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">Select a deployment site first.</td></tr>';if(cutoffLabelEl)cutoffLabelEl.textContent='Reviewing Cutoff: —';syncDtrSelectAllState();return;}
+        var ref=document.getElementById('tlDtrCutoffRef').value;
+        fetch(TL_DTR_REVIEW_API+'?site_id='+encodeURIComponent(siteId)+(ref?'&cutoff_ref='+encodeURIComponent(ref):''), { credentials: 'include' })
           .then(function (r) { return r.json(); })
           .then(function (res) {
+            if(request!==dtrRequestSequence)return;
             if (!res || !res.success) {
               tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">' + escapeHtml((res && res.message) || 'Failed to load DTR cutoff review.') + '</td></tr>';
               return;
@@ -1279,6 +1379,7 @@
             syncDtrSelectAllState();
           })
           .catch(function () {
+            if(request!==dtrRequestSequence)return;
             tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">Network error while loading DTR cutoff review.</td></tr>';
           });
       }
@@ -1347,7 +1448,7 @@
         var select = document.getElementById('jor-company');
         if (!select) return;
         select.innerHTML = '<option value="">Loading assigned company...</option>';
-        fetchJsonWithStatus(TL_DEPLOYMENTS_API, { credentials: 'include' })
+        fetchJsonWithStatus(TL_JOR_LIST_API + '?action=companies', { credentials: 'include' })
           .then(function (resp) {
             var data = resp.data || {};
             if (!resp.ok || !data.success) {
@@ -1366,13 +1467,9 @@
             select.innerHTML = opts.join('');
             if (data.sites.length > 0) {
               select.value = String(data.sites[0].company_id || '');
-              select.disabled = true;
-              select.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-700');
-              var loc = data.sites[0].location || '';
-              if (loc) {
-                var firstSite = document.querySelector('#jor-positions-container .val-site');
-                if (firstSite && !firstSite.value) firstSite.value = loc;
-              }
+              select.disabled = data.sites.length <= 1;
+              select.classList.toggle('cursor-not-allowed', select.disabled);
+              syncJorDeploymentAddresses();
             }
           })
           .catch(function () {
@@ -1432,11 +1529,13 @@
         document.body.appendChild(overlay);
       }
 
+      var jorRequestsCache = [];
+
       function loadJobOrderRequests(silent) {
         var body = document.getElementById('job-requests-body');
         if (!body) return;
-        if (!silent && (body.children.length === 0 || body.querySelector('td[colspan]'))) {
-          body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">Loading requests...</td></tr>';
+        if (!silent && (body.children.length === 0 || body.querySelector('.jor-empty-state'))) {
+          body.innerHTML = '<p class="jor-empty-state px-1 py-4 text-center text-sm text-slate-500">Loading requests...</p>';
         }
         fetchJsonWithStatus(TL_JOR_LIST_API, { credentials: 'include' })
           .then(function (resp) {
@@ -1444,35 +1543,90 @@
             if (!resp.ok || !data.success) {
               if (!silent) {
                 var emsg = (data && (data.message || data.error)) || ('Could not load requests (' + resp.status + ')');
-                body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">' + escapeHtml(emsg) + '</td></tr>';
+                body.innerHTML = '<p class="jor-empty-state px-1 py-4 text-center text-sm text-red-600">' + escapeHtml(emsg) + '</p>';
               }
               return;
             }
-            var rows = Array.isArray(data.requests) ? data.requests : [];
-            if (!rows.length) {
-              body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-slate-500">No job order requests yet.</td></tr>';
-              return;
-            }
-            body.innerHTML = rows.map(function (r) {
-              var deployments = Array.isArray(r.deployments) ? r.deployments : [];
-              var status = r.status || 'Pending';
-              return '<tr class="hover:bg-slate-50/50 align-top">' +
-                '<td class="px-3 py-2 whitespace-nowrap">' + escapeHtml(formatShortDate(r.created_at || r.date)) + '</td>' +
-                '<td class="px-3 py-2 font-medium text-slate-900">' + escapeHtml(r.company_name || r.company || '—') + '</td>' +
-                '<td class="px-3 py-2 text-slate-800 leading-relaxed">' + renderJorDeploymentCell(deployments, 'position') + '</td>' +
-                '<td class="px-3 py-2 tabular-nums leading-relaxed">' + renderJorDeploymentCell(deployments, 'workers') + '</td>' +
-                '<td class="px-3 py-2 leading-relaxed">' + renderJorDeploymentCell(deployments, 'site') + '</td>' +
-                '<td class="px-3 py-2">' + statusPill(status) + '</td>' +
-              '</tr>';
-            }).join('');
+            jorRequestsCache = Array.isArray(data.requests) ? data.requests : [];
+            renderJorRequestCards();
           })
           .catch(function () {
-            if (!silent && body.querySelector('td[colspan]')) {
-              body.innerHTML = '<tr><td colspan="6" class="px-3 py-4 text-center text-red-600">Request failed while loading requests</td></tr>';
+            if (!silent && body.querySelector('.jor-empty-state')) {
+              body.innerHTML = '<p class="jor-empty-state px-1 py-4 text-center text-sm text-red-600">Request failed while loading requests</p>';
             }
           });
       }
 
+      function renderJorRequestCards() {
+        var body = document.getElementById('job-requests-body');
+        if (!body) return;
+        var filterEl = document.getElementById('jor-status-filter');
+        var filter = filterEl ? filterEl.value : 'all';
+
+        var rows = jorRequestsCache.filter(function (r) {
+          if (filter === 'all') return true;
+          return (r.status || 'Pending') === filter;
+        });
+
+        if (!jorRequestsCache.length) {
+          body.innerHTML = '<p class="jor-empty-state px-1 py-4 text-center text-sm text-slate-500">No job order requests yet.</p>';
+          return;
+        }
+        if (!rows.length) {
+          body.innerHTML = '<p class="jor-empty-state px-1 py-4 text-center text-sm text-slate-500">No requests match this filter.</p>';
+          return;
+        }
+
+        body.innerHTML = rows.map(function (r) {
+          var deployments = Array.isArray(r.deployments) ? r.deployments : [];
+          var status = r.status || 'Pending';
+          var totalWorkers = deployments.reduce(function (sum, d) {
+            return sum + (parseInt(d.workers || d.required_workers, 10) || 0);
+          }, 0);
+
+          var lines = deployments.map(function (d) {
+            var workers = parseInt(d.workers || d.required_workers, 10) || 0;
+            var pos = String(d.position || d.position_title || 'Role').trim();
+            var site = String(d.site || d.deployment_site || '').trim();
+            return '<li class="flex items-start gap-1.5 leading-snug">' +
+              '<i class="bi bi-dot mt-0.5 text-slate-400" aria-hidden="true"></i>' +
+              '<span><span class="font-semibold text-slate-800">' + workers + '×</span> ' + escapeHtml(pos) +
+              (site ? ' <span class="text-slate-500">— ' + escapeHtml(site) + '</span>' : '') +
+              '</span></li>';
+          }).join('');
+
+          var rejectionNote = '';
+          if (status === 'Rejected' && r.rejection_reason) {
+            rejectionNote =
+              '<div class="mt-2.5 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">' +
+                '<p class="font-semibold">Admin note</p>' +
+                '<p class="mt-0.5">' + escapeHtml(r.rejection_reason) + '</p>' +
+              '</div>';
+          }
+
+          return (
+            '<article class="rounded-lg border border-slate-200 bg-white p-3.5 shadow-sm">' +
+              '<div class="flex flex-wrap items-start justify-between gap-2">' +
+                '<div class="min-w-0">' +
+                  '<p class="truncate font-bold text-slate-900">' + escapeHtml(r.company_name || r.company || '—') + '</p>' +
+                  '<p class="mt-0.5 flex items-center gap-1 text-xs text-slate-500">' +
+                    '<i class="bi bi-calendar3" aria-hidden="true"></i>' +
+                    escapeHtml(formatShortDate(r.created_at || r.date)) +
+                    ' <span class="text-slate-300">•</span> ' + totalWorkers + ' worker' + (totalWorkers === 1 ? '' : 's') + ' total' +
+                  '</p>' +
+                '</div>' +
+                statusPill(status) +
+              '</div>' +
+              (lines ? '<ul class="mt-2.5 space-y-1 border-t border-slate-100 pt-2.5 text-sm text-slate-700">' + lines + '</ul>' : '') +
+              rejectionNote +
+            '</article>'
+          );
+        }).join('');
+      }
+
+      var endorsementAttempts = {};
+      var endorsementCanDecide = {};
+      var applicantDetailsRequest = 0;
       function loadEndorsedApplicants() {
         var body = document.getElementById('endorsed-applicants-body');
         if (!body) return;
@@ -1485,29 +1639,18 @@
               body.innerHTML = '<tr><td colspan="7" class="px-4 py-4 text-center text-red-600">' + escapeHtml(emsg) + '</td></tr>';
               return;
             }
+            clearModuleNotifications('endorsed');
             var rows = Array.isArray(data.applications) ? data.applications : [];
+            endorsementAttempts={}; endorsementCanDecide={}; rows.forEach(function(a){ endorsementAttempts[a.application_id]=a.attempt_id; endorsementCanDecide[a.application_id]=a.can_decide === true; });
             if (!rows.length) {
               body.innerHTML = '<tr><td colspan="7" class="px-4 py-4 text-center text-slate-500">No endorsed applicants yet for your assigned companies.</td></tr>';
               return;
             }
             body.innerHTML = rows.map(function (a) {
               var status = String(a.client_status || 'Pending');
-              var isPending = status === 'Pending';
               var appId = escapeHtml(String(a.application_id || a.id || 0));
               var viewBtn = '<button type="button" class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700" data-act="view" data-id="' + appId + '"><i class="bi bi-eye me-1"></i>View</button>';
-              var btns = isPending
-                ? (
-                  '<div class="flex justify-end gap-2">' +
-                     viewBtn +
-                  '  <button type="button" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700" data-act="approve" data-id="' + appId + '">Approve</button>' +
-                  '  <button type="button" class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-red-700" data-act="reject" data-id="' + appId + '">Reject</button>' +
-                  '</div>'
-                )
-                : (
-                  '<div class="flex justify-end gap-2">' +
-                     viewBtn +
-                  '</div>'
-                );
+              var btns = '<div class="flex justify-end gap-2">' + viewBtn + '</div>';
               return '<tr class="hover:bg-slate-50/50">' +
                 '<td class="px-4 py-3 font-semibold text-slate-900">' + escapeHtml(a.applicant_name || '—') + '</td>' +
                 '<td class="px-4 py-3">' + escapeHtml(a.email || '—') + '</td>' +
@@ -1519,18 +1662,13 @@
               '</tr>';
             }).join('');
 
-            // Bind view, approve, and reject actions.
+            // Decisions are available only after opening and loading the applicant details.
             body.querySelectorAll('button[data-act][data-id]').forEach(function (btn) {
               btn.addEventListener('click', function () {
                 var act = btn.getAttribute('data-act');
                 var id = parseInt(btn.getAttribute('data-id'), 10) || 0;
                 if (!id) return;
-                if (act === 'view') {
-                  openApplicantDetailsModal(id);
-                } else {
-                  var decision = (act === 'approve') ? 'Approved' : 'Rejected';
-                  submitEndorsedDecision(id, decision);
-                }
+                if (act === 'view') openApplicantDetailsModal(id);
               });
             });
           })
@@ -1543,6 +1681,11 @@
         var modalEl = document.getElementById('applicantDetailsModal');
         var bodyEl = document.getElementById('applicantDetailsModalBody');
         if (!modalEl || !bodyEl) return;
+        var requestId = ++applicantDetailsRequest;
+        var actions = document.getElementById('applicantDetailsDecisionActions');
+        actions.classList.add('d-none');
+        actions.innerHTML = '';
+
 
         bodyEl.innerHTML = '<div class="text-center text-slate-500 py-6"><div class="spinner-border spinner-border-sm me-2 text-blue-600" role="status"></div>Loading applicant details...</div>';
         var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
@@ -1551,6 +1694,7 @@
         fetch('../../Api/HR/get_application_details.php?id=' + encodeURIComponent(applicationId), { credentials: 'include' })
           .then(function (r) { return r.json(); })
           .then(function (data) {
+            if (requestId !== applicantDetailsRequest) return;
             if (!data || !data.success) {
               bodyEl.innerHTML = '<div class="alert alert-danger mb-0">' + escapeHtml((data && data.message) || 'Failed to load applicant details.') + '</div>';
               return;
@@ -1604,6 +1748,19 @@
               '  </div>' +
               '</div>';
 
+            var reviewedAttempt = Number(data.attempt_id);
+            if (endorsementCanDecide[applicationId] && reviewedAttempt === Number(endorsementAttempts[applicationId]) &&
+                data.client_approval_status === 'Pending' && !data.is_hired) {
+              actions.innerHTML = '<button type="button" class="btn btn-success" data-decision="Approved">Approve</button>' +
+                '<button type="button" class="btn btn-danger" data-decision="Rejected">Reject</button>';
+              actions.classList.remove('d-none');
+              actions.querySelectorAll('[data-decision]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                  submitEndorsedDecision(applicationId, button.getAttribute('data-decision'), reviewedAttempt);
+                });
+              });
+            }
+
             // Bind click listeners for "View Document" buttons
             bodyEl.querySelectorAll('.btn-preview-doc').forEach(function (btn) {
               btn.addEventListener('click', function () {
@@ -1654,29 +1811,41 @@
         var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
       }
-      function submitEndorsedDecision(applicationId, decision) {
-        var note = window.prompt('Optional: add a short note (leave blank for none).') || '';
+      async function submitEndorsedDecision(applicationId, decision, attemptId) {
+        var modalEl = document.getElementById('applicantDetailsModal');
+        if (modalEl.dataset.deciding === '1') return;
+        modalEl.dataset.deciding = '1';
+        var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        await new Promise(function (resolve) {
+          modalEl.addEventListener('hidden.bs.modal', resolve, { once: true });
+          modal.hide();
+        });
+        var note = await window.ClientReviewReason(decision);
+        if (note === null) { delete modalEl.dataset.deciding; modal.show(); return; }
         fetchJsonWithStatus(TL_ENDORSED_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
             application_id: applicationId,
+            attempt_id: attemptId,
             decision: decision,
             comment: String(note || '')
           })
         }).then(function (resp) {
           var data = resp.data || {};
           if (!resp.ok || !data.success) {
-            window.alert((data && data.message) ? data.message : 'Failed to save decision.');
+            showToast((data && data.message) ? data.message : 'Failed to save decision.', true);
+            modal.show();
             return;
           }
           showToast('Decision saved: ' + decision);
           loadEndorsedApplicants();
           pollRealtimeCounters();
         }).catch(function () {
-          window.alert('Network error while saving decision.');
-        });
+          showToast('Network error while saving decision.', true);
+          modal.show();
+        }).finally(function () { delete modalEl.dataset.deciding; });
       }
 
       var requestForm = document.getElementById('job-order-request-form');
@@ -1700,16 +1869,16 @@
 
         if (companySelect) {
           companySelect.addEventListener('change', function () {
-            var selected = companySelect.options[companySelect.selectedIndex];
-            if (!selected) return;
-            var loc = selected.getAttribute('data-location') || '';
-            if (!loc) return;
-            var firstSite = document.querySelector('#jor-positions-container .val-site');
-            if (firstSite && !firstSite.value) firstSite.value = loc;
+            syncJorDeploymentAddresses();
           });
         }
 
         requestForm.addEventListener('submit', handleJORSubmit);
+      }
+
+      var jorStatusFilterEl = document.getElementById('jor-status-filter');
+      if (jorStatusFilterEl) {
+        jorStatusFilterEl.addEventListener('change', renderJorRequestCards);
       }
 
       function showToast(message, isError) {
@@ -1747,7 +1916,7 @@
         });
       }
 
-      document.getElementById('btn-submit-dtr').addEventListener('click', function () {
+      document.getElementById('btn-submit-dtr').addEventListener('click', async function () {
         var btn = this;
         var selectedIds = [];
         document.querySelectorAll('.dtr-checkbox').forEach(function (c) {
@@ -1784,10 +1953,12 @@
         var confirmMsg = groupOrder.length > 1
           ? ('Submit ' + selectedIds.length + ' DTR(s) across ' + groupOrder.length + ' payroll cutoffs to Accounting? Once submitted, these records are locked and cannot be edited.')
           : ('Submit ' + selectedIds.length + ' DTR(s) to Accounting? Once submitted, these records are locked and cannot be edited.');
-        if (!window.confirm(confirmMsg)) {
+        if (!(await window.OnazulDialogs.confirm(confirmMsg))) {
           return;
         }
 
+        var submissionSite=Number(document.getElementById('tlDtrSite').value);
+        dtrSaving=true;document.getElementById('tlDtrSite').disabled=true;document.getElementById('tlDtrCutoffRef').disabled=true;
         btn.disabled = true;
         var originalText = btn.textContent;
         btn.textContent = 'Submitting...';
@@ -1799,6 +1970,7 @@
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
             body: JSON.stringify({
+              site_id: submissionSite,
               employee_ids: g.employee_ids,
               cutoff_start: g.cutoff_start,
               cutoff_end: g.cutoff_end
@@ -1812,12 +1984,13 @@
           } else {
             showToast(results.length === 1 ? (results[0].message || 'DTR submitted to Accounting.') : 'DTR submitted to Accounting for all selected cutoffs.');
           }
-          loadDtrCutoffReview();
+          dtrSaving=false;loadDtrCutoffReview();
         })
         .catch(function () {
           showToast('Network error while submitting DTR.', true);
         })
         .finally(function () {
+          dtrSaving=false;document.getElementById('tlDtrSite').disabled=false;document.getElementById('tlDtrCutoffRef').disabled=false;
           btn.disabled = false;
           btn.textContent = originalText;
         });
@@ -1888,13 +2061,29 @@
 
         listEl.innerHTML = '<div class="p-4 text-center text-slate-500"><div class="spinner-border spinner-border-sm text-blue-600 me-2" role="status"></div>Loading notifications...</div>';
 
-        fetch('../../Api/TeamLead/get_notifications.php?limit=10', { credentials: 'include' })
+        // Uses the shared Api/Common/notifications.php — the same endpoint
+        // Admin, HR, and the shared bell widget (Js/Shared/ow_notifications.js)
+        // already use for this employee's/user's actual `notifications` table
+        // rows. Api/TeamLead/get_notifications.php previously used here
+        // queried columns (`Type`, `CreatedAt`) that don't exist in the real
+        // `notifications` table (real columns: NotificationType, no
+        // created-at column at all) — every call silently failed and
+        // returned an empty list, which is why the bell badge (driven by a
+        // separate, correctly-written count query in
+        // Api/TeamLead/team_lead_counters.php) showed 2 while the dropdown
+        // always said "No notifications found."
+        fetch('../../Api/Common/notifications.php?limit=10', { credentials: 'include' })
           .then(function (r) { return r.json(); })
           .then(function (res) {
-            if (!res || !res.success || !Array.isArray(res.notifications) || !res.notifications.length) {
+            if (!res || !res.success) {
+              listEl.innerHTML = '<div class="p-4 text-center text-red-500 text-xs">Failed to load notifications.</div>';
+              return;
+            }
+            if (!Array.isArray(res.notifications) || !res.notifications.length) {
               listEl.innerHTML = '<div class="p-4 text-center text-slate-500">No notifications found.</div>';
               return;
             }
+            window.tlBellNotifications = res.notifications;
             listEl.innerHTML = res.notifications.map(function (n) {
               var iconCls = 'bi-bell-fill text-blue-600';
               if (n.type === 'deployed_team') iconCls = 'bi-person-plus-fill text-emerald-600';
@@ -1904,8 +2093,13 @@
 
               var bgCls = n.is_read ? 'bg-white' : 'bg-blue-50/60 font-medium';
               var unreadDot = n.is_read ? '' : '<span class="h-2 w-2 rounded-full bg-blue-600 flex-shrink-0 mt-1"></span>';
+              // The real `notifications` table has no created-at/timestamp
+              // column, so there is no real date/time to show here — this
+              // shows the sender label the shared API already derives
+              // (from) instead of fabricating a date.
+              var fromLine = n.from ? ('<p class="text-slate-400 text-[10px]">From: ' + escapeHtml(n.from) + '</p>') : '';
 
-              return '<div class="p-3 hover:bg-slate-50 transition cursor-pointer flex gap-3 items-start ' + bgCls + '" onclick="markSingleNotifRead(' + n.id + ')">' +
+              return '<div role="button" tabindex="0" class="p-3 hover:bg-slate-50 transition cursor-pointer flex gap-3 items-start ' + bgCls + '" onclick="openTlBellNotification(' + Number(n.id) + ')" onkeydown="if(event.key===&quot;Enter&quot;||event.key===&quot; &quot;){event.preventDefault();this.click();}">' +
                 '  <div class="p-2 rounded-lg bg-slate-100 shrink-0"><i class="bi ' + iconCls + ' fs-5"></i></div>' +
                 '  <div class="flex-1 min-w-0">' +
                 '    <div class="flex justify-between items-start gap-1">' +
@@ -1913,7 +2107,7 @@
                 '      ' + unreadDot +
                 '    </div>' +
                 '    <p class="text-slate-600 text-xs leading-snug mb-1 whitespace-pre-line">' + escapeHtml(n.message) + '</p>' +
-                '    <p class="text-slate-400 text-[10px]">' + escapeHtml(n.created_at) + '</p>' +
+                '    ' + fromLine +
                 '  </div>' +
                 '</div>';
             }).join('');
@@ -1923,12 +2117,24 @@
           });
       }
 
+      window.openTlBellNotification = function(id) {
+        var n = (window.tlBellNotifications || []).find(function(item){return item.id === id;});
+        if(!n)return;
+        if (window.OwNotifications) window.OwNotifications.open(n);
+        document.dispatchEvent(new MouseEvent('click', {bubbles:true}));
+      };
+
       function markSingleNotifRead(notifId) {
-        fetch('../../Api/Common/mark_notification_read.php', {
+        // Api/Common/mark_notification_read.php did not exist (404, silently
+        // swallowed by the .catch below) — reusing the shared
+        // Api/Common/notifications.php action=mark_read endpoint instead,
+        // which already correctly scopes the UPDATE to
+        // "NotificationID = ? AND UserID = ?" for the authenticated user.
+        fetch('../../Api/Common/notifications.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ id: notifId })
+          body: JSON.stringify({ action: 'mark_read', notification_id: notifId })
         }).then(function () {
           pollRealtimeCounters();
           loadBellNotificationsDropdown();
@@ -1936,11 +2142,13 @@
       }
       window.markSingleNotifRead = markSingleNotifRead;
 
+      var tlCounterRequest = 0;
       function pollRealtimeCounters() {
-        fetch('../../Api/TeamLead/team_lead_counters.php', { credentials: 'include' })
+        var request = ++tlCounterRequest;
+        fetch('../../Api/TeamLead/team_lead_counters.php', { credentials: 'include', cache: 'no-store' })
           .then(function (r) { return r.json(); })
           .then(function (res) {
-            if (!res || !res.success || !res.badges) return;
+            if (request !== tlCounterRequest || !res || !res.success || !res.badges) return;
 
             // 1. Work Site Geofence Badge & Warning Banner
             var geofenceBadge = document.getElementById('tlGeofenceBadge');
@@ -1964,6 +2172,7 @@
               }
             }
 
+            var dtrBadge=document.getElementById('tlDtrBadge');if(dtrBadge){var dtrCount=Number(res.badges.dtr)||0;dtrBadge.textContent=dtrCount;dtrBadge.classList.toggle('d-none',!dtrCount);}
             // 2. Job Order Requests Badge
             var jorBadge = document.getElementById('tlJobOrdersBadge');
             if (jorBadge) {
@@ -2021,6 +2230,7 @@
 <script src="../../Js/Shared/ow_job_categories.js"></script>
 <script src="../../Js/TeamLead/tl_attendance_sync.js"></script>
 <script src="../../Js/TeamLead/tl_overtime.js"></script>
+<script src="../../Js/Teamlead/tl_team_schedule.js"></script>
 <script src="../../Js/TeamLead/tl_profile_company.js"></script>
 
 <!-- Service Agreement Document Modal -->
@@ -2062,10 +2272,25 @@
   </div>
 </div>
 
-<script src="../../Js/Shared/messenger_rbac.js"></script>
+<script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
 <script src="../../Js/Shared/ow_system_events.js"></script>
+<div class="modal fade" id="tlMarkAllNotificationsModal" tabindex="-1" aria-labelledby="tlMarkAllNotificationsTitle" aria-describedby="tlMarkAllNotificationsDescription" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-xl border-0 shadow-lg">
+      <div class="modal-header">
+        <h5 class="modal-title font-bold text-brand-sidebar" id="tlMarkAllNotificationsTitle"><i class="bi bi-check2-all me-2 text-brand-accent" aria-hidden="true"></i>Mark all notifications as read?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-slate-600" id="tlMarkAllNotificationsDescription">All your unread notifications will be marked as read. You can still view them in your inbox.</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="tlConfirmMarkAllNotifications">Mark all read</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script src="../../Js/Shared/ow_notifications.js"></script>
-<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
 <script>
   if (window.TeamLeadSidebarBadges) {
     TeamLeadSidebarBadges.init('../../Api/Common/realtime_counters.php', 10000);
@@ -2085,10 +2310,16 @@
           </div>
           <div class="modal-body text-center p-4">
               <p class="text-muted small mb-3">You must physically be at the deployment work site to register its GPS coordinates.</p>
+              <p class="fw-bold small mb-3" id="tlRegisterSiteName"></p>
               
               <div class="p-3 bg-light rounded border mb-3">
                   <div class="fw-bold text-dark mb-1" id="tlCurrentGpsStatus">Acquiring current GPS location...</div>
                   <div class="small text-muted" id="tlGpsAccuracyText">---</div>
+                  <div class="small text-muted mt-1" id="tlGpsCurrentReading">Current reading: waiting</div>
+                  <div class="small text-muted" id="tlGpsCurrentAccuracy">Current GPS accuracy: waiting</div>
+                  <div class="small text-muted" id="tlGpsPolicyText">Loading registration accuracy policy…</div>
+                  <div class="small fw-semibold mt-1" id="tlGpsCountdown" aria-live="polite"></div>
+                  <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="acquireTlLocation()">Retry GPS</button>
               </div>
 
               <!-- GEOFENCE RADIUS INPUT -->
@@ -2102,6 +2333,8 @@
                       <i class="bi bi-info-circle me-1"></i>Min: 30m (due to GPS drift) | Max: 1,000m (1 km).
                   </div>
               </div>
+
+              <p class="small text-muted">These coordinates remain fixed for this work site after saving. Your subsequent movements do not move the geofence.</p>
 
               <button type="button" class="btn btn-primary w-100 fw-bold py-2" id="btnConfirmRegisterSite" onclick="submitSiteRegistration()" disabled>
                   <i class="bi bi-check-circle me-1"></i>Save Work Site Coordinates
@@ -2141,6 +2374,7 @@
         <p class="text-slate-500 text-center py-4">Loading applicant details...</p>
       </div>
       <div class="modal-footer bg-slate-50 rounded-b-2xl py-2 px-4">
+        <div id="applicantDetailsDecisionActions" class="d-none d-flex gap-2 me-auto"></div>
         <button type="button" class="btn btn-secondary text-sm font-semibold" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -2173,5 +2407,6 @@
     </div>
   </div>
 </div>
+<script src="../../Js/Teamlead/tl_deployment_sites.js"></script>
 </body>
 </html>

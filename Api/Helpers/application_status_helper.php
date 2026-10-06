@@ -20,13 +20,13 @@ if (!function_exists('ash_fmt_date')) {
         if ($ts === false) {
             return null;
         }
-        return date($withTime ? 'M d, Y H:i' : 'M d, Y', $ts);
+        return date($withTime ? 'M d, Y g:i A' : 'M d, Y', $ts);
     }
 }
 
 if (!function_exists('ash_resolve_stage')) {
     /**
-     * @return string applied|scheduled_for_interview|endorsed_to_client|approved_by_company|rejected|hired
+     * @return string applied|scheduled_for_interview|endorsed_to_client|approved_by_company|client_rejected|rejected|hired
      */
     function ash_resolve_stage(array $row): string
     {
@@ -34,12 +34,14 @@ if (!function_exists('ash_resolve_stage')) {
             return 'hired';
         }
 
+        $agencyStatus = trim((string)($row['StatusFromTable'] ?? $row['Status'] ?? ''));
+        if (in_array($agencyStatus, ['Rejected','Declined','Failed'], true)) return 'rejected';
         $clientStatus = trim((string)($row['ClientApprovalStatus'] ?? ''));
         if ($clientStatus === 'Approved') {
             return 'approved_by_company';
         }
         if ($clientStatus === 'Rejected') {
-            return 'rejected';
+            return 'client_rejected';
         }
 
         if (!empty($row['EndorsedDate'])) {
@@ -74,6 +76,7 @@ if (!function_exists('ash_stage_display_label')) {
             'endorsed_to_client' => 'Endorsed to Client',
             'approved_by_company' => 'Approved by Company',
             'rejected' => 'Declined',
+            'client_rejected' => 'Rejected by Client',
             'hired' => 'Hired',
         ];
         return $map[$stage] ?? 'Applied';
@@ -89,6 +92,8 @@ if (!function_exists('ash_admin_badge_bootstrap')) {
             'Endorsed to Client' => 'primary',
             'Approved by Company' => 'warning',
             'Declined' => 'danger',
+            'Rejected by Client' => 'warning',
+            'Client Review Unsuccessful — For Reassignment' => 'warning',
             'Hired' => 'success',
         ];
         return $map[$label] ?? 'secondary';
@@ -105,6 +110,8 @@ if (!function_exists('ash_applicant_badge_bootstrap')) {
             'Approved by Company' => 'warning',
             'Hired' => 'success',
             'Declined' => 'danger',
+            'Rejected by Client' => 'warning',
+            'Client Review Unsuccessful — For Reassignment' => 'warning',
         ];
         return $map[$label] ?? 'secondary';
     }
@@ -117,8 +124,47 @@ if (!function_exists('ash_resolve_display_status')) {
     }
 }
 
+if (!function_exists('ash_fmt_interview_time_12h')) {
+    /**
+     * Applicant-facing interview time only — 12-hour clock with AM/PM
+     * (e.g. "Oct 02, 2026 5:30 PM"), per the ONAZUL HRIS Applicant UI
+     * requirement. Deliberately separate from ash_fmt_date()'s own
+     * $withTime=true 24-hour format, which Api/HR/get_application_details.php
+     * still uses as-is for its own (unrelated, HR-facing) interview_date
+     * field and is not touched here.
+     */
+    function ash_fmt_interview_time_12h($d): ?string
+    {
+        if ($d === null) {
+            return null;
+        }
+        $d = trim((string)$d);
+        if ($d === '' || $d === '0000-00-00') {
+            return null;
+        }
+        $ts = strtotime($d);
+        if ($ts === false) {
+            return null;
+        }
+        return date('M d, Y g:i A', $ts);
+    }
+}
+
 if (!function_exists('ash_build_timeline')) {
-    function ash_build_timeline(array $row): array
+    /**
+     * @param bool $applicantFacing When true, the "Scheduled for Interview"
+     *        entry's date/time is shown in 12-hour AM/PM format for the
+     *        Applicant UI (Api/Applicant/get_my_applications.php). Defaults
+     *        to false so the existing HR-facing caller
+     *        (Api/HR/get_application_details.php) keeps its current 24-hour
+     *        display unchanged.
+     * @param bool $newestFirst When true, returns the timeline newest-event
+     *        first (the order chronologically-built timeline entries are
+     *        reversed) for the Applicant "Status Updates" UI. Defaults to
+     *        false to leave the existing (currently unused) HR-facing
+     *        timeline field's order unchanged.
+     */
+    function ash_build_timeline(array $row, bool $applicantFacing = false, bool $newestFirst = false): array
     {
         $timeline = [];
 
@@ -133,13 +179,24 @@ if (!function_exists('ash_build_timeline')) {
             $timeline[] = [
                 'key' => 'scheduled_for_interview',
                 'label' => 'Scheduled for Interview',
-                'date' => ash_fmt_date($row['InterviewDate'], true),
+                'date' => $applicantFacing
+                    ? ash_fmt_interview_time_12h($row['InterviewDate'])
+                    : ash_fmt_date($row['InterviewDate'], true),
                 'detail' => isset($row['InterviewNotes']) && trim((string)$row['InterviewNotes']) !== ''
                     ? (string)$row['InterviewNotes']
                     : null,
             ];
         }
 
+        if (!empty($row['EndorsementAttempts'])) {
+            foreach ($row['EndorsementAttempts'] as $attempt) {
+                $timeline[] = ['key'=>'endorsed_to_client', 'label'=>(int)$attempt['AttemptNumber']>1 ? 'Re-Endorsed to Client' : 'Endorsed to Client',
+                    'date'=>ash_fmt_date($attempt['EndorsedAt'],true), 'detail'=>$attempt['CompanyName'].' · '.$attempt['PositionTitle']];
+                if ($attempt['Decision']!=='Pending') $timeline[] = ['key'=>$attempt['Decision']==='Approved'?'approved_by_company':'client_rejected',
+                    'label'=>$attempt['Decision']==='Approved'?'Approved by Company':($applicantFacing?'Client Review Unsuccessful — For Reassignment':'Rejected by Client'),
+                    'date'=>ash_fmt_date($attempt['DecidedAt'],true), 'detail'=>$attempt['CompanyName']];
+            }
+        } else {
         if (!empty($row['EndorsedDate'])) {
             $timeline[] = [
                 'key' => 'endorsed_to_client',
@@ -159,11 +216,13 @@ if (!function_exists('ash_build_timeline')) {
             ];
         } elseif ($clientStatus === 'Rejected') {
             $timeline[] = [
-                'key' => 'rejected',
-                'label' => 'Declined',
+                'key' => 'client_rejected',
+                'label' => $applicantFacing ? 'Client Review Unsuccessful — For Reassignment' : 'Rejected by Client',
                 'date' => ash_fmt_date($row['ClientApprovalDate'] ?? null, false),
                 'detail' => null,
             ];
+        }
+
         }
 
         if (!empty($row['HiredDate'])) {
@@ -173,6 +232,12 @@ if (!function_exists('ash_build_timeline')) {
                 'date' => ash_fmt_date($row['HiredDate'], true),
                 'detail' => null,
             ];
+        }
+
+        // Attempts are supplied oldest-first; each endorsement precedes its decision.
+        // Applied remains first and Hired last, preserving the existing timeline order.
+        if ($newestFirst) {
+            $timeline = array_reverse($timeline);
         }
 
         return $timeline;
@@ -190,6 +255,8 @@ if (!function_exists('ash_workflow_step_index')) {
             'Approved by Company' => 3,
             'Hired' => 4,
             'Declined' => 2,
+            'Rejected by Client' => 2,
+            'Client Review Unsuccessful — For Reassignment' => 2,
         ];
         return $map[$badgeLabel] ?? 0;
     }

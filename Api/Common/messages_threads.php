@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__.'/session_init.php';
 
 header('Content-Type: application/json');
 
@@ -11,6 +11,9 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 
 require __DIR__ . '/../Helpers/chat_helper.php';
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__.'/../Helpers/messenger_rbac.php';
+try{$actor=messenger_actor($conn);}catch(Throwable $e){messenger_api_error($e);exit;}
+
 
 chat_ensure_tables($conn);
 
@@ -54,13 +57,13 @@ $stmt = $conn->prepare("
             SELECT COUNT(*)
             FROM chat_messages m2
             WHERE m2.ThreadID = t.ThreadID
-              AND m2.CreatedAt > COALESCE(
+              AND m2.SenderUserID <> $userId AND m2.MessageID > COALESCE(
                     (
-                        SELECT r2.LastReadAt
+                        SELECT r2.LastReadMessageID
                         FROM chat_thread_reads r2
                         WHERE r2.ThreadID = t.ThreadID AND r2.UserID = ?
                     ),
-                    '1970-01-01'
+                    0
               )
         ) AS unread_count
     FROM chat_threads t
@@ -75,6 +78,12 @@ $result = $stmt->get_result();
 
 $threads = [];
 while ($row = $result->fetch_assoc()) {
+    try{$peers=messenger_require_thread($conn,$actor,(int)$row['ThreadID']);}catch(DomainException $e){continue;}
+    $peerIds=array_map('intval',array_column($peers,'user_id'));$idsSql=implode(',',$peerIds);$id=(int)$row['ThreadID'];
+    $last=site_query($conn,"SELECT MessageText,CreatedAt FROM chat_messages WHERE ThreadID=? AND SenderUserID IN ($userId,$idsSql) ORDER BY MessageID DESC LIMIT 1",'i',[$id])->fetch_assoc();
+    $row['last_message_text']=$last['MessageText']??null;$row['last_created_at']=$last['CreatedAt']??null;
+    $row['other_user_name']=$peers[0]['full_name'];
+    $row['unread_count']=(int)site_query($conn,"SELECT COUNT(*) n FROM chat_messages m WHERE m.ThreadID=? AND m.SenderUserID IN ($idsSql) AND m.MessageID>COALESCE((SELECT LastReadMessageID FROM chat_thread_reads WHERE ThreadID=? AND UserID=?),0)",'iii',[$id,$id,$userId])->fetch_assoc()['n'];
     $tt = $row['ThreadType'] ?? '';
     $channel = 'other';
     $label = $tt;
@@ -100,4 +109,5 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-echo json_encode(['success' => true, 'threads' => $threads]);
+$_SESSION['messenger_csrf']??=bin2hex(random_bytes(32));
+echo json_encode(['success'=>true,'threads'=>$threads,'csrf_token'=>$_SESSION['messenger_csrf']]);

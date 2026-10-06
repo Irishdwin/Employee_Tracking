@@ -4,74 +4,15 @@
  *
  * @return array{total:int,by_contact:array<int,int>,threads:array<int,array{thread_id:int,unread_count:int}>}
  */
-function messenger_get_unread_counts(mysqli $conn, int $viewerId): array
-{
-    $byContact = [];
-    $threads = [];
-    $total = 0;
-
-    $stmt = $conn->prepare("
-        SELECT
-            t.ThreadID,
-            t.RelatedModule,
-            (
-                SELECT COUNT(*)
-                FROM chat_messages m
-                WHERE m.ThreadID = t.ThreadID
-                  AND m.SenderUserID <> ?
-                  AND m.CreatedAt > COALESCE(
-                        (
-                            SELECT r.LastReadAt
-                            FROM chat_thread_reads r
-                            WHERE r.ThreadID = t.ThreadID AND r.UserID = ?
-                        ),
-                        '1970-01-01'
-                  )
-            ) AS unread_count
-        FROM chat_threads t
-        INNER JOIN chat_thread_participants p ON p.ThreadID = t.ThreadID AND p.UserID = ?
-        WHERE t.ThreadType = 'DIRECT'
-    ");
-    if (!$stmt) {
-        return ['total' => 0, 'by_contact' => [], 'threads' => []];
-    }
-
-    $stmt->bind_param('iii', $viewerId, $viewerId, $viewerId);
-    if (!$stmt->execute()) {
-        $stmt->close();
-        return ['total' => 0, 'by_contact' => [], 'threads' => []];
-    }
-
-    $res = $stmt->get_result();
-    while ($row = $res->fetch_assoc()) {
-        $unread = (int)($row['unread_count'] ?? 0);
-        if ($unread <= 0) {
-            continue;
-        }
-        $rm = (string)($row['RelatedModule'] ?? '');
-        if (!preg_match('/^dm_(\d+)_(\d+)$/', $rm, $m)) {
-            continue;
-        }
-        $a = (int)$m[1];
-        $b = (int)$m[2];
-        $otherId = ($a === $viewerId) ? $b : (($b === $viewerId) ? $a : 0);
-        if ($otherId <= 0 || $otherId === $viewerId) {
-            continue;
-        }
-        $byContact[$otherId] = ($byContact[$otherId] ?? 0) + $unread;
-        $threads[$otherId] = [
-            'thread_id' => (int)$row['ThreadID'],
-            'unread_count' => $unread,
-        ];
-        $total += $unread;
-    }
-    $stmt->close();
-
-    return [
-        'total' => $total,
-        'by_contact' => $byContact,
-        'threads' => $threads,
-    ];
+function messenger_get_unread_counts(mysqli $conn,int $viewerId):array {
+ require_once __DIR__.'/messenger_rbac.php';$actor=messenger_user($conn,$viewerId);$out=['total'=>0,'by_contact'=>[],'threads'=>[],'latest_unread'=>[]];if(!$actor)return $out;
+ $rows=site_query($conn,'SELECT t.ThreadID,t.ThreadType FROM chat_threads t JOIN chat_thread_participants p ON p.ThreadID=t.ThreadID WHERE p.UserID=?','i',[$viewerId])->fetch_all(MYSQLI_ASSOC);
+ foreach($rows as$row){$id=(int)$row['ThreadID'];try{$peers=messenger_require_thread($conn,$actor,$id);}catch(DomainException $e){continue;}
+  $ids=array_map('intval',array_column($peers,'user_id'));$idsSql=implode(',',$ids);
+  $counts=site_query($conn,"SELECT m.SenderUserID,COUNT(*) n,MAX(m.CreatedAt) latest_at,MAX(m.MessageID) latest_id FROM chat_messages m WHERE m.ThreadID=? AND m.IsSystemMessage=0 AND m.SenderUserID IN ($idsSql) AND m.MessageID>COALESCE((SELECT LastReadMessageID FROM chat_thread_reads WHERE ThreadID=? AND UserID=?),0) GROUP BY m.SenderUserID",'iii',[$id,$id,$viewerId])->fetch_all(MYSQLI_ASSOC);
+  foreach($counts as$c){$other=(int)$c['SenderUserID'];$n=(int)$c['n'];$out['by_contact'][$other]=($out['by_contact'][$other]??0)+$n;$out['total']+=$n;$latest=['created_at'=>$c['latest_at'],'message_id'=>(int)$c['latest_id']];$previous=$out['latest_unread'][$other]??null;if(!$previous||strcmp((string)$latest['created_at'],(string)$previous['created_at'])>0||($latest['created_at']===$previous['created_at']&&$latest['message_id']>$previous['message_id']))$out['latest_unread'][$other]=$latest;}
+  foreach($ids as$other)if($row['ThreadType']==='DIRECT')$out['threads'][$other]=['thread_id'=>$id,'unread_count'=>$out['by_contact'][$other]??0];
+ }return $out;
 }
 
 /**

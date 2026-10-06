@@ -24,7 +24,10 @@ function google_oauth_exchange_code(string $code, string $redirectUri, array $cf
     ]);
 
     $tokenRespRaw = null;
+    $curlFailReason = null;
+    $curlAttempted = false;
     if (function_exists('curl_init')) {
+        $curlAttempted = true;
         $ch = curl_init($tokenUrl);
         curl_setopt_array($ch, [
             CURLOPT_POST => true,
@@ -35,7 +38,9 @@ function google_oauth_exchange_code(string $code, string $redirectUri, array $cf
         ]);
         $tokenRespRaw = curl_exec($ch);
         if ($tokenRespRaw === false) {
-            error_log('google_oauth CURL token: ' . curl_error($ch));
+            $curlErrno = curl_errno($ch);
+            $curlFailReason = 'curl errno ' . $curlErrno . ': ' . curl_error($ch);
+            error_log('google_oauth CURL token: ' . $curlFailReason);
             $tokenRespRaw = null;
         }
         curl_close($ch);
@@ -51,10 +56,24 @@ function google_oauth_exchange_code(string $code, string $redirectUri, array $cf
             ],
         ]);
         $tokenRespRaw = @file_get_contents($tokenUrl, false, $context);
+        if ($tokenRespRaw === false) {
+            $streamErr = error_get_last();
+            error_log('google_oauth file_get_contents token: ' . ($streamErr['message'] ?? 'unknown stream error'));
+        }
     }
 
     if (!$tokenRespRaw) {
-        throw new RuntimeException('Failed to exchange code with Google.');
+        // Both transports failed to reach Google at all (not a Google-side error —
+        // Google was never reached). This is a server -> Google network/TLS
+        // problem on this machine (disabled curl/openssl extension, missing SSL
+        // CA bundle, or a firewall/antivirus/proxy blocking outbound HTTPS from
+        // PHP/Apache), not an OAuth logic bug. See the PHP/Apache error log for
+        // the exact curl errno/message just captured above.
+        $diag = $curlAttempted
+            ? ($curlFailReason ?: 'no response from Google token endpoint')
+            : 'PHP curl extension is not enabled, and the file_get_contents fallback also returned no response';
+        error_log('google_oauth_exchange_code: total failure reaching ' . $tokenUrl . ' - ' . $diag);
+        throw new RuntimeException('Failed to exchange code with Google. (Server could not reach Google — check the PHP/Apache error log for the exact network/SSL reason.)');
     }
 
     $tokenResp = json_decode($tokenRespRaw, true);
@@ -247,8 +266,8 @@ function google_rbac_process_verified_email(
         $hashedPassword = password_hash($randomPassword, PASSWORD_DEFAULT);
 
         $stmtUser = $conn->prepare('
-            INSERT INTO users (RoleID, FullName, Email, Password, IsActive)
-            VALUES (?, ?, ?, ?, 1)
+            INSERT INTO users (RoleID, FullName, Email, Password, IsActive, LocalPasswordConfigured)
+            VALUES (?, ?, ?, ?, 1, 0)
         ');
         $stmtUser->bind_param('isss', $applicantRoleId, $finalName, $email, $hashedPassword);
         if (!$stmtUser->execute()) {
@@ -285,6 +304,8 @@ function google_rbac_process_verified_email(
     }
 
     $_SESSION['user_id'] = $userId;
+    $_SESSION['verified_google_login'] = ['user_id'=>$userId,'at'=>time()];
+    $_SESSION['last_activity'] = time(); // Reset the same idle clock after verified Google login.
     $_SESSION['role'] = $roleName;
     $_SESSION['full_name'] = $finalName;
     $_SESSION['email'] = $email;

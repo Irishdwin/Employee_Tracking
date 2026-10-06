@@ -1,7 +1,7 @@
 /**
  * Collapsible dashboard sidebar — expanded (260px), compact (70px), mobile drawer.
  */
-:root {
+ :root {
   --sidebar-width-expanded: 260px;
   --sidebar-width-collapsed: 70px;
   --sidebar-width-current: var(--sidebar-width-expanded);
@@ -212,6 +212,15 @@ body.sidebar-drawer-open {
 #dashboard-wrapper .cc-main-inner {
   flex: 1;
   min-width: 0;
+  /* Reserve room for the messenger FAB (.ow-msgr-fab in ow_widgets.css is
+     position: fixed; right/bottom: 1.5rem — it floats over whatever page
+     content happens to end up in the viewport's bottom-right corner, e.g.
+     pagination controls on Client Companies/Service Agreements/User
+     Management/System Logs). This keeps page content clear of that corner
+     on every dashboard that shares this layout (Admin, Accounting, HR,
+     Team Lead), instead of patching each page's bottom content one at a
+     time. */
+  padding-bottom: 5.5rem;
 }
 
 @media (max-width: 767.98px) {

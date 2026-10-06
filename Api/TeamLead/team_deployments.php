@@ -1,129 +1,119 @@
 <?php
+
 require_once __DIR__ . '/../Common/session_init.php';
+
+
 
 header('Content-Type: application/json');
 
+
+
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+
     http_response_code(401);
+
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+
     exit();
+
 }
 
+
+
 $role = trim((string)($_SESSION['role'] ?? ''));
+
 $allowedRoles = ['TeamLead', 'Team Lead', 'Admin', 'HR'];
+
 if (!in_array($role, $allowedRoles, true)) {
+
     http_response_code(403);
+
     echo json_encode(['success' => false, 'message' => 'Forbidden']);
+
     exit();
+
 }
+
+
 
 require __DIR__ . '/../Db_connection/db_connect.php';
 
+
+
 function json_resp($data, $status = 200) {
+
     http_response_code($status);
+
     echo json_encode($data);
+
     exit();
+
 }
+
+
 
 $userId = (int)$_SESSION['user_id'];
+
 $teamLeadName = $_SESSION['full_name'] ?? 'Team Lead';
 
+
+
 $nameStmt = $conn->prepare("SELECT FullName FROM users WHERE UsersID = ? LIMIT 1");
+
 if ($nameStmt) {
+
     $nameStmt->bind_param("i", $userId);
+
     $nameStmt->execute();
+
     $nameRes = $nameStmt->get_result();
+
     if ($nameRes && ($row = $nameRes->fetch_assoc())) {
+
         if (!empty($row['FullName'])) $teamLeadName = $row['FullName'];
+
     }
+
     $nameStmt->close();
+
 }
 
-$deployments = [];
-$depSql = "SELECT d.DeploymentID, d.EmployeeID, d.Position, d.StartDate, d.EndDate, d.Location,
-                  e.EmployeeNumber, CONCAT(e.FirstName, ' ', e.LastName) AS EmployeeName,
-                  c.CompanyID, c.Name AS CompanyName
-           FROM deployment d
-           INNER JOIN employee e ON d.EmployeeID = e.EmployeeID
-           INNER JOIN clientcompany c ON d.CompanyID = c.CompanyID
-           WHERE d.SiteSuperVisorID = ?
-           ORDER BY d.StartDate DESC, d.DeploymentID DESC";
-$depStmt = $conn->prepare($depSql);
-if (!$depStmt) {
-    json_resp(['success' => false, 'message' => 'Failed to prepare deployment query.'], 500);
-}
-$depStmt->bind_param("i", $userId);
-$depStmt->execute();
-$depRes = $depStmt->get_result();
-while ($row = $depRes->fetch_assoc()) {
-    $deployments[] = [
-        'deployment_id' => (int)$row['DeploymentID'],
-        'employee_id' => (int)$row['EmployeeID'],
-        'employee_name' => $row['EmployeeName'] ?? '',
-        'employee_number' => $row['EmployeeNumber'] ?? '',
-        'company_id' => (int)$row['CompanyID'],
-        'company_name' => $row['CompanyName'] ?? '',
-        'position' => $row['Position'] ?? '',
-        'location' => $row['Location'] ?? '',
-        'start_date' => $row['StartDate'],
-        'end_date' => $row['EndDate'],
-    ];
-}
-$depStmt->close();
 
-$sites = [];
-$siteSql = "SELECT DISTINCT c.CompanyID, c.Name AS CompanyName, COALESCE(NULLIF(TRIM(d.Location), ''), '') AS Location
-            FROM deployment d
-            INNER JOIN clientcompany c ON d.CompanyID = c.CompanyID
-            WHERE d.SiteSuperVisorID = ?
-            ORDER BY c.Name ASC, Location ASC";
-$siteStmt = $conn->prepare($siteSql);
-if ($siteStmt) {
-    $siteStmt->bind_param("i", $userId);
-    $siteStmt->execute();
-    $siteRes = $siteStmt->get_result();
-    while ($row = $siteRes->fetch_assoc()) {
-        $sites[] = [
-            'company_id' => (int)$row['CompanyID'],
-            'company_name' => $row['CompanyName'] ?? '',
-            'location' => $row['Location'] ?? '',
-        ];
-    }
-    $siteStmt->close();
-}
 
-// Team Leads assigned on client creation (clientcompany.UserID) may have no HR deployment rows yet;
-// still allow job requests and related flows for their company.
-$seenCompanyIds = [];
-foreach ($sites as $s) {
-    $seenCompanyIds[(int)$s['company_id']] = true;
-}
-$ccStmt = $conn->prepare('SELECT CompanyID, Name AS CompanyName, COALESCE(NULLIF(TRIM(Address), \'\'), \'\') AS Addr FROM clientcompany WHERE UserID = ?');
-if ($ccStmt) {
-    $ccStmt->bind_param('i', $userId);
-    $ccStmt->execute();
-    $ccRes = $ccStmt->get_result();
-    while ($row = $ccRes->fetch_assoc()) {
-        $cid = (int)($row['CompanyID'] ?? 0);
-        if ($cid <= 0 || isset($seenCompanyIds[$cid])) {
-            continue;
-        }
-        $seenCompanyIds[$cid] = true;
-        $sites[] = [
-            'company_id' => $cid,
-            'company_name' => $row['CompanyName'] ?? '',
-            'location' => $row['Addr'] ?? '',
-        ];
-    }
-    $ccStmt->close();
-}
-usort($sites, function ($a, $b) {
-    return strcasecmp($a['company_name'] ?? '', $b['company_name'] ?? '');
-});
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
 
-json_resp([
-    'success' => true,
-    'team_lead_name' => $teamLeadName,
-    'deployments' => $deployments,
-    'sites' => $sites,
-]);
+try {
+
+    $sites=sites_for_lead($conn,$userId);$siteId=(int)($_GET['site_id']??0);
+
+    if($siteId)site_for_lead($conn,$userId,$siteId);
+
+    if(($_GET['sites_only']??'')==='1')json_resp(['success'=>true,'sites'=>$sites,'deployments'=>[]]);
+    $current=site_current_deployment_sql();
+
+    $rows=site_query($conn,"SELECT d.*,e.EmployeeNumber,CONCAT(e.FirstName,' ',e.LastName) EmployeeName,c.Name CompanyName,s.Name SiteName,s.Address SiteAddress
+
+       FROM deployment d JOIN employee e ON e.EmployeeID=d.EmployeeID AND e.IsActive=1
+
+       JOIN deployment_sites s ON s.SiteID=d.SiteID AND s.IsActive=1
+
+       JOIN clientcompany c ON c.CompanyID=s.CompanyID AND c.IsActive=1
+
+       WHERE s.TeamLeadID=? AND (?=0 OR s.SiteID=?) AND $current ORDER BY EmployeeName",'iii',[$userId,$siteId,$siteId])->fetch_all(MYSQLI_ASSOC);
+
+    $deployments=array_map(static fn($r)=>[
+
+      'deployment_id'=>(int)$r['DeploymentID'],'employee_id'=>(int)$r['EmployeeID'],'employee_name'=>$r['EmployeeName'],
+
+      'employee_number'=>$r['EmployeeNumber'],'company_id'=>(int)$r['CompanyID'],'company_name'=>$r['CompanyName'],
+
+      'site_id'=>(int)$r['SiteID'],'site_name'=>$r['SiteName'],'position'=>$r['Position'],'location'=>$r['SiteAddress'],
+
+      'start_date'=>$r['StartDate'],'end_date'=>$r['EndDate']],$rows);
+
+    json_resp(['success'=>true,'team_lead_name'=>$teamLeadName,'deployments'=>$deployments,'sites'=>$sites]);
+
+}catch(DomainException $e){json_resp(['success'=>false,'message'=>$e->getMessage()],403);}
+
+catch(Throwable $e){error_log($e->getMessage());json_resp(['success'=>false,'message'=>'Unable to load assigned deployment sites.'],500);}
+

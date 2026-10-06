@@ -1,91 +1,32 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-
-ini_set('display_errors', 0);
-error_reporting(E_ALL);
-
-session_start();
-
-function respond($success, $data = []) {
-    echo json_encode(array_merge(['success' => $success], $data));
-    exit;
+require_once __DIR__ . '/../Common/session_init.php';
+date_default_timezone_set('Asia/Manila');
+header('Content-Type: application/json; charset=utf-8');
+require_once __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
+require_once __DIR__ . '/../Helpers/work_site_registration_policy.php';
+function respond(bool $success,array $data=[],int $status=200): void {
+    http_response_code($status); echo json_encode(array_merge(['success'=>$success,'registration_policy'=>work_site_registration_policy()],$data)); exit;
 }
-
-if (!isset($_SESSION['user_id']) && !isset($_SESSION['id'])) {
-    respond(false, ['message' => 'User session expired.']);
-}
-
-$userId = $_SESSION['user_id'] ?? $_SESSION['id'];
-
-// Database Connection
-$dbLoaded = false;
-$searchFolders = [
-    __DIR__ . '/../Db_connection',
-    __DIR__ . '/../config',
-    __DIR__ . '/../Config',
-    __DIR__ . '/../../Config',
-];
-
-foreach ($searchFolders as $folder) {
-    if (is_dir($folder)) {
-        $files = glob($folder . '/*.php');
-        if (!empty($files)) {
-            foreach ($files as $file) {
-                try {
-                    require_once $file;
-                    if (isset($conn) || isset($db) || isset($mysqli) || isset($link)) {
-                        $dbLoaded = true;
-                        break 2;
-                    }
-                } catch (\Throwable $e) { continue; }
-            }
-        }
-    }
-}
-
-if (!isset($conn) && isset($db)) { $conn = $db; }
-if (!isset($conn) && isset($mysqli)) { $conn = $mysqli; }
-if (!isset($conn) && isset($link)) { $conn = $link; }
-
-if (!$dbLoaded || !isset($conn)) {
-    respond(false, ['message' => 'Database connection failed.']);
-}
-
-// Fetch Company Site Data specifically scoped to Team Lead with robust coalescing
+if (!isset($_SESSION['user_id'],$_SESSION['role'])) respond(false,['message'=>'User session expired.'],401);
+if (!in_array($_SESSION['role'],['TeamLead','Team Lead'],true)) respond(false,['message'=>'Only an assigned Team Lead can load work sites.'],403);
+if ($_SERVER['REQUEST_METHOD']!=='GET') respond(false,['message'=>'GET is required.'],405);
+$requestedCompany=filter_var($_GET['site_id']??0,FILTER_VALIDATE_INT);
+if ($requestedCompany===false || $requestedCompany<0) respond(false,['message'=>'Invalid work site selection.'],400);
 try {
-    $stmt = $conn->prepare("
-        SELECT COALESCE(latitude, registered_latitude) AS lat, 
-               COALESCE(longitude, registered_longitude) AS lng, 
-               COALESCE(geofence_radius, 100) AS radius 
-        FROM clientcompany 
-        WHERE UserID = ? OR CompanyID IN (SELECT CompanyID FROM deployment WHERE SiteSuperVisorID = ?)
-        LIMIT 1
-    ");
-    if ($stmt) {
-        $stmt->bind_param("ii", $userId, $userId);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        if ($row = $res->fetch_assoc()) {
-            respond(true, [
-                'latitude' => $row['lat'] !== null ? (float)$row['lat'] : null,
-                'longitude' => $row['lng'] !== null ? (float)$row['lng'] : null,
-                'geofence_radius' => $row['radius'] ? (int)$row['radius'] : 100
-            ]);
-        }
-        $stmt->close();
-    }
-
-    $stmt2 = $conn->query("SELECT COALESCE(latitude, registered_latitude) AS lat, COALESCE(longitude, registered_longitude) AS lng, COALESCE(geofence_radius, 100) AS radius FROM clientcompany WHERE latitude IS NOT NULL OR registered_latitude IS NOT NULL LIMIT 1");
-    if ($stmt2 && $row = $stmt2->fetch_assoc()) {
-        respond(true, [
-            'latitude' => $row['lat'] !== null ? (float)$row['lat'] : null,
-            'longitude' => $row['lng'] !== null ? (float)$row['lng'] : null,
-            'geofence_radius' => $row['radius'] ? (int)$row['radius'] : 100
-        ]);
-    }
-
-    respond(false, ['message' => 'No registered work site found.']);
-} catch (\Throwable $e) {
-    respond(false, ['message' => $e->getMessage()]);
+    $userId=(int)$_SESSION['user_id'];
+    $companies=work_site_companies_for_team_lead($conn,$userId);
+    if (!$companies && $requestedCompany) respond(false,['message'=>'This site is not assigned to you.'],403);
+    if (!$companies) respond(true,['companies'=>[],'requires_selection'=>false,'company_id'=>null,'latitude'=>null,'longitude'=>null,'message'=>'No current official work sites are assigned to you.']);
+    if (!$requestedCompany && count($companies)>1) respond(true,['companies'=>$companies,'requires_selection'=>true,'latitude'=>null,'longitude'=>null,'message'=>'Select the intended work site.']);
+    $companyId=work_site_company_for_team_lead($conn,$userId,(int)$requestedCompany);
+    $row=site_for_lead($conn,$userId,$companyId);
+    $row['dep_registered_latitude']=$row['registered_latitude'];$row['dep_registered_longitude']=$row['registered_longitude'];
+    $coords=geofence_pick_coordinates($row,'dep');
+    respond(true,['companies'=>$companies,'requires_selection'=>false,'site_id'=>$companyId,'company_id'=>(int)$row['CompanyID'],'company_name'=>$row['CompanyName'],'site_name'=>$row['Name'],'address'=>$row['Address'],'site_registered'=>$coords!==null,'latitude'=>$coords['latitude']??null,'longitude'=>$coords['longitude']??null,'geofence_radius'=>(int)($row['geofence_radius']?:100),'site_registered_at'=>$row['site_registered_at']]);
+} catch (DomainException $e) {
+    respond(false,['message'=>$e->getMessage()],403);
+} catch (Throwable $e) {
+    error_log('Team Lead work site: '.$e->getMessage());
+    respond(false,['message'=>'Unable to load registered work site.'],500);
 }

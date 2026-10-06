@@ -17,6 +17,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/_testing_guard.php';
+require_once __DIR__ . '/_selection_context.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -55,6 +56,7 @@ try {
 
     $employeeId = (int)$row['EmployeeID'];
     $date = $row['Date'];
+    testing_employee_context($conn,$body,$employeeId,$date);
 
     $delAtt = $conn->prepare("DELETE FROM attendance WHERE AttendanceID = ?");
     $delAtt->bind_param('i', $attendanceId);

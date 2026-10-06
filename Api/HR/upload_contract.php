@@ -35,11 +35,16 @@ $contractTypeInput = isset($_POST['contract_type']) ? strtolower(trim((string)$_
 $contractMonths = isset($_POST['contract_months']) ? (int)$_POST['contract_months'] : 0;
 $signedDateRaw = isset($_POST['signed_date']) ? trim((string)$_POST['signed_date']) : '';
 
-$contractYears = 2;
+$contractYears = filter_var($_POST['contract_years'] ?? null, FILTER_VALIDATE_INT);
+$contractMonths = filter_var($_POST['contract_months'] ?? null, FILTER_VALIDATE_INT);
+if (!in_array($contractTypeInput, ['open', 'expiring'], true)) {
+    echo json_encode(['success'=>false, 'message'=>'Choose a valid contract type.']); exit();
+}
+if ($contractTypeInput === 'open') { $contractYears = 0; $contractMonths = 0; }
 $contractType = ($contractTypeInput === 'expiring') ? 'Expiring Contract' : 'Open Contract';
 
-if ($contractMonths < 0 || $contractMonths > 11) {
-    echo json_encode(['success' => false, 'message' => 'Contract months is required (0-11).']);
+if ($contractYears === false || $contractYears === null || $contractYears < 0 || $contractYears > 100 || $contractMonths === false || $contractMonths === null || $contractMonths < 0 || $contractMonths > 11 || ($contractTypeInput === 'expiring' && $contractYears * 12 + $contractMonths <= 0)) {
+    echo json_encode(['success' => false, 'message' => 'Provide a positive duration: years 0–100 and months 0–11.']);
     exit();
 }
 
@@ -52,7 +57,7 @@ $signedDate = date('Y-m-d', strtotime($signedDateRaw));
 $expiryDate = null;
 if ($contractTypeInput === 'expiring') {
     $totalMonths = ($contractYears * 12) + $contractMonths;
-    if ($totalMonths <= 0) $totalMonths = 24;
+
     $expiryDate = date('Y-m-d', strtotime($signedDate . ' +' . $totalMonths . ' months'));
 }
 

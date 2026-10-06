@@ -12,6 +12,7 @@
     };
   </script>
   <style>body { font-family: Inter, system-ui, sans-serif; }</style>
+<link rel="stylesheet" href="../../Css/applicant_searchable_select.css">
 </head>
 <body class="min-h-screen bg-brand-surface text-slate-800">
   <header class="border-b border-slate-200 bg-brand-navy text-white">
@@ -23,7 +24,7 @@
 
   <main class="mx-auto grid max-w-5xl gap-6 px-4 py-6 lg:grid-cols-3">
     <section class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-100 lg:col-span-1">
-      <h2 class="text-base font-bold text-brand-navy">Applicant Profile (Original)</h2>
+      <h2 class="text-base font-bold text-brand-navy">Personal Profile</h2>
       <dl class="mt-4 space-y-3 text-sm">
         <div><dt class="text-xs font-semibold uppercase text-slate-500">Full name</dt><dd id="p-name" class="font-semibold">-</dd></div>
         <div><dt class="text-xs font-semibold uppercase text-slate-500">Email</dt><dd id="p-email" class="font-semibold">-</dd></div>
@@ -55,10 +56,13 @@
           <input id="document" name="document" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" required />
         </div>
         <div class="sm:col-span-2">
-          <button type="submit" class="w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white hover:bg-brand-orange-dark">Upload Document</button>
+          <p id="replace-hint" class="mb-2 text-sm text-brand-navy" hidden></p>
+          <button id="upload-submit" type="submit" class="w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white hover:bg-brand-orange-dark">Upload Document</button>
+          <button type="button" id="replace-cancel" class="mt-2 text-sm font-semibold text-slate-600" hidden>Cancel replacement</button>
         </div>
       </form>
 
+      <p id="upload-status" class="mt-3 text-sm" role="status" hidden></p>
       <ul id="doc-list" class="mt-4 space-y-2 text-sm">
         <li class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-500">No documents found.</li>
       </ul>
@@ -89,6 +93,13 @@
       var docModal = document.getElementById('doc-view-modal');
       var docFrame = document.getElementById('doc-view-frame');
       var docTitle = document.getElementById('doc-view-title');
+      var replaceId=0, csrfToken='', uploading=false;
+      var uploadButton=document.getElementById('upload-submit');
+      var cancelButton=document.getElementById('replace-cancel');
+      var status=document.getElementById('upload-status');
+      function resetReplacement() { replaceId=0; uploadForm.reset(); document.getElementById('doc_type').readOnly=false; uploadButton.textContent='Upload Document'; cancelButton.hidden=true; document.getElementById('replace-hint').hidden=true; }
+      cancelButton.addEventListener('click',resetReplacement);
+      function escapeHtml(value) { var el=document.createElement('span'); el.textContent=String(value); return el.innerHTML; }
       var docClose = document.getElementById('doc-view-close');
 
       function renderDocuments(docs) {
@@ -106,7 +117,22 @@
           var type = d && d.type ? d.type : '';
           var date = d && d.uploaded_at ? d.uploaded_at : 'Unknown date';
           var path = d && d.path ? d.path : '';
-          li.innerHTML = '<div class="flex items-center justify-between gap-2"><div><p class="font-semibold text-slate-800">' + name + '</p><p class="text-xs text-slate-500">' + type + '</p></div><div class="flex items-center gap-2"><span class="text-xs text-slate-500">' + date + '</span><button type="button" class="doc-view-btn rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-name="' + String(name).replace(/"/g, '&quot;') + '" data-path="' + String(path).replace(/"/g, '&quot;') + '">View</button></div></div>';
+          li.innerHTML = '<div class="flex items-center justify-between gap-2"><div><p class="font-semibold text-slate-800">' + escapeHtml(name) + '</p><p class="text-xs text-slate-500">' + escapeHtml(type) + '</p></div><div class="flex items-center gap-2"><span class="text-xs text-slate-500">' + escapeHtml(date) + '</span><button type="button" class="doc-view-btn rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50" data-name="' + String(name).replace(/"/g, '&quot;') + '" data-path="' + String(path).replace(/"/g, '&quot;') + '">View</button></div></div>';
+          var replace=document.createElement('button');
+          replace.type='button'; replace.textContent='Replace';
+          replace.className='ml-2 rounded-md border border-orange-300 bg-orange-50 px-2 py-1 text-xs font-semibold text-orange-700 hover:bg-orange-100';
+          replace.addEventListener('click',function () {
+            if(uploading || !d.doc_id) return;
+            replaceId=d.doc_id; uploadForm.reset();
+            document.getElementById('doc_type').value=type;
+            document.getElementById('doc_type').readOnly=true;
+            document.getElementById('replace-hint').textContent='Replacing '+name+' ('+type+'). Choose the updated file below.';
+            document.getElementById('replace-hint').hidden=false;
+            uploadButton.textContent='Replace Document'; cancelButton.hidden=false;
+            uploadForm.scrollIntoView({behavior:'smooth',block:'center'});
+            document.getElementById('document').focus();
+          });
+          li.querySelector('.doc-view-btn').parentElement.appendChild(replace);
           docList.appendChild(li);
         });
         docList.querySelectorAll('.doc-view-btn').forEach(function (btn) {
@@ -115,7 +141,7 @@
             var n = this.getAttribute('data-name') || 'Document Preview';
             if (!p) return;
             docTitle.textContent = n;
-            docFrame.src = p;
+            EmployeeDocumentPreview.open(p,n);
             docModal.classList.remove('hidden');
             docModal.classList.add('flex');
           });
@@ -143,6 +169,7 @@
           var res = await fetch(DATA_API, { credentials: 'include' });
           var data = await res.json();
           if (!data || !data.success) return;
+          csrfToken=data.document_csrf_token || '';
           renderProfile(data.profile);
           renderDocuments(data.documents);
         } catch (e) {}
@@ -150,19 +177,24 @@
 
       uploadForm.addEventListener('submit', async function (e) {
         e.preventDefault();
+        if(uploading) return;
+        uploading=true; uploadButton.disabled=true; cancelButton.disabled=true;
         var fd = new FormData(uploadForm);
+        fd.append('csrf_token',csrfToken);
+        if(replaceId) fd.append('replace_doc_id',String(replaceId));
         try {
           var res = await fetch(UPLOAD_API, { method: 'POST', body: fd, credentials: 'include' });
           var data = await res.json();
           if (!data || !data.success) {
-            window.alert((data && data.message) || 'Upload failed.');
+            status.textContent=(data && data.message) || 'Upload failed.'; status.hidden=false; status.className='mt-3 text-sm text-red-700';
             return;
           }
-          uploadForm.reset();
+          resetReplacement();
+          status.textContent=data.message; status.hidden=false; status.className='mt-3 text-sm text-green-700';
           await loadData();
         } catch (err) {
-          window.alert('Upload failed.');
-        }
+          status.textContent='Upload failed. Your existing document has not been changed.'; status.hidden=false; status.className='mt-3 text-sm text-red-700';
+        } finally { uploading=false; uploadButton.disabled=false; cancelButton.disabled=false; }
       });
 
       if (docClose) {
@@ -182,8 +214,13 @@
         });
       }
 
+      document.addEventListener('employee-profile-updated',loadData);
       loadData();
     })();
   </script>
+<script src="../../Js/Shared/employee_document_preview.js"></script>
+<script src="../../Js/Applicant/searchable_select.js"></script>
+<script src="../../Js/Applicant/applicant_profile_cascades.js"></script>
+<script src="../../Js/Employee/employee_profile_edit.js"></script>
 </body>
 </html>

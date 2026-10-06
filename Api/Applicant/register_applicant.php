@@ -8,6 +8,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../Common/session_init.php';
 require_once __DIR__ . '/../Helpers/hris_pdo.php';
 require_once __DIR__ . '/../Helpers/AuditLogger.php';
+require_once __DIR__ . '/../Helpers/password_policy.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -88,11 +89,13 @@ if ($mobile === '') {
     $fieldErrors['mobile_number'] = 'Enter a valid mobile number.';
 }
 
-$passwordPattern = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/';
 if ($password === '') {
     $fieldErrors['password'] = 'Password is required.';
-} elseif (!preg_match($passwordPattern, $password)) {
-    $fieldErrors['password'] = 'Password must include uppercase, lowercase, number, and special character (min. 8 chars).';
+} else {
+    $passwordPolicyError = validate_strong_password($password);
+    if ($passwordPolicyError !== null) {
+        $fieldErrors['password'] = $passwordPolicyError;
+    }
 }
 
 if ($confirmPassword === '') {
@@ -138,7 +141,7 @@ try {
     $pdo->beginTransaction();
 
     $userStmt = $pdo->prepare(
-        'INSERT INTO users (RoleID, FullName, Email, Password, IsActive) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO users (RoleID, FullName, Email, Password, IsActive, LocalPasswordConfigured) VALUES (?, ?, ?, ?, ?, 1)'
     );
     $userStmt->execute([$roleId, $fullName, $email, $hashedPassword, $isActive]);
     $newUserId = (int)$pdo->lastInsertId();
@@ -167,7 +170,7 @@ try {
         'profile_completed' => false,
         'status' => 'incomplete',
         'redirect' => '../../Html/Applicant/applicant_profile_master.html#profile',
-    ]);
+    ], 201);
 } catch (Throwable $e) {
     if (isset($pdo) && $pdo->inTransaction()) {
         $pdo->rollBack();

@@ -4,6 +4,7 @@ require_once __DIR__ . '/../Common/session_init.php';
 require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/job_categories.php';
 require_once __DIR__ . '/../Helpers/job_order_wall.php';
+require_once __DIR__.'/../Helpers/job_hierarchy.php';
 
 job_category_migrate_legacy_values($conn);
 
@@ -67,6 +68,7 @@ if ($userId > 0) {
     }
 }
 
+if($userId>0){$labels=jh_profile_labels($conn,$userId);$savedJobCategory=(string)($labels['category_name']??$savedJobCategory);$savedClass=(string)($labels['classification_name']??$savedClass);$savedSub=(string)($labels['sub_classification_name']??$savedSub);}
 $qKeyword = isset($_GET['keyword']) ? trim((string)$_GET['keyword']) : '';
 $qLoc = isset($_GET['location']) ? trim((string)$_GET['location']) : '';
 $qWorkType = isset($_GET['work_type']) ? trim((string)$_GET['work_type']) : '';
@@ -79,7 +81,7 @@ if ($isDictionaryRequest) {
         SELECT DISTINCT jo.Position, c.Name AS CompanyName
         FROM joborder jo
         INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
-        WHERE c.IsActive = 1 AND " . job_order_has_open_slots_sql() . "
+        WHERE c.IsActive = 1 AND jo.Status = 'Open' AND " . job_order_has_open_slots_sql() . "
         ORDER BY jo.CreatedAt DESC
     ";
     $dictRes = $conn->query($dictSql);
@@ -119,7 +121,7 @@ $baseSql = "
     FROM joborder jo
     INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
     " . job_order_request_position_join_sql() . "
-    WHERE c.IsActive = 1
+    WHERE c.IsActive = 1 AND jo.Status = 'Open'
       AND " . job_order_has_open_slots_sql() . "
 ";
 
@@ -129,32 +131,7 @@ $params = [];
 
 // 1. STRICT PROFILE MATCHING MODE (Match My Profile)
 if ($scopeMatch && $userId > 0) {
-    if ($savedJobCategory !== '') {
-        $extraWhere .= ' AND (jo.JobCategory = ? OR LOWER(jo.JobCategory) LIKE ?)';
-        $types .= 'ss';
-        $params[] = $savedJobCategory;
-        $params[] = '%' . strtolower($savedJobCategory) . '%';
-    }
-    if ($savedClass !== '' && strcasecmp($savedClass, $savedJobCategory) !== 0) {
-        $classClean = trim($savedClass);
-        $classNoSpace = str_replace(' ', '', $classClean);
-        if (strcasecmp($classClean, 'Promodiser') === 0 || strcasecmp($classClean, 'Diser') === 0 || strcasecmp($classNoSpace, 'Promodiser') === 0) {
-            $extraWhere .= ' AND (jo.Position LIKE ? OR jo.Position LIKE ? OR REPLACE(jo.Position, " ", "") LIKE ? OR jo.Qualifications LIKE ?)';
-            $types .= 'ssss';
-            $params[] = '%Promodiser%';
-            $params[] = '%Promo Diser%';
-            $params[] = '%' . strtolower($classNoSpace) . '%';
-            $params[] = '%Promodiser%';
-        } else {
-            $like = '%' . $classClean . '%';
-            $likeNoSpace = '%' . strtolower($classNoSpace) . '%';
-            $extraWhere .= ' AND (jo.Position LIKE ? OR REPLACE(jo.Position, " ", "") LIKE ? OR jo.Qualifications LIKE ?)';
-            $types .= 'sss';
-            $params[] = $like;
-            $params[] = $likeNoSpace;
-            $params[] = $like;
-        }
-    }
+    $profile=jh_profile_filter($conn,$userId);$extraWhere.=$profile['where'];$types.=$profile['types'];$params=array_merge($params,$profile['params']);
 }
 
 // 2. STRICT WHAT KEYWORD / COMPANY SEARCH
@@ -226,6 +203,7 @@ if ($qSinceDays > 0 && $qSinceDays <= 3650) {
     $params[] = $qSinceDays;
 }
 
+$hierarchy=jh_request_filter($conn,$_GET);$extraWhere.=$hierarchy['where'];$types.=$hierarchy['types'];$params=array_merge($params,$hierarchy['params']);
 $sql = $baseSql . $extraWhere . ' ORDER BY jo.RequestDate DESC, jo.CreatedAt DESC';
 
 if (!empty($params)) {
@@ -272,6 +250,7 @@ if ($result) {
             $jobOrderId,
             (int)($row['RequiredCount'] ?? 1)
         );
+        $deploymentSlots=jh_filter_slots($conn,$deploymentSlots,$jobOrderId,$scopeMatch?$userId:0);
         $slotSummary = job_order_summarize_slots($deploymentSlots);
         if ($slotSummary['all_filled']) {
             continue;
@@ -336,3 +315,6 @@ echo json_encode([
     ],
 ]);
 exit();
+
+
+

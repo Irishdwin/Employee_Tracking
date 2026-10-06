@@ -1,0 +1,4 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Embedded session test</title></head><body>
+<p>Embedded module: role check uses mock data; inactivity delegates to parent.</p>
+<script>window.REQUIRED_ROLE='HR';window.fetch=function(){return Promise.resolve({status:200,ok:true,json:function(){return Promise.resolve({role:'HR',timeout_seconds:60,remaining_seconds:60});}});};</script>
+<script src="../../Js/Shared/role_guard.js"></script></body></html>

@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 
 require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/AuditLogger.php';
+require_once __DIR__ . '/../Helpers/password_policy.php';
 
 header('Content-Type: application/json');
 
@@ -18,15 +19,6 @@ function json_response($data, int $status = 200): void {
     http_response_code($status);
     echo json_encode($data);
     exit();
-}
-
-function validate_strong_password(string $password): ?string {
-    if (strlen($password) < 8) return 'Password must be at least 8 characters.';
-    if (!preg_match('/[A-Z]/', $password)) return 'Password must include at least one uppercase letter.';
-    if (!preg_match('/[a-z]/', $password)) return 'Password must include at least one lowercase letter.';
-    if (!preg_match('/\d/', $password)) return 'Password must include at least one number.';
-    if (!preg_match('/[^A-Za-z0-9]/', $password)) return 'Password must include at least one special character.';
-    return null;
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
@@ -197,6 +189,11 @@ if ($method === 'POST') {
 
         if ($username === '' || $fullName === '' || $role === '' || $password === '') {
             json_response(['success' => false, 'message' => 'All fields are required.'], 400);
+        }
+        // UT-101: `username` is stored in the `users.Email` column (see login.php /
+        // forgot_password.php), so it must be a structurally valid email address.
+        if (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
+            json_response(['success' => false, 'message' => 'Please enter a valid email address.'], 400);
         }
         $passwordPolicyError = validate_strong_password((string)$password);
         if ($passwordPolicyError !== null) {

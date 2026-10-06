@@ -5,6 +5,7 @@
 
 require_once __DIR__ . '/notification_helper.php';
 require_once __DIR__ . '/employee_salary_helper.php';
+require_once __DIR__ . '/job_order_wall.php';
 
 /**
  * @return array{success:bool,message:string,employee_id?:int,employee_number?:string,deployment_created?:bool,salary?:array<string,float>}
@@ -38,6 +39,7 @@ function hireApplicantFromApplication(
         SELECT
             ja.ApplicationID,
             ja.ApplicantID,
+            ja.JobOrderID,
             ja.ClientApprovalStatus,
             ja.Remarks,
             ja.HiredDate,
@@ -192,6 +194,12 @@ function hireApplicantFromApplication(
 
         $deploymentCreated = createInitialDeploymentForHire($conn, $employeeId, $application, $statusId);
 
+        $jobOrderId = (int)($application['JobOrderID'] ?? 0);
+        if ($jobOrderId > 0) {
+            updateJobOrderFillStatus($conn, $jobOrderId);
+        }
+
+        createEmployeePasswordNotification($conn, $userId);
         $conn->commit();
 
         createApplicationNotification(
@@ -199,7 +207,7 @@ function hireApplicantFromApplication(
             $applicationId,
             'application_hired',
             'Congratulations! You are Hired!',
-            'Welcome to the Onazul team! Your account has been upgraded to an Employee profile. Sign in with your current email and password to access your Employee Dashboard.'
+            'Welcome to the Onazul team! Your account has been upgraded to an Employee profile. Sign in using your existing login method to access your Employee Dashboard. You can manage your password in Profile → Settings.'
         );
 
         return [
@@ -307,15 +315,19 @@ function createInitialDeploymentForHire(mysqli $conn, int $employeeId, array $ap
         return false;
     }
 
+    require_once __DIR__ . '/work_site_geofence.php';
+    $site=site_resolve_legacy($conn,$companyId,$location);
+    $siteId=(int)$site['SiteID'];$teamLeadBind=$site['TeamLeadID']?(int)$site['TeamLeadID']:null;
     $startDate = date('Y-m-d');
     $insertDep = $conn->prepare("
         INSERT INTO deployment (
-            EmployeeID, CompanyID, Position, Location,
+            SiteID, EmployeeID, CompanyID, Position, Location,
             StartDate, EndDate, StatusID, SiteSuperVisorID
-        ) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)
     ");
     $insertDep->bind_param(
-        'iisssii',
+        'iiisssii',
+        $siteId,
         $employeeId,
         $companyId,
         $position,

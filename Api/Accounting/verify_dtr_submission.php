@@ -44,6 +44,7 @@ $raw = file_get_contents('php://input');
 $json = json_decode($raw, true);
 $body = is_array($json) ? $json : $_POST;
 
+$siteId=(int)($body['site_id']??0);
 $tlId = (int)($body['tl_id'] ?? 0);
 $cutoffStart = trim((string)($body['cutoff_start'] ?? ''));
 $cutoffEnd = trim((string)($body['cutoff_end'] ?? ''));
@@ -62,16 +63,16 @@ try {
         $stmt = $conn->prepare("
             UPDATE dtr_submissions
             SET ReviewedBy = ?, ReviewDate = NOW()
-            WHERE SiteSupervisorID = ? AND CutoffStartDate = ? AND CutoffEndDate = ? AND EmployeeID = ?
+            WHERE SiteSupervisorID = ? AND CutoffStartDate = ? AND CutoffEndDate = ? AND EmployeeID = ? AND (?=0 OR SiteID=?)
         ");
-        $stmt->bind_param('iissi', $reviewerId, $tlId, $cutoffStart, $cutoffEnd, $employeeId);
+        $stmt->bind_param('iissiii', $reviewerId, $tlId, $cutoffStart, $cutoffEnd, $employeeId,$siteId,$siteId);
     } else {
         $stmt = $conn->prepare("
             UPDATE dtr_submissions
             SET ReviewedBy = ?, ReviewDate = NOW()
-            WHERE SiteSupervisorID = ? AND CutoffStartDate = ? AND CutoffEndDate = ?
+            WHERE SiteSupervisorID = ? AND CutoffStartDate = ? AND CutoffEndDate = ? AND (?=0 OR SiteID=?)
         ");
-        $stmt->bind_param('iiss', $reviewerId, $tlId, $cutoffStart, $cutoffEnd);
+        $stmt->bind_param('iissii', $reviewerId, $tlId, $cutoffStart, $cutoffEnd,$siteId,$siteId);
     }
     $stmt->execute();
     $affected = $stmt->affected_rows;

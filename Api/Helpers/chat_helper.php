@@ -46,6 +46,7 @@ function chat_ensure_tables(mysqli $conn): void {
             ThreadID INT(11) NOT NULL,
             UserID INT(11) NOT NULL,
             LastReadAt DATETIME DEFAULT NULL,
+            LastReadMessageID INT NOT NULL DEFAULT 0,
             PRIMARY KEY (ThreadID, UserID)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     ");
@@ -202,15 +203,11 @@ function chat_add_message(
     return $id;
 }
 
-function chat_mark_thread_read(mysqli $conn, int $threadId, int $userId): void {
-    $stmt = $conn->prepare("
-        INSERT INTO chat_thread_reads (ThreadID, UserID, LastReadAt)
-        VALUES (?, ?, NOW())
-        ON DUPLICATE KEY UPDATE LastReadAt = NOW()
-    ");
-    $stmt->bind_param("ii", $threadId, $userId);
-    $stmt->execute();
-    $stmt->close();
+function chat_mark_thread_read(mysqli $conn,int $threadId,int $userId,?int $through=null):void {
+ if($through===null){$q=$conn->prepare('SELECT COALESCE(MAX(MessageID),0) n FROM chat_messages WHERE ThreadID=?');$q->bind_param('i',$threadId);$q->execute();$through=(int)$q->get_result()->fetch_assoc()['n'];$q->close();}
+ $q=$conn->prepare('INSERT INTO chat_thread_reads(ThreadID,UserID,LastReadAt,LastReadMessageID) VALUES(?,?,NOW(),?) ON DUPLICATE KEY UPDATE LastReadAt=NOW(),LastReadMessageID=GREATEST(LastReadMessageID,VALUES(LastReadMessageID))');$q->bind_param('iii',$threadId,$userId,$through);$q->execute();$q->close();
+ // Opening messages also clears their corresponding existing global alerts.
+ $q=$conn->prepare("UPDATE notifications SET IsRead=1 WHERE UserID=? AND RelateedModule='chat_thread' AND RelatedRecord=? AND NotificationType IN ('hr_message','messenger_message')");$q->bind_param('ii',$userId,$threadId);$q->execute();$q->close();
 }
 
 function chat_create_notification(

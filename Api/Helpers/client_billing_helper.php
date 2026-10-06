@@ -603,60 +603,28 @@ function client_billing_fetch_employees_for_run(mysqli $conn, array $run): array
     $start = (string)$run['PeriodStart'];
     $end = (string)$run['PeriodEnd'];
 
-    $stmt = $conn->prepare(
-        "SELECT DISTINCT e.EmployeeID, e.EmployeeNumber, e.FirstName, e.LastName, e.Position,
-                e.daily_rate, e.hourly_rate, e.allowance, e.monthly_salary_credit, e.BasicSalary,
-                e.SSSNumber, e.PhilHealthNumber, e.PagIBIGNumber, e.TINNumber,
-                COALESCE(NULLIF(TRIM(dep.Position), ''), e.Position) AS designation,
-                dep.Location AS area_site
-         FROM dtr_submissions ds
-         INNER JOIN employee e ON e.EmployeeID = ds.EmployeeID AND e.IsActive = 1
-         INNER JOIN deployment dep ON dep.EmployeeID = ds.EmployeeID
-         WHERE dep.CompanyID = ?
-           AND ds.CutoffStartDate = ?
-           AND ds.CutoffEndDate = ?
-         ORDER BY e.LastName ASC, e.FirstName ASC"
-    );
-    if ($stmt) {
-        $stmt->bind_param('iss', $companyId, $start, $end);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $employees = [];
-        while ($row = $res->fetch_assoc()) {
-            $employees[] = $row;
-        }
-        $stmt->close();
-        if (!empty($employees)) {
-            return $employees;
-        }
+    $stmt=$conn->prepare("SELECT e.EmployeeID,e.EmployeeNumber,e.FirstName,e.LastName,e.Position,
+        e.daily_rate,e.hourly_rate,e.allowance,e.monthly_salary_credit,e.BasicSalary,
+        e.SSSNumber,e.PhilHealthNumber,e.PagIBIGNumber,e.TINNumber,
+        COALESCE(NULLIF(TRIM(dep.Position),''),e.Position) AS designation,dep.Location AS area_site,
+        dep.SiteID,dep.DeploymentID,ds.DTR_SubmissionID
+        FROM dtr_submissions ds JOIN employee e ON e.EmployeeID=ds.EmployeeID
+        JOIN deployment dep ON dep.DeploymentID=ds.DeploymentID AND dep.EmployeeID=ds.EmployeeID
+        WHERE dep.CompanyID=? AND ds.CutoffStartDate=? AND ds.CutoffEndDate=?
+          AND ds.ReviewedBy IS NOT NULL AND ds.ReviewDate IS NOT NULL
+          AND dep.SiteID IS NOT NULL AND ds.SiteID=dep.SiteID
+        ORDER BY e.LastName,e.FirstName");
+    $stmt->bind_param('iss',$companyId,$start,$end);$stmt->execute();
+    $employees=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$stmt->close();
+    $seen=[];$sites=[];
+    foreach($employees as $employee) {
+        $id=(int)$employee['EmployeeID'];
+        if(isset($seen[$id]))throw new RuntimeException('Duplicate verified DTRs exist for an employee in this cutoff. Resolve them before exporting.');
+        $seen[$id]=true;$sites[(int)$employee['SiteID']]=true;
     }
-
-    $stmt2 = $conn->prepare(
-        "SELECT e.EmployeeID, e.EmployeeNumber, e.FirstName, e.LastName, e.Position,
-                e.daily_rate, e.hourly_rate, e.allowance, e.monthly_salary_credit, e.BasicSalary,
-                e.SSSNumber, e.PhilHealthNumber, e.PagIBIGNumber, e.TINNumber,
-                COALESCE(NULLIF(TRIM(dep.Position), ''), e.Position) AS designation,
-                dep.Location AS area_site
-         FROM deployment dep
-         INNER JOIN employee e ON e.EmployeeID = dep.EmployeeID AND e.IsActive = 1
-         WHERE dep.CompanyID = ?
-           AND (dep.EndDate IS NULL OR dep.EndDate >= ?)
-           AND (dep.StartDate IS NULL OR dep.StartDate <= ?)
-         ORDER BY e.LastName ASC, e.FirstName ASC"
-    );
-    if ($stmt2) {
-        $stmt2->bind_param('iss', $companyId, $start, $end);
-        $stmt2->execute();
-        $res2 = $stmt2->get_result();
-        $employees2 = [];
-        while ($row2 = $res2->fetch_assoc()) {
-            $employees2[] = $row2;
-        }
-        $stmt2->close();
-        return $employees2;
-    }
-
-    return [];
+    // Legacy payroll runs have no stable SiteID. Never silently combine branches.
+    if(count($sites)>1)throw new RuntimeException('This legacy payroll run contains multiple deployment sites. Site-specific payroll runs are required before export.');
+    return $employees;
 }
 
 function client_billing_build_export(mysqli $conn, string $runCode): array
@@ -731,7 +699,8 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
             $periodStart,
             $periodEnd,
             $workSchedule,
-            $deductionFlags
+            $deductionFlags,
+            (int)$emp['DeploymentID']
         );
 
         $sssEr = client_billing_lookup_sss_er($conn, $msc);
@@ -745,17 +714,64 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
         $regOtHours = (float)($payroll['ot_detail']['regular_ot_hours'] ?? 0);
         $sunOtHours = (float)($payroll['ot_detail']['sunday_hours'] ?? 0);
         $regOtPay = (float)($payroll['earnings']['regular_overtime'] ?? 0);
+        $regOtHours += (float)($payroll['ot_detail']['approved_overtime_hours'] ?? 0);
+        $regOtPay += (float)($payroll['earnings']['approved_overtime'] ?? 0);
         $sunOtPay = (float)($payroll['earnings']['sunday_overtime'] ?? 0);
+
+        // Split the holiday base pay and holiday OT pay by HolidayType, to
+        // match Templates/SAMPLE.xlsx's two separate tracks:
+        //   - "L-Holiday Duty" (cols R-U)  = Regular Holiday only
+        //   - "Special Holiday" (cols V-Z) = every other holiday type
+        //     (Special Non-working Day, Special Working Day, Local/Company
+        //     Holiday) — the sample template only has these two tracks, so
+        //     anything that isn't "Regular Holiday" goes in the Special
+        //     bucket, same as the client's own sheet only distinguishes
+        //     Legal vs Special.
+        $holidayBreakdown = $payroll['holiday_breakdown'] ?? [];
+        $holidayOtBreakdown = $payroll['holiday_ot_breakdown'] ?? [];
+        $regularHolidayHrs = 0.0;
+        $regularHolidayPay = 0.0;
+        $specialHolidayHrs = 0.0;
+        $specialHolidayPay = 0.0;
+        foreach ($holidayBreakdown as $h) {
+            // 'worked' distinguishes an actual worked holiday-duty day from
+            // the Regular Holiday no-work pay guarantee (100% pay, but the
+            // employee rendered 0 hours) -- only the former counts as hours
+            // in the export. Defaults to true for backward compatibility
+            // with breakdown shapes that predate this flag.
+            $workedFlag = array_key_exists('worked', $h) ? (bool)$h['worked'] : true;
+            if (($h['type'] ?? '') === 'Regular Holiday') {
+                if ($workedFlag) {
+                    $regularHolidayHrs += (float)($h['duty_hours'] ?? 8.0);
+                }
+                $regularHolidayPay += (float)($h['pay'] ?? 0);
+            } else {
+                if ($workedFlag) {
+                    $specialHolidayHrs += (float)($h['duty_hours'] ?? 8.0);
+                }
+                $specialHolidayPay += (float)($h['pay'] ?? 0);
+            }
+        }
+        $regularHolidayOtHours = 0.0;
+        $regularHolidayOtPay = 0.0;
         $specialHolidayOtHours = 0.0;
         $specialHolidayOtPay = 0.0;
-        $totalOtPay = round($regOtPay + $sunOtPay + $specialHolidayOtPay, 2);
+        foreach ($holidayOtBreakdown as $h) {
+            if (($h['type'] ?? '') === 'Regular Holiday') {
+                $regularHolidayOtHours += (float)($h['hours'] ?? 0);
+                $regularHolidayOtPay += (float)($h['pay'] ?? 0);
+            } else {
+                $specialHolidayOtHours += (float)($h['hours'] ?? 0);
+                $specialHolidayOtPay += (float)($h['pay'] ?? 0);
+            }
+        }
+        $totalOtPay = round($regOtPay + $sunOtPay + $regularHolidayOtPay + $specialHolidayOtPay, 2);
 
         $basicTotal = (float)($payroll['earnings']['basic_pay'] ?? 0);
         $latesUndertime = (float)($payroll['late_undertime_deduction'] ?? 0);
         $grossSalary = round($basicTotal + $totalOtPay - $latesUndertime, 2);
         $allowanceHalf = (float)($payroll['earnings']['allowance'] ?? 0);
         $silAccrual = (float)($payroll['earnings']['sil_accrual'] ?? 0);
-        $holidayPay = (float)($payroll['earnings']['holiday_pay'] ?? 0);
         $grossPayroll = (float)($payroll['gross_pay'] ?? 0);
 
         $sssEe = (float)($payroll['deductions']['sss_ee'] ?? 0);
@@ -785,10 +801,17 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
             'daily_rate' => $dailyRate,
             'days_worked' => (int)($payroll['days_worked'] ?? 0),
             'basic_total' => $basicTotal,
+            'addback' => (float)($payroll['earnings']['add_back'] ?? 0),
             'regular_ot_hours' => $regOtHours,
             'regular_ot_amount' => $regOtPay,
             'sunday_ot_hours' => $sunOtHours,
             'sunday_ot_amount' => $sunOtPay,
+            'holiday_duty_hrs' => $regularHolidayHrs,
+            'holiday_duty' => $regularHolidayPay,
+            'holiday_ot_hrs' => $regularHolidayOtHours,
+            'holiday_ot_amount' => $regularHolidayOtPay,
+            'special_holiday_hrs' => $specialHolidayHrs,
+            'special_holiday_pay' => $specialHolidayPay,
             'special_holiday_ot_hours' => $specialHolidayOtHours,
             'special_holiday_ot_amount' => $specialHolidayOtPay,
             'total_overtime' => $totalOtPay,
@@ -796,7 +819,6 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
             'gross_salary' => $grossSalary,
             'allowances' => $allowanceHalf,
             'sil_accrual' => $silAccrual,
-            'holiday_duty' => $holidayPay,
             'night_differential' => 0.0,
             'other_incentives' => 0.0,
             'gross_payroll' => $grossPayroll,

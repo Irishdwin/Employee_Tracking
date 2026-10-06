@@ -39,8 +39,9 @@
     </style>
     <script>window.REQUIRED_ROLES = 'Applicant,TeamLead,Employee';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
+<link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
 </head>
-<body class="ow-dashboard">
+<body class="ow-dashboard applicant-blue-ui applicant-page-inbox">
 <div class="layout-wrapper">
     <aside class="sidebar">
         <div class="sidebar-header d-flex justify-content-between align-items-center">
@@ -135,14 +136,14 @@
                 <div class="mm-detail chat-box">
                     <div class="p-3 border-bottom">
                         <div class="fw-semibold" id="activeThreadTitle">Select a conversation</div>
-                        <div class="sub" id="activeThreadSub">Choose Administrators or HR on the left, or open a thread.</div>
+                        <div class="sub" id="activeThreadSub">Choose HR on the left, or open a conversation.</div>
                     </div>
                     <div class="chat-messages flex-grow-1" id="messages"></div>
                     <div class="p-2 border-top bg-light">
                         <div class="d-flex flex-wrap gap-2 mb-2 align-items-center">
                             <span class="small text-muted fw-bold">Send to:</span>
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPickHr">HR</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPickAdmin">Administrators</button>
+                            
                         </div>
                         <div class="composer">
                             <textarea id="msgInput" class="form-control" rows="2" placeholder="Type your message…"></textarea>
@@ -267,7 +268,7 @@ function renderThreads() {
   const el = document.getElementById('threads');
   if (!el) return;
   if (!state.threads || state.threads.length === 0) {
-    el.innerHTML = '<div class="text-muted p-3">No threads yet. Pick <strong>HR</strong> or <strong>Administrators</strong> below and send a message.</div>';
+    el.innerHTML = '<div class="text-muted p-3">No threads yet. Pick <strong>HR</strong> below and send a message.</div>';
     return;
   }
   const sorted = [...state.threads].sort((a, b) => {
@@ -304,6 +305,7 @@ async function loadThreads() {
   const r = await fetch(API_THREADS, { credentials: 'same-origin' });
   const d = await r.json();
   if (!d.success) throw new Error(d.message || 'Failed to load threads');
+  window.OWMessengerCsrf=d.csrf_token;
   state.threads = d.threads || [];
   renderThreads();
 }
@@ -311,7 +313,7 @@ async function loadThreads() {
 async function loadMessages() {
   if (!state.activeThreadId) {
     document.getElementById('activeThreadTitle').textContent = 'Select a conversation';
-    document.getElementById('activeThreadSub').textContent = 'Use HR or Administrators, or pick a thread on the left.';
+    document.getElementById('activeThreadSub').textContent = 'Contact HR or pick a conversation on the left.';
     document.getElementById('messages').innerHTML = '';
     return;
   }
@@ -359,7 +361,7 @@ async function sendMessage() {
   const text = (input.value || '').trim();
   if (!text) return;
 
-  const payload = { message_text: text, contact_channel: state.contactChannel };
+  const payload = { message_text: text, csrf_token:window.OWMessengerCsrf, contact_channel: state.contactChannel };
   if (state.activeThreadId) {
     payload.thread_id = state.activeThreadId;
     delete payload.contact_channel;
@@ -398,13 +400,7 @@ document.getElementById('btnPickHr').addEventListener('click', () => {
   document.getElementById('activeThreadSub').textContent = t ? '' : 'Type a message to create your HR thread.';
   loadMessages();
 });
-document.getElementById('btnPickAdmin').addEventListener('click', () => {
-  state.contactChannel = 'admin';
-  const t = state.threads.find(x => x.channel === 'admin');
-  state.activeThreadId = t ? t.thread_id : null;
-  document.getElementById('activeThreadSub').textContent = t ? '' : 'Type a message to reach Administrators.';
-  loadMessages();
-});
+
 
 loadThreads().then(() => loadMessages());
 setInterval(poll, 5000);
@@ -418,8 +414,8 @@ setInterval(poll, 5000);
     <div class="ow-msgr-chat"><div class="ow-msgr-chat-head"><div class="fw-semibold" id="owMessengerChatTitle">Messenger</div><div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div></div><div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div><div class="ow-msgr-footer"><input type="text" class="form-control form-control-sm" id="owMessengerInput" disabled><button type="button" class="btn btn-primary btn-sm" id="owMessengerSend" disabled><i class="bi bi-send"></i></button></div></div>
   </div>
 </div>
-<script src="../../Js/Shared/messenger_rbac.js"></script>
-<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
+<script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
 <script src="../../Js/Shared/ow_system_events.js"></script>
 <script src="../../Js/Shared/ow_notifications.js"></script>
 </body>

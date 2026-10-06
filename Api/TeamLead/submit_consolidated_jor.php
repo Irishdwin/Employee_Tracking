@@ -41,11 +41,12 @@ require_once __DIR__ . '/../Helpers/job_categories.php';
 require_once __DIR__ . '/../Helpers/job_categories_lookup.php';
 require_once __DIR__ . '/../Helpers/jor_multi_position.php';
 
-jor_multi_ensure_schema($conn);
+require_once __DIR__ . '/../Helpers/job_order_request_workflow.php';
+if (!jorw_active_user($conn,(int)$_SESSION['user_id'],['TeamLead','Team Lead'])) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
 
 $userId = (int)$_SESSION['user_id'];
 $raw = file_get_contents('php://input');
-$input = is_array(json_decode($raw, true)) ? json_decode($raw, true) : [];
+$input = $jorConsolidatedInputOverride ?? (is_array(json_decode($raw, true)) ? json_decode($raw, true) : []);
 
 $companyId = (int)($input['company_id'] ?? $input['client_company'] ?? 0);
 $remarks = trim((string)($input['remarks'] ?? ''));
@@ -63,41 +64,12 @@ if ($companyId <= 0) {
     exit;
 }
 
-if (!jor_tl_can_access_company($conn, $userId, $companyId)) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'You can only request job orders for companies assigned to you.']);
-    exit;
+try { jorw_validate_company($conn,$userId,$companyId); }
+catch (DomainException $e) {
+    http_response_code($e->getCode());
+    $code=strpos($e->getMessage(),'register your work site')!==false ? 'WORK_SITE_NOT_REGISTERED' : (strpos($e->getMessage(),'service agreement')!==false ? 'NO_ACTIVE_SERVICE_AGREEMENT' : 'COMPANY_NOT_ASSIGNED');
+    echo json_encode(['success'=>false,'message'=>$e->getMessage(),'error_code'=>$code]); exit;
 }
-
-// Strict Work Site Geofence Check before Job Order creation[cite: 16, 17]
-$stmtGeo = $conn->prepare("SELECT latitude, longitude FROM clientcompany WHERE CompanyID = ? AND UserID = ? LIMIT 1");
-$stmtGeo->bind_param("ii", $companyId, $userId);
-$stmtGeo->execute();
-$geoRow = $stmtGeo->get_result()->fetch_assoc();
-$stmtGeo->close();
-
-if (!$geoRow || $geoRow['latitude'] === null || $geoRow['longitude'] === '') {
-    http_response_code(403);
-    echo json_encode([
-        'success' => false,
-        'error_code' => 'WORK_SITE_NOT_REGISTERED',
-        'message' => 'Please register your work site before creating a job order.'
-    ]);
-    exit;
-}
-
-if (!jor_company_has_active_agreement($conn, $companyId)) {
-    http_response_code(403);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Your company needs an active service agreement with uploaded document before requesting a job order.',
-        'error_code' => 'NO_ACTIVE_SERVICE_AGREEMENT',
-    ]);
-    exit;
-}
-
-$pdo = hris_pdo();
-job_categories_ensure_schema($pdo);
 
 $normalized = [];
 foreach ($positions as $idx => $row) {
@@ -113,12 +85,15 @@ foreach ($positions as $idx => $row) {
     $site = trim((string)($row['deployment_site'] ?? $row['location'] ?? ''));
     $schedule = trim((string)($row['work_schedule'] ?? ''));
 
-    $resolved = job_category_resolve_input($pdo, $categoryId, $categoryName);
-    if (!$resolved && $position !== '') {
-        $resolved = job_category_infer_from_text($pdo, $position);
+    try {
+        $resolved = jh_validate($conn,jh_id($row['category_id'] ?? null),jh_id($row['classification_id'] ?? null),jh_id($row['sub_classification_id'] ?? null));
+    } catch (DomainException $e) {
+        http_response_code(400);
+        echo json_encode(['success'=>false,'message'=>'Position row '.($idx+1).': '.$e->getMessage()]);
+        exit;
     }
 
-    if ($position === '' || $workers <= 0 || $site === '' || $schedule === '' || !$resolved) {
+    if ($position === '' || mb_strlen($position)>100 || $workers <= 0 || $workers>2147483647 || $site === '' || mb_strlen($site)>150 || $schedule === '' || mb_strlen($schedule)>100 || !$resolved) {
         http_response_code(400);
         echo json_encode([
             'success' => false,
@@ -129,7 +104,9 @@ foreach ($positions as $idx => $row) {
 
     $normalized[] = [
         'position' => $position,
-        'category_id' => (int)$resolved['id'],
+        'category_id' => (int)$resolved['category_id'],
+        'classification_id' => (int)$resolved['classification_id'],
+        'sub_classification_id' => (int)$resolved['sub_classification_id'],
         'job_category' => $resolved['category_name'],
         'workers' => $workers,
         'site' => $site,
@@ -142,6 +119,7 @@ $totalWorkers = array_sum(array_map(static fn($r) => $r['workers'], $normalized)
 $summaryPosition = count($normalized) === 1
     ? $first['position']
     : $first['position'] . ' (+' . (count($normalized) - 1) . ' more)';
+if (mb_strlen($summaryPosition)>100 || $totalWorkers>2147483647) { http_response_code(400); echo json_encode(['success'=>false,'message'=>'Request summary exceeds supported position or worker limits.']); exit; }
 $summaryLocation = count($normalized) === 1
     ? $first['site']
     : 'Multiple sites';
@@ -201,22 +179,24 @@ try {
     $parent->close();
 
     $detail = $conn->prepare("INSERT INTO job_order_details
-        (RequestID, position_title, category_id, job_category, required_workers, deployment_site, work_schedule)
-        VALUES (?, ?, ?, ?, ?, ?, ?)");
+        (RequestID, position_title, category_id, job_category, required_workers, deployment_site, work_schedule, classification_id, sub_classification_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
     if (!$detail) {
         throw new RuntimeException('Failed to prepare detail insert.');
     }
 
     foreach ($normalized as $row) {
         $detail->bind_param(
-            'isisiss',
+            'isisissii',
             $requestId,
             $row['position'],
             $row['category_id'],
             $row['job_category'],
             $row['workers'],
             $row['site'],
-            $row['schedule']
+            $row['schedule'],
+            $row['classification_id'],
+            $row['sub_classification_id']
         );
         if (!$detail->execute()) {
             throw new RuntimeException('Failed to save position row.');
@@ -224,6 +204,7 @@ try {
     }
     $detail->close();
 
+    jorw_notify_submitted($conn,$requestId);
     $conn->commit();
 
     echo json_encode([

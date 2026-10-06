@@ -281,51 +281,119 @@
    WORK SITE GEOFENCE REGISTRATION ENGINE
    ========================================================================== */
 var tlRegisteredLocation = null;
+var tlWorkSiteCompanyId = null;
+var tlLocationRequest = 0;
+var tlLocationBusy = false;
+var tlSiteSaving = false;
+var tlSiteLoadRequest = 0;
+var tlGpsWatch = null;
+var tlGpsTimer = null;
+var tlGpsProgressTimer = null;
+var tlRegistrationPolicy = null;
+function stopTlGpsCapture(){
+    if(tlGpsWatch!==null&&navigator.geolocation&&navigator.geolocation.clearWatch)navigator.geolocation.clearWatch(tlGpsWatch);
+    tlGpsWatch=null;
+    if(tlGpsTimer!==null)clearTimeout(tlGpsTimer);
+    tlGpsTimer=null;
+    if(tlGpsProgressTimer!==null)clearInterval(tlGpsProgressTimer);
+    tlGpsProgressTimer=null;
+    var countdown=document.getElementById('tlGpsCountdown');if(countdown)countdown.textContent='';
+}
+
+
+function updateTlRegistrationQuality() {
+    var limit=tlRegistrationPolicy?tlRegistrationPolicy.max_accuracy_meters:null;
+    var location = tlRegisteredLocation;
+    var valid = !!location && Number.isFinite(location.accuracy) && location.accuracy >= 0 && Number.isFinite(limit) && location.accuracy <= limit;
+    var button = document.getElementById('btnConfirmRegisterSite');
+    if (button) button.disabled = !valid || !tlWorkSiteCompanyId || tlLocationBusy || tlSiteSaving;
+    var accuracyEl = document.getElementById('tlGpsAccuracyText');
+    if (accuracyEl && location) accuracyEl.innerText = 'Best GPS accuracy: ±' + Math.round(location.accuracy) + ' meters' +
+        (valid ? '' : ' — Registration requires ±'+limit+' meters or better.');
+    return valid;
+}
+
+function selectTlWorkSite() {
+    if(tlSiteSaving)return;
+    tlWorkSiteCompanyId = Number(document.getElementById('tlWorkSiteCompany').value) || null;
+    stopTlGpsCapture();
+    ++tlLocationRequest;
+    tlRegisteredLocation = null;
+    tlLocationBusy = false;
+    updateTlRegistrationQuality();
+    loadWorkSiteDetails();
+}
 
 function openRegisterSiteModal() {
+    var selected = document.getElementById('tlWorkSiteCompany');
+    if (!tlWorkSiteCompanyId || tlSiteSaving) {
+        showStatusModal('Select Work Site', 'Select an assigned official work site before registering its location.', false);
+        return;
+    }
+    document.getElementById('tlRegisterSiteName').innerText = selected.options[selected.selectedIndex].text;
     var modalEl = document.getElementById('registerSiteModal');
     if (!modalEl) return;
     var modal = window.bootstrap && bootstrap.Modal ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+    document.getElementById('tlGeofenceRadius').value=tlLoadedSiteRadius||100;
     if (modal) modal.show();
     acquireTlLocation();
 }
 
 function acquireTlLocation() {
-    var statusEl = document.getElementById('tlCurrentGpsStatus');
-    var accuracyEl = document.getElementById('tlGpsAccuracyText');
-    var btnSave = document.getElementById('btnConfirmRegisterSite');
-
-    if (!navigator.geolocation) {
-        if (statusEl) statusEl.innerText = "Geolocation is not supported by your browser.";
-        return;
+    if(tlSiteSaving)return;
+    stopTlGpsCapture();
+    var request=++tlLocationRequest;
+    var statusEl=document.getElementById('tlCurrentGpsStatus');
+    var accuracyEl=document.getElementById('tlGpsAccuracyText');
+    tlRegisteredLocation=null;tlLocationBusy=true;updateTlRegistrationQuality();
+    if(statusEl)statusEl.innerText='Getting fresh GPS at the selected work site...';
+    if(accuracyEl)accuracyEl.innerText='Best GPS accuracy: waiting';
+    ['tlGpsCurrentReading','tlGpsCurrentAccuracy'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=id==='tlGpsCurrentReading'?'Current reading: waiting':'Current GPS accuracy: waiting';});
+    if(!tlRegistrationPolicy){tlLocationBusy=false;if(statusEl)statusEl.innerText='Registration policy unavailable. Close this dialog and refresh sites.';return;}
+    var duration=tlRegistrationPolicy.acquisition_seconds;
+    var deadline=Date.now()+duration*1000;
+    var policyText=document.getElementById('tlGpsPolicyText');if(policyText)policyText.textContent='Registration requires GPS accuracy of ±'+tlRegistrationPolicy.max_accuracy_meters+' m or better. This does not change the geofence radius.';
+    if(!navigator.geolocation){tlLocationBusy=false;if(statusEl)statusEl.innerText='Geolocation is not supported by your browser.';return;}
+    var watching=typeof navigator.geolocation.watchPosition==='function';
+    function guidance(){return 'Enable precise location in your device settings and allow this browser location access. If this computer only provides approximate location, use a GPS-enabled phone at the official site.';}
+    function received(position){
+        if(request!==tlLocationRequest)return;
+        var lat=position.coords.latitude,lng=position.coords.longitude,accuracy=position.coords.accuracy;
+        if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180||(lat===0&&lng===0)||!Number.isFinite(accuracy)||accuracy<0){if(statusEl)statusEl.innerText='The device returned an invalid location. Retry GPS.';return;}
+        // Keep the best fresh observation while the device improves its fix.
+        if(!tlRegisteredLocation||accuracy<tlRegisteredLocation.accuracy)tlRegisteredLocation={latitude:lat,longitude:lng,accuracy:accuracy};
+        var current=document.getElementById('tlGpsCurrentReading');if(current)current.textContent='Current reading: '+lat.toFixed(6)+', '+lng.toFixed(6);
+        var currentAccuracy=document.getElementById('tlGpsCurrentAccuracy');if(currentAccuracy)currentAccuracy.textContent='Current GPS accuracy: ±'+Math.round(accuracy)+' meters';
+        var precise=tlRegisteredLocation.accuracy<=tlRegistrationPolicy.max_accuracy_meters;
+        tlLocationBusy=watching&&!precise;
+        if(precise)stopTlGpsCapture();
+        if(statusEl)statusEl.innerText=(precise?'Ready to register — best location: ':(watching?'Improving location accuracy — best location: ':'Location accuracy is still too low — best location: '))+tlRegisteredLocation.latitude.toFixed(6)+', '+tlRegisteredLocation.longitude.toFixed(6);
+        updateTlRegistrationQuality();
+        if(!precise&&accuracyEl)accuracyEl.innerText='Best GPS accuracy: ±'+Math.round(tlRegisteredLocation.accuracy)+' meters — Registration requires ±'+tlRegistrationPolicy.max_accuracy_meters+' m or better. '+(watching?'Collecting fresh readings. ':'')+guidance();
     }
-
-    navigator.geolocation.getCurrentPosition(
-        function (position) {
-            tlRegisteredLocation = {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-                accuracy: position.coords.accuracy
-            };
-
-            if (statusEl) {
-                statusEl.innerText = 'GPS Acquired: ' + tlRegisteredLocation.latitude.toFixed(6) + ', ' + tlRegisteredLocation.longitude.toFixed(6);
-            }
-            if (accuracyEl) {
-                accuracyEl.innerText = 'Accuracy: ±' + Math.round(tlRegisteredLocation.accuracy) + ' meters';
-            }
-            if (btnSave) btnSave.disabled = false;
-        },
-        function (error) {
-            if (statusEl) statusEl.innerText = "Error acquiring GPS position.";
-            if (accuracyEl) accuracyEl.innerText = "Please enable location permissions in browser.";
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
+    function failed(error){
+        if(request!==tlLocationRequest)return;
+        stopTlGpsCapture();++tlLocationRequest;tlLocationBusy=false;if(error.code===1)tlRegisteredLocation=null;updateTlRegistrationQuality();
+        if(statusEl)statusEl.innerText=error.code===1?'Location permission is required.':(error.code===3?'Unable to obtain a sufficiently accurate location within the allowed time. Retry GPS.':'Location is currently unavailable.');
+        if(accuracyEl)accuracyEl.innerText=(tlRegisteredLocation?'Best GPS accuracy: ±'+Math.round(tlRegisteredLocation.accuracy)+' meters. ':'')+guidance();
+    }
+    var options={enableHighAccuracy:true,timeout:duration*1000,maximumAge:0};
+    if(watching){
+        tlGpsWatch=navigator.geolocation.watchPosition(received,failed,options);
+        function progress(){var el=document.getElementById('tlGpsCountdown');if(el)el.textContent='Improving GPS accuracy… '+Math.max(0,Math.ceil((deadline-Date.now())/1000))+' seconds remaining';}
+        progress();tlGpsProgressTimer=setInterval(progress,1000);
+        tlGpsTimer=setTimeout(function(){
+            if(request!==tlLocationRequest)return;
+            stopTlGpsCapture();++tlLocationRequest;tlLocationBusy=false;updateTlRegistrationQuality();
+            if(statusEl)statusEl.innerText='Location accuracy is still too low. Retry GPS or use a GPS-enabled device.';
+            if(accuracyEl)accuracyEl.innerText=(tlRegisteredLocation?'Best accuracy: ±'+Math.round(tlRegisteredLocation.accuracy)+' meters. ':'')+guidance();
+        },duration*1000);
+    }else navigator.geolocation.getCurrentPosition(received,failed,options);
 }
 
 function submitSiteRegistration() {
-  if (!tlRegisteredLocation) {
+  if (tlLocationBusy || tlSiteSaving) return;
+  if (!tlRegisteredLocation || !tlWorkSiteCompanyId || !updateTlRegistrationQuality()) {
     showStatusModal("GPS Error", "GPS position has not been acquired yet.", false);
       return;
   }
@@ -339,6 +407,8 @@ function submitSiteRegistration() {
   }
 
   var btnSave = document.getElementById('btnConfirmRegisterSite');
+  tlSiteSaving = true;
+  var siteSelect=document.getElementById('tlWorkSiteCompany');if(siteSelect)siteSelect.disabled=true;
   if (btnSave) {
       btnSave.disabled = true;
       btnSave.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving Work Site...';
@@ -348,7 +418,8 @@ function submitSiteRegistration() {
       latitude: tlRegisteredLocation.latitude,
       longitude: tlRegisteredLocation.longitude,
       accuracy: tlRegisteredLocation.accuracy,
-      geofence_radius: radiusVal
+      geofence_radius: radiusVal,
+      site_id: tlWorkSiteCompanyId
   };
 
   fetch('../../Api/TeamLead/register_work_site.php', {
@@ -362,23 +433,29 @@ function submitSiteRegistration() {
           try {
               return JSON.parse(text);
           } catch (e) {
-              console.error("Server returned non-JSON output:", text);
-              throw new Error("Server Error: " + (text.substring(0, 150) || "Empty server response"));
+              throw new Error('Unable to register the work site. Please retry.');
           }
       });
   })
   .then(function (data) {
+    tlSiteSaving = false;
+    if(siteSelect)siteSelect.disabled=false;
     if (btnSave) {
       btnSave.disabled = false;
       btnSave.innerHTML = 'Save Work Site Coordinates';
   }
   
   if (data.success) {
+      // Update the aggregate badge immediately, without waiting for OK or the poll timer.
+      if (typeof window.pollRealtimeCounters === "function") window.pollRealtimeCounters();
+      loadWorkSiteDetails();
       showStatusModal("Success!", data.message, true, true);
   } else {
       showStatusModal("Registration Failed", data.message, false, false);
   }})
   .catch(function (err) {
+    tlSiteSaving = false;
+    if(siteSelect)siteSelect.disabled=false;
     if (btnSave) {
       btnSave.disabled = false;
       btnSave.innerHTML = 'Save Work Site Coordinates';
@@ -435,33 +512,73 @@ function showStatusModal(title, message, isSuccess = true, shouldReload = false)
 
 window.openRegisterSiteModal = openRegisterSiteModal;
 window.submitSiteRegistration = submitSiteRegistration;
+window.selectTlWorkSite = selectTlWorkSite;
+window.openTlWorkSite = function(siteId) {
+    if(tlSiteSaving)return;
+    stopTlGpsCapture();
+    ++tlLocationRequest;
+    tlWorkSiteCompanyId=Number(siteId)||null;
+    tlRegisteredLocation=null;
+    tlLocationBusy=false;
+    loadWorkSiteDetails();
+};
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('tlGeofenceRadius').addEventListener('input', updateTlRegistrationQuality);
+    document.getElementById('registerSiteModal').addEventListener('hidden.bs.modal', function () {
+        ++tlLocationRequest; tlRegisteredLocation=null; tlLocationBusy=false; updateTlRegistrationQuality();
+    });
+});
 /* ==========================================================================
    LIVE WORK SITE DISPLAY ENGINE
    ========================================================================== */
-   function loadWorkSiteDetails() {
-    var coordsEl = document.getElementById('registeredSiteCoords');
-    var radiusEl = document.getElementById('registeredGeofenceRadius');
-
-    if (!coordsEl) return;
-
-    fetch('../../Api/TeamLead/get_work_site.php', { credentials: 'same-origin' })
-        .then(function (res) { return res.json(); })
-        .then(function (data) {
-            if (data.success && data.latitude !== null && data.longitude !== null) {
-                coordsEl.innerText = data.latitude.toFixed(6) + ', ' + data.longitude.toFixed(6);
-                if (radiusEl) {
-                    radiusEl.innerText = (data.geofence_radius || 100) + ' Meters';
-                }
-            } else {
-                coordsEl.innerText = 'No work site coordinates registered yet.';
-                if (radiusEl) radiusEl.innerText = 'Not Set';
-            }
-        })
-        .catch(function () {
-            if (coordsEl) coordsEl.innerText = 'Failed to load coordinates';
-        });
+var tlLoadedSiteRadius=100;
+function loadWorkSiteDetails() {
+    var coordsEl=document.getElementById('registeredSiteCoords');
+    if(!coordsEl||tlSiteSaving)return;
+    var select=document.getElementById('tlWorkSiteCompany');
+    var radiusEl=document.getElementById('registeredGeofenceRadius');
+    var badge=document.getElementById('siteRegStatusBadge');
+    var address=document.getElementById('tlWorkSiteAddress');
+    var register=document.getElementById('btnOpenRegisterSite');
+    var request=++tlSiteLoadRequest;
+    var requestedCompany=tlWorkSiteCompanyId;
+    if(register)register.disabled=true;
+    if(select)select.disabled=true;
+    if(address)address.textContent='';
+    coordsEl.innerText='Loading site coordinates...';
+    if(radiusEl)radiusEl.innerText='Not Set';
+    if(badge){badge.textContent='Loading site';badge.className='badge bg-secondary';}
+    fetch('../../Api/TeamLead/get_work_site.php'+(requestedCompany?'?site_id='+encodeURIComponent(requestedCompany):''),{credentials:'same-origin',cache:'no-store'})
+    .then(function(res){return res.json().then(function(data){if(!res.ok||!data.success)throw Error(data.message||'Unable to load assigned sites.');return data;});})
+    .then(function(data){
+        if(request!==tlSiteLoadRequest)return;
+        var policy=data.registration_policy;
+        tlRegistrationPolicy=policy&&Number.isFinite(policy.max_accuracy_meters)&&policy.max_accuracy_meters>0&&Number.isFinite(policy.acquisition_seconds)&&policy.acquisition_seconds>0?policy:null;
+        var companies=Array.isArray(data.companies)?data.companies:[];
+        if(select){select.replaceChildren(new Option(companies.length?'Select official work site':'No assigned work sites',''));companies.forEach(function(c){select.add(new Option(c.CompanyName+' — '+c.Name,String(c.SiteID)));});select.disabled=!companies.length;}
+        tlWorkSiteCompanyId=Number(data.site_id)||null;
+        if(select)select.value=tlWorkSiteCompanyId?String(tlWorkSiteCompanyId):'';
+        tlLoadedSiteRadius=Number(data.geofence_radius)||100;
+        var radiusInput=document.getElementById('tlGeofenceRadius');if(radiusInput)radiusInput.value=tlLoadedSiteRadius;
+        if(address)address.textContent=data.address||'';
+        var registered=tlWorkSiteCompanyId&&Number.isFinite(data.latitude)&&Number.isFinite(data.longitude);
+        coordsEl.innerText=registered?data.latitude.toFixed(6)+', '+data.longitude.toFixed(6):(data.message||'No work site coordinates registered yet.');
+        if(radiusEl)radiusEl.innerText=registered?tlLoadedSiteRadius+' Meters':'Not Set';
+        if(badge){badge.textContent=registered?'Active Site':(tlWorkSiteCompanyId?'Location Not Registered':(companies.length?'Select a Site':'No Assigned Sites'));badge.className=registered?'badge bg-success':'badge bg-warning text-dark';}
+        if(register){register.disabled=!tlWorkSiteCompanyId||!tlRegistrationPolicy;register.innerHTML='<i class="bi bi-pin-map-fill me-1"></i>'+(registered?'Update Location':'Register Location');}
+    })
+    .catch(function(error){
+        if(request!==tlSiteLoadRequest)return;
+        tlWorkSiteCompanyId=null;
+        if(select){select.replaceChildren(new Option('Unable to load sites — click Refresh sites',''));select.disabled=true;}
+        coordsEl.innerText=error.message||'Failed to load coordinates';
+        if(radiusEl)radiusEl.innerText='Not Set';
+        if(badge){badge.textContent='Site Unavailable';badge.className='badge bg-warning text-dark';}
+    });
 }
 
+var tlGpsModal=document.getElementById('registerSiteModal');
+if(tlGpsModal)tlGpsModal.addEventListener('hidden.bs.modal',function(){stopTlGpsCapture();++tlLocationRequest;tlLocationBusy=false;tlRegisteredLocation=null;updateTlRegistrationQuality();});
 window.loadWorkSiteDetails = loadWorkSiteDetails;
 
 if (document.readyState === 'loading') {

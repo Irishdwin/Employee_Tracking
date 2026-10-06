@@ -155,6 +155,11 @@ if ($insertOk) {
         'message' => 'Document uploaded successfully!',
         'doc_category' => $docCategory,
         'doc_type' => $docType,
+        'document' => [
+            'name' => $file['name'],
+            'type' => $docType,
+            'path' => $relativePathForDb,
+        ],
     ]);
 } else {
     echo json_encode([

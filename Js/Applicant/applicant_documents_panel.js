@@ -426,43 +426,24 @@
         showTabVisual(tab);
     }
 
-    function bindQuickUploads() {
-        document.querySelectorAll('.apm-quick-upload').forEach(function (card) {
-            var inp = card.querySelector('input[type="file"]');
-            var bar = card.querySelector('.apm-upload-progress-inner');
-            var dt = card.getAttribute('data-doc-type') || 'Document';
-            var dc = card.getAttribute('data-doc-category') || 'general';
-            if (!inp) {
-                return;
-            }
-            card.addEventListener('click', function (e) {
-                if (e.target !== inp) {
-                    inp.click();
-                }
-            });
-            inp.addEventListener('change', function () {
-                var f = inp.files && inp.files[0];
-                if (!f) {
-                    return;
-                }
-                if (bar) {
-                    bar.style.width = '0%';
-                }
-                uploadXHR(f, dt, dc, bar, function (err) {
-                    if (err) {
-                        showToast(err, false);
-                    } else {
-                        showToast('Uploaded: ' + dt, true);
-                        loadDocuments(function () {});
-                    }
-                    if (bar) {
-                        bar.style.width = err ? '0%' : '100%';
-                    }
-                    inp.value = '';
-                });
-            });
-        });
-    }
+    // NOTE: the old bindQuickUploads() function used to live here. It bound
+    // a card-level click -> inp.click() handler plus its own 'change'
+    // handler directly onto the same .apm-quick-upload "Key documents"
+    // cards (Resume/CV, Valid ID, Certifications) that
+    // Js/Applicant/applicant_profile_form.js's initQuickUploadHandlers()
+    // already fully owns. Since the file input in that markup is nested
+    // inside a <label>, clicking the label already opens the file chooser
+    // natively with no JS — bindQuickUploads()'s extra inp.click() call on
+    // top of that consumed the click's user-activation a second time,
+    // which is exactly what produced the "File chooser dialog can only be
+    // shown with a user activation" console error. It also caused every
+    // selected file to be uploaded twice (this file's uploadXHR() to
+    // upload_document.php, and applicant_profile_form.js's handler to
+    // upload_applicant_document.php), inserting two rows into
+    // applicant_uploaded_docs per upload. Removed; the Key documents cards
+    // are handled solely by applicant_profile_form.js now. uploadXHR()
+    // itself is kept below since the My Documents tab's dropzone
+    // (see renderDocumentsUi()) still uses it.
 
     function bindHintLink() {
         var h = document.getElementById('goDocsFromHint');
@@ -490,7 +471,6 @@
             });
         }
         window.addEventListener('hashchange', applyHash);
-        bindQuickUploads();
         bindHintLink();
         initDocumentPreview();
         applyHash();

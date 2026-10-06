@@ -13,6 +13,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 require_once __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__ . '/../Helpers/employee_payroll_helper.php';
 
 $userId = (int)$_SESSION['user_id'];
 
@@ -42,6 +43,14 @@ try {
     $depStmt->execute();
     $deployment = $depStmt->get_result()->fetch_assoc();
     $depStmt->close();
+    $expected = payroll_resolve_deployment_schedule($conn, $employeeId, date('Y-m-d'));
+    if ($deployment && !empty($expected['deployment_id'])) {
+        foreach (['TimeIn' => 'time_in', 'TimeOut' => 'time_out', 'BreakDuration' => 'break_duration',
+            'GracePeriod' => 'grace_period', 'WorkingDays' => 'working_days', 'ShiftName' => 'shift_name'] as $field => $key) {
+            $deployment[$field] = $expected[$key];
+        }
+        $deployment['ScheduleType'] = $expected['schedule_type'];
+    }
 
     echo json_encode([
         'success' => true,

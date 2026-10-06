@@ -338,43 +338,11 @@
             opacity: 1;
             margin-top: 14px;
         }
-        .vis-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        @media (max-width: 576px){ .vis-grid{ grid-template-columns: 1fr; } }
-        .vis-card{ position: relative; margin: 0; cursor: pointer; height: 100%; }
-        .vis-card input{ position: absolute; opacity: 0; width: 0; height: 0; }
-        .vis-card-face{
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            height: 100%;
-            padding: 14px;
-            border-radius: 8px;
-            border: 2px solid rgba(15,23,42,0.1);
-            background: #fafbfc;
-            transition: border-color .2s, background .2s, box-shadow .2s;
-        }
-        .vis-card input:checked + .vis-card-face{
-            border-color: var(--onazul-primary);
-            background: rgba(0,86,179,0.05);
-            box-shadow: 0 4px 14px rgba(0,86,179,0.08);
-        }
-        .vis-card-face i{ font-size: 1.35rem; color: var(--onazul-primary); }
-        .vis-card-face strong{ font-size: 0.95rem; color: var(--text); }
-        .vis-card-face small{ font-size: 12px; color: var(--muted); line-height: 1.35; }
-        .pill-rec{
-            display: inline-block;
-            font-size: 10px;
-            font-weight: 900;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            padding: 3px 8px;
-            border-radius: 999px;
-            background: rgba(124, 58, 237, 0.12);
-            color: #5b21b6;
-            margin-left: 6px;
-        }
         .dob-error{ color: #b91c1c; font-size: 13px; font-weight: 800; margin-top: 8px; display: none; }
         .dob-error.is-visible{ display: block; }
+        #almostDoneForm .apm-field-error{color:#b91c1c;font-size:13px;margin-top:6px;}
+        #almostDoneForm .is-invalid{border-color:#dc3545 !important;}
+        #almostDoneForm .is-invalid:focus{box-shadow:0 0 0 3px rgba(220,53,69,.15);}
         #birthDateInput.is-invalid{
             border-color: #dc2626;
             box-shadow: 0 0 0 0.2rem rgba(220, 38, 38, 0.15);
@@ -415,6 +383,9 @@
             background: linear-gradient(90deg, var(--onazul-primary), var(--onazul-magenta));
             border-radius: 999px;
             transition: width .2s;
+        }
+        .apm-upload-progress-inner.apm-upload-success{
+            background: #198754;
         }
 
         /* Master–detail documents */
@@ -564,8 +535,12 @@
             user-select: none;
         }
     </style>
+<link rel="stylesheet" href="../../Css/applicant_navbar.css?v=20261006">
+<link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
+<link rel="stylesheet" href="../../Css/ow_widgets.css">
+<style>.ow-msgr-panel,.ow-msgr-fab{z-index:22000}.ow-msgr-panel{background:#f0f5fc}</style>
 </head>
-<body>
+<body class="applicant-blue-ui applicant-page-applicant-profile-master">
 <header class="topbar">
     <div class="container-fluid px-3 py-2">
         <div class="d-flex align-items-center justify-content-between gap-3">
@@ -576,8 +551,8 @@
 
             <nav class="d-none d-md-flex align-items-center gap-4">
                 <a class="nav-link" href="../../Html/Applicant/applicant_landing.html">Job search</a>
-                <a class="nav-link" href="applicant_career_advice.html">Career advice</a>
-                <a class="nav-link" href="applicant_companies.html">Companies</a>
+                <a class="nav-link" href="#how-to-apply" data-applicant-info="apply">How to Apply</a>
+                <a class="nav-link" href="#agency-contact" data-applicant-info="contact">Contact the Agency</a>
             </nav>
 
             <div class="d-flex align-items-center gap-3">
@@ -620,6 +595,7 @@
                             <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#profile">Profile &amp; preferences</a>
                             <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#documents">My documents</a>
                             <a class="account-dropdown-item" role="menuitem" href="my_applications.html">Job applications</a>
+                            <a class="account-dropdown-item" role="menuitem" href="saved_jobs.html">Saved jobs</a>
                             <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
                             <a class="account-dropdown-item" role="menuitem" href="../notifications.html">Notifications</a>
                             <div class="account-dropdown-divider"></div>
@@ -704,14 +680,27 @@
                         <div class="section-heading">Address</div>
                         <div class="grid-2 mb-3">
                             <div>
-                                <div class="label">Province *</div>
-                                <div class="searchable-select" id="addressProvinceWrap">
-                                    <button type="button" class="searchable-select__trigger" id="addressProvinceSelect" aria-label="Province">
+                                <div class="label">Region *</div>
+                                <div class="searchable-select" id="addressRegionWrap">
+                                    <button type="button" class="searchable-select__trigger" id="addressRegionSelect" aria-label="Region">
+                                        <span class="searchable-select__trigger-label is-placeholder">Select region</span>
+                                        <i class="bi bi-chevron-down searchable-select__chevron" aria-hidden="true"></i>
+                                    </button>
+                                    <div class="searchable-select__panel">
+                                        <input type="text" class="searchable-select__search" aria-label="Search regions">
+                                        <ul class="searchable-select__list" id="addressRegionList" role="listbox"></ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="label">Province / geographic path *</div>
+                                <div class="searchable-select is-disabled" id="addressProvinceWrap">
+                                    <button type="button" class="searchable-select__trigger" id="addressProvinceSelect" disabled aria-label="Province">
                                         <span class="searchable-select__trigger-label is-placeholder">Select province</span>
                                         <i class="bi bi-chevron-down searchable-select__chevron" aria-hidden="true"></i>
                                     </button>
                                     <div class="searchable-select__panel">
-                                        <input type="text" class="searchable-select__search" aria-label="Search provinces">
+                                        <input type="text" class="searchable-select__search" aria-label="Search provinces" disabled>
                                         <ul class="searchable-select__list" id="addressProvinceList" role="listbox"></ul>
                                     </div>
                                 </div>
@@ -842,54 +831,6 @@
                         <div class="hint">This helps filter job offers that match your profession.</div>
                     </div>
 
-                    <div class="mb-4">
-                        <div class="section-heading">Profile visibility</div>
-                        <p class="hint mb-3">Choose how employers can find and contact you on Onazul.</p>
-                        <div class="vis-grid">
-                            <label class="vis-card">
-                                <input type="radio" name="profileVisibility" value="Public" id="visPublic" required checked>
-                                <span class="vis-card-face">
-                                    <span class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                        <i class="bi bi-globe2"></i>
-                                        <strong>Public</strong>
-                                        <span class="pill-rec">Recommended</span>
-                                    </span>
-                                    <small>Searchable profile; employers can view your details when matching roles.</small>
-                                </span>
-                            </label>
-                            <label class="vis-card">
-                                <input type="radio" name="profileVisibility" value="Standard" id="visStandard">
-                                <span class="vis-card-face">
-                                    <span class="d-flex align-items-center gap-2 mb-1">
-                                        <i class="bi bi-person-badge"></i>
-                                        <strong>Standard</strong>
-                                    </span>
-                                    <small>Profile and resume visible to matched employers; contact via the platform.</small>
-                                </span>
-                            </label>
-                            <label class="vis-card">
-                                <input type="radio" name="profileVisibility" value="Limited" id="visLimited">
-                                <span class="vis-card-face">
-                                    <span class="d-flex align-items-center gap-2 mb-1">
-                                        <i class="bi bi-eye-slash"></i>
-                                        <strong>Limited</strong>
-                                    </span>
-                                    <small>Profile visible; resume or contact details more restricted.</small>
-                                </span>
-                            </label>
-                            <label class="vis-card">
-                                <input type="radio" name="profileVisibility" value="Hidden" id="visHidden">
-                                <span class="vis-card-face">
-                                    <span class="d-flex align-items-center gap-2 mb-1">
-                                        <i class="bi bi-lock"></i>
-                                        <strong>Hidden</strong>
-                                    </span>
-                                    <small>Not searchable; visible only when you apply to a role.</small>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-
                     <div class="mb-4 apm-quick-section">
                         <div class="section-heading">Key documents</div>
                         <p class="hint mb-3">Upload your resume, a valid ID, and certifications while you complete your profile. Files upload in the background.</p>
@@ -989,6 +930,7 @@
 <script src="../../Js/Applicant/applicant_portal_header.js"></script>
 <script src="../../Js/Applicant/searchable_select.js"></script>
 <script src="../../Js/Applicant/applicant_profile_cascades.js"></script>
+<script src="../../Js/Applicant/applicant_profile_validation.js"></script>
 <script src="../../Js/Applicant/applicant_profile_form.js"></script>
 <script src="../../Js/Applicant/applicant_documents_panel.js"></script>
 <script src="../../Js/Applicant/applicant_message_toast.js"></script>
@@ -998,5 +940,37 @@
     });
 </script>
 <script src="../../Js/Applicant/applicant_hire_celebration.js"></script>
+<script src="../../Js/Applicant/applicant_nav_info.js?v=20261006"></script>
+  <button type="button" class="ow-msgr-fab" id="owMessengerFab" aria-label="Open messenger" aria-expanded="false" aria-controls="owMessengerPanel">
+    <i class="bi bi-chat-dots fs-4"></i>
+  </button>
+  <div class="ow-msgr-panel card" id="owMessengerPanel" role="dialog" aria-label="Messenger">
+    <div class="ow-msgr-header">
+      <span class="fw-semibold"><i class="bi bi-chat-dots me-2"></i>Messenger</span>
+      <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="owMessengerClose" aria-label="Close messenger">&times;</button>
+    </div>
+    <div class="ow-msgr-body">
+      <aside class="ow-msgr-sidebar">
+        <div class="ow-msgr-search-wrap">
+          <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off">
+        </div>
+        <div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div>
+      </aside>
+      <div class="ow-msgr-chat">
+        <div class="ow-msgr-chat-head">
+          <div class="fw-semibold" id="owMessengerChatTitle">Messenger</div>
+          <div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div>
+        </div>
+        <div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div>
+        <form class="ow-msgr-footer ow-msgr-compose" id="owMessengerComposeForm" autocomplete="off">
+          <input type="text" class="form-control form-control-sm" id="owMessengerInput" placeholder="Type a message…" autocomplete="off" aria-label="Message text" disabled>
+          <button type="submit" class="btn btn-primary btn-sm" id="owMessengerSend" aria-label="Send message" disabled><i class="bi bi-send"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
+<script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
 </body>
 </html>

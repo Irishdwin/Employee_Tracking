@@ -75,14 +75,46 @@ body {
     font-size: 0.95rem; 
 }
 
-.login-card .captcha-input { 
-    max-width: 88px !important; 
-    padding: 0.45rem 0.35rem !important; 
+/* Security-check boxes: numerator, denominator and answer must look
+   identical — same width, height, padding, font size, border, radius,
+   and vertical alignment. Sized to comfortably fit a 3-digit sum
+   (max 100 + 100 = 200) plus the answer field's valid/invalid icon. */
+.login-card .captcha-box {
+    width: 76px;
+    max-width: 76px;
+    height: 44px;
+    padding: 0.4rem 0.4rem !important;
+    font-size: 0.95rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
 }
 
-.login-card .captcha-num { 
-    max-width: 68px !important; 
-    padding: 0.45rem 0.35rem !important; 
+/* Bootstrap's default is-valid/is-invalid icon reserves ~36px of padding
+   and a large background icon, which doesn't fit our compact captcha box
+   and was pushing/overlapping the 3-digit answer. Override with a smaller
+   icon and just enough reserved space so the box never changes size. */
+.login-card .captcha-box.is-valid,
+.login-card .captcha-box.is-invalid {
+    padding-right: 26px !important;
+    padding-left: 6px !important;
+    background-size: 14px 14px;
+    background-position: right 8px center;
+}
+
+/* Refresh button matches the same height as the security-check boxes and
+   sits inline with them as part of the same control group. */
+.login-card .captcha-refresh-btn {
+    height: 44px;
+    width: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
 }
 
 .form-control { 
@@ -129,6 +161,21 @@ body {
 
 .cursor-pointer { 
     cursor: pointer; 
+}
+
+/* Sign up as Applicant: same "small" scale as the rest of the auth links,
+   but bolder + brand-colored with an underline-on-hover so it doesn't get
+   lost next to the Google button. */
+.applicant-signup-link {
+    color: var(--brand-primary);
+    text-decoration: none;
+    margin-left: 0.25rem;
+}
+
+.applicant-signup-link:hover,
+.applicant-signup-link:focus {
+    color: var(--brand-dark);
+    text-decoration: underline;
 }
 
 /* Auth Divider & Google Button */

@@ -12,6 +12,57 @@ const API = {
 };
 const COMMAND_CENTER_API = '../../Api/Admin/admin_dashboard.php';
 
+// Root cause fix (reported: "can't add client" -> console showed 401s on
+// client_companies.php/service_agreements.php): the session's 15-minute
+// idle timeout (Api/Common/session_init.php) can expire while a long form
+// like Add Client (company + Team Lead account + signed agreement upload)
+// is being filled out. The submit handlers below only ever read
+// `data.message`, but the 401 response body uses `error`, not `message` —
+// so an expired session silently fell through to a generic "Failed to add
+// client." with no indication the user needs to log back in.
+// This helper detects 401/403 before parsing the body, tells the user
+// plainly what happened, and sends them to the login page.
+//
+// Root cause fix (reported: "Stay Signed In" button still logs the Admin
+// out a few seconds later): this used to redirect immediately on ANY 401,
+// with no confirmation. Background polling (realtime counters, etc.) runs
+// on its own schedule, uncoordinated with the session-timeout warning
+// modal's heartbeat (Js/Shared/role_guard.js) — so a poll sent just before
+// a successful "Stay Signed In" click could still land a stale 401 a moment
+// afterward, and this function would force a logout anyway, overriding the
+// session the user had just extended. It now re-confirms against the actual
+// session state (the same check Js/Shared/role_guard.js's own 401-watcher
+// uses) before redirecting, so a genuinely expired session still redirects,
+// but a stray/stale 401 no longer does.
+function handleAuthExpired(res) {
+  if (res.status === 401 || res.status === 403) {
+    return fetch('../../Api/Login/check_session.php', { credentials: 'include' })
+      .then(function (r) { return r.json(); }) // A network/JSON failure is not confirmed session expiry.
+      .then(function (data) {
+        if (data && data.role) {
+          // Session is actually still active (stale/racy 401) — don't treat
+          // this as an expiry; let the caller's normal error handling run.
+          return Promise.reject(new Error('request_failed'));
+        }
+        if (window.__onazulSessionControllerReady) {
+          return window.__onazulSessionControllerReady.then(function (controller) {
+            controller.expire();
+            throw new Error('auth_expired');
+          });
+        }
+        Swal.fire({
+          icon: 'warning',
+          title: 'Session expired',
+          text: 'Your session has expired due to inactivity. Please log in again to continue.'
+        }).then(function () {
+          window.location.href = '../../index.html';
+        });
+        return Promise.reject(new Error('auth_expired'));
+      });
+  }
+  return res.json();
+}
+
 let modalAddClient, modalUploadAgreement, modalAddIndustry, modalEditClient;
 let agreementPreviewModal = null;
 
@@ -339,6 +390,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   setupAuditLogHandlers();
+  setupListFilterHandlers();
 
   window.setInterval(function () {
     refreshAdminSidebarBadges();
@@ -369,6 +421,8 @@ function fetchAuditLogs(page = 1) {
       if (res && res.success) {
         renderLogsTable(res.data);
         renderLogsPagination(res.pagination || { page: 1, pages: 1, total: 0 });
+        // ST-402: keep the currently-loaded page cached for PDF export.
+        window.lastAuditLogsData = res.data || [];
       } else {
         if (tbody) {
           tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">' + escapeHtml(res.message || 'Unauthorized access.') + '</td></tr>';
@@ -418,6 +472,33 @@ function renderLogsPagination(p) {
   `;
 }
 
+// ST-500: search input is debounced (300ms) so it doesn't fire a request
+// per keystroke; status filters (a <select>) apply immediately on change.
+// Both reset their list back to page 1, per the requirement that a new
+// search/filter always starts from page 1. Clearing the search box fires
+// the same debounced 'input' handler with an empty value, which is exactly
+// the "no filter" query — restoring the full list.
+function debounce(fn, delayMs) {
+  var t = null;
+  return function () {
+    var args = arguments;
+    clearTimeout(t);
+    t = setTimeout(function () { fn.apply(null, args); }, delayMs);
+  };
+}
+
+function setupListFilterHandlers() {
+  var clientsSearch = document.getElementById('clientsSearchInput');
+  var clientsStatus = document.getElementById('clientsStatusFilter');
+  if (clientsSearch) clientsSearch.addEventListener('input', debounce(function () { loadCompanies(1); }, 300));
+  if (clientsStatus) clientsStatus.addEventListener('change', function () { loadCompanies(1); });
+
+  var agreementsSearch = document.getElementById('agreementsSearchInput');
+  var agreementsStatus = document.getElementById('agreementsStatusFilter');
+  if (agreementsSearch) agreementsSearch.addEventListener('input', debounce(function () { loadAgreements(1); }, 300));
+  if (agreementsStatus) agreementsStatus.addEventListener('change', function () { loadAgreements(1); });
+}
+
 function setupAuditLogHandlers() {
   const filterBtn = document.getElementById('btnFilterLogs');
   if (filterBtn) filterBtn.addEventListener('click', function() { fetchAuditLogs(1); });
@@ -435,6 +516,44 @@ function setupAuditLogHandlers() {
       window.location.href = '../../Api/Admin/export_system_logs.php?' + query.toString();
     });
   }
+
+  // ST-402: PDF export via the browser's own print-to-PDF capability —
+  // no server-side PDF library is used. Builds a clean, print-only table
+  // from the currently loaded audit log rows, then opens the print dialog;
+  // the user selects "Save as PDF" as the destination.
+  const exportPdfBtn = document.getElementById('btnExportAuditLogsPDF');
+  if (exportPdfBtn) {
+    exportPdfBtn.addEventListener('click', exportAuditLogsToPDF);
+  }
+}
+
+function exportAuditLogsToPDF() {
+  const container = document.getElementById('printableAuditLogs');
+  if (!container) return;
+  const rows = window.lastAuditLogsData || [];
+  const rowsHtml = rows.map(function (log) {
+    return '<tr>' +
+      '<td>' + escapeHtml(log.formatted_time) + '</td>' +
+      '<td>' + escapeHtml(log.username) + '</td>' +
+      '<td>' + escapeHtml(log.role) + '</td>' +
+      '<td>' + escapeHtml(log.module) + '</td>' +
+      '<td>' + escapeHtml(log.action) + '</td>' +
+      '<td>' + escapeHtml(log.description) + '</td>' +
+      '<td>' + escapeHtml(log.reference_id || '-') + '</td>' +
+      '<td>' + escapeHtml(log.ip_address) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  container.innerHTML =
+    '<h3>ONAZUL HRIS &mdash; System Audit Logs</h3>' +
+    '<p>Exported: ' + escapeHtml(new Date().toLocaleString()) + '</p>' +
+    '<table><thead><tr>' +
+    '<th>Timestamp</th><th>User</th><th>Role</th><th>Module</th><th>Action</th><th>Description</th><th>Ref ID</th><th>IP Address</th>' +
+    '</tr></thead><tbody>' +
+    (rowsHtml || '<tr><td colspan="8">No records to export.</td></tr>') +
+    '</tbody></table>';
+
+  window.print();
 }
 
 function loadIndustries(selectedName, selectElId) {
@@ -588,6 +707,32 @@ function updateEditTlPasswordValidationUI() {
   }
 }
 
+// Client-side mirror of Api/Helpers/password_policy.php::is_common_or_predictable_password().
+// This is a UX hint only — the server (validate_strong_password()) is the
+// authoritative check for UT-102, including on the direct-API-call path.
+function isCommonOrPredictablePassword(password) {
+  const commonBases = [
+    'admin', 'administrator', 'password', 'welcome', 'qwerty', 'qwertyuiop',
+    'letmein', 'changeme', 'test', 'testing', 'user', 'guest', 'login',
+    'default', 'onazul', 'company', 'employee', 'hr', 'root', 'iloveyou',
+    'monkey', 'dragon', 'football', 'master', 'zxcvbnm', 'asdfgh'
+  ];
+  const lower = password.toLowerCase();
+  const alnum = lower.replace(/[^a-z0-9]/g, '');
+  const base = alnum.replace(/\d+$/, '');
+  const normalizedBase = base
+    .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e')
+    .replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't');
+
+  if (commonBases.includes(base) || commonBases.includes(normalizedBase) || commonBases.includes(alnum)) {
+    return true;
+  }
+  if (/0123456789|1234567890|12345678|23456789|87654321|98765432/.test(alnum)) return true;
+  if (/qwertyui|asdfghjk|zxcvbnm|qazwsx/.test(alnum)) return true;
+  if (/(.)\1{4,}/.test(alnum)) return true;
+  return false;
+}
+
 function validateStrongPassword(password) {
   const checks = [
     { ok: password.length >= 8, message: 'at least 8 characters' },
@@ -597,7 +742,9 @@ function validateStrongPassword(password) {
     { ok: /[^A-Za-z0-9]/.test(password), message: '1 special character' }
   ];
   const failed = checks.filter(c => !c.ok).map(c => c.message);
-  return { isValid: failed.length === 0, failed };
+  const formatOk = failed.length === 0;
+  const commonOrPredictable = formatOk && isCommonOrPredictablePassword(password);
+  return { isValid: formatOk && !commonOrPredictable, failed, commonOrPredictable };
 }
 
 function updateTlPasswordValidationUI() {
@@ -808,7 +955,28 @@ function openEditClientModal(companyId) {
 
       resetEditTeamLeadForm();
       showEditCurrentTeamLead(d.team_lead || null);
-      return loadIndustries(company.Industry || '', 'editIndustrySelect').then(function () {
+      return fetch(API.clients + '?list=team_leads&company_id=' + encodeURIComponent(companyId), {credentials:'include'})
+        .then(r => r.json()).then(function (leads) {
+          if (!leads.success) throw new Error('Unable to load Team Leads');
+          const select=document.getElementById('editAssignedTeamLead');
+          select.innerHTML='<option value="">Keep current / create new account below</option>';
+          (leads.team_leads||[]).forEach(function (lead) {
+            const option=new Option(lead.FullName+' — '+lead.Email,lead.UsersID);
+            option.dataset.contactNumber=lead.ContactNumber||'';
+            select.add(option);
+          });
+          select.value=company.UserID ? String(company.UserID) : '';
+          function toggleLeadFields(){
+            ['editTlFullName','editTlEmail','editTlPassword','editTlPasswordConfirm'].forEach(function(id){const input=document.getElementById(id);if(input)input.disabled=Boolean(select.value);});
+          }
+          select.onchange=function(){
+            if(select.value)resetEditTeamLeadForm();
+            toggleLeadFields();
+            if(select.value && contactNumberInput){contactNumberInput.value=select.options[select.selectedIndex].dataset.contactNumber||'+63';}
+          };
+          toggleLeadFields();
+          return loadIndustries(company.Industry || '', 'editIndustrySelect');
+        }).then(function () {
         return loadEditClientAgreements(companyId);
       });
     })
@@ -845,8 +1013,14 @@ function initSPA() {
       headerTitle.textContent = 'My Account';
     } else if (targetId === 'notifications-section') {
       headerTitle.textContent = 'Notifications';
+    } else if (targetId === 'section-settings') {
+      headerTitle.textContent = 'System Settings';
     } else if (targetId === 'section-deduction-settings') {
       headerTitle.textContent = 'Deduction Settings';
+    } else if (targetId === 'section-job-categories') {
+      headerTitle.textContent = 'Job Categories';
+    } else if (targetId === 'section-holidays') {
+      headerTitle.textContent = 'Holidays';
     } else if (targetId === 'section-notifications') {
       headerTitle.textContent = 'Notifications';
     } else {
@@ -887,6 +1061,12 @@ function initSPA() {
           }
         } else if (targetId === 'section-deduction-settings' && window.DeductionSettings && typeof window.DeductionSettings.load === 'function') {
           window.DeductionSettings.load();
+        } else if (targetId === 'section-job-categories' && window.JobCategoriesAdmin && typeof window.JobCategoriesAdmin.load === 'function') {
+          window.JobCategoriesAdmin.load();
+        } else if (targetId === 'section-holidays' && window.HolidaysAdmin && typeof window.HolidaysAdmin.load === 'function') {
+          window.HolidaysAdmin.load();
+        } else if (targetId === 'section-settings' && window.AgencyContactSettings && typeof window.AgencyContactSettings.load === 'function') {
+          window.AgencyContactSettings.load();
         }
       } else {
         section.classList.add('d-none');
@@ -973,8 +1153,29 @@ function renderCompanyNameCell(company) {
     + '</span>';
 }
 
-function loadCompanies() {
-  fetch(API.clients, { credentials: 'include' })
+// ST-500: search + status filter + pagination state for the Client
+// Companies list. Server-side (client_companies.php now accepts
+// search/status/page/limit) since the same table already supports
+// server-side search — pagination and the status filter extend that same
+// query rather than adding separate client-side logic.
+var companiesListState = { page: 1, search: '', status: '' };
+
+function loadCompanies(page) {
+  if (typeof page === 'number') companiesListState.page = page;
+
+  var searchInput = document.getElementById('clientsSearchInput');
+  var statusSelect = document.getElementById('clientsStatusFilter');
+  companiesListState.search = searchInput ? searchInput.value.trim() : '';
+  companiesListState.status = statusSelect ? statusSelect.value : '';
+
+  var query = new URLSearchParams({
+    search: companiesListState.search,
+    status: companiesListState.status,
+    page: companiesListState.page,
+    limit: 10
+  });
+
+  fetch(API.clients + '?' + query.toString(), { credentials: 'include' })
     .then(res => res.json())
     .then(data => {
       const rowHtml = function () {
@@ -983,11 +1184,11 @@ function loadCompanies() {
         }
         if (!data.success || !data.companies || data.companies.length === 0) {
           const kpi = document.getElementById('kpiClients');
-          if (kpi) kpi.textContent = '0';
-          return '<tr><td colspan="7" class="text-center text-muted py-4">No client companies yet.</td></tr>';
+          if (kpi && !companiesListState.search && !companiesListState.status) kpi.textContent = '0';
+          return '<tr><td colspan="7" class="text-center text-muted py-4">No client companies found.</td></tr>';
         }
         const kpi = document.getElementById('kpiClients');
-        if (kpi) kpi.textContent = data.companies.length;
+        if (kpi && !companiesListState.search && !companiesListState.status && data.pagination) kpi.textContent = data.pagination.total;
         return data.companies.map(c => {
           var needsAgreement = !companyHasActiveAgreement(c);
           var payrollType = (c.PayrollType === 'A') ? 'A' : 'B';
@@ -1004,12 +1205,19 @@ function loadCompanies() {
             + '<i class="bi bi-eye me-1"></i>View</button>'
             + '<button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditClientModal(' + c.CompanyID + ')">'
             + '<i class="bi bi-pencil me-1"></i>Edit</button>'
+            + '<button type="button" class="btn btn-sm btn-outline-primary" onclick="manageDeploymentSites(' + c.CompanyID + ')">Sites</button>'
             + '</div></td>'
             + '</tr>';
         }).join('');
       }();
       const el = document.getElementById('companiesTableBody');
       if (el) el.innerHTML = rowHtml;
+
+      if (data.success && data.pagination && typeof renderPaginationControls === 'function') {
+        renderPaginationControls('companiesPagination', data.pagination, function (targetPage) {
+          loadCompanies(targetPage);
+        }, 'companies');
+      }
     })
     .catch(err => {
       const errRow = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load clients.</td></tr>';
@@ -1019,8 +1227,29 @@ function loadCompanies() {
     });
 }
 
-function loadAgreements() {
-  fetch(API.agreements, { credentials: 'include' })
+// ST-500: search + status filter + pagination state for the main Admin
+// Service Agreements list. Server-side, matching client_companies.php's
+// pattern above — service_agreements.php's company-scoped lookup (used by
+// the client view/edit modal) is untouched; only this no-company-id call
+// site is affected.
+var agreementsListState = { page: 1, search: '', status: '' };
+
+function loadAgreements(page) {
+  if (typeof page === 'number') agreementsListState.page = page;
+
+  var searchInput = document.getElementById('agreementsSearchInput');
+  var statusSelect = document.getElementById('agreementsStatusFilter');
+  agreementsListState.search = searchInput ? searchInput.value.trim() : '';
+  agreementsListState.status = statusSelect ? statusSelect.value : '';
+
+  var query = new URLSearchParams({
+    search: agreementsListState.search,
+    status: agreementsListState.status,
+    page: agreementsListState.page,
+    limit: 10
+  });
+
+  fetch(API.agreements + '?' + query.toString(), { credentials: 'include' })
     .then(res => res.json())
     .then(data => {
       let rowHtml;
@@ -1028,11 +1257,11 @@ function loadAgreements() {
         rowHtml = '<tr><td colspan="6" class="text-center text-danger py-4">' + (data.error || 'Unauthorized') + '.</td></tr>';
       } else if (!data.success || !data.agreements || data.agreements.length === 0) {
         const kpi = document.getElementById('kpiAgreements');
-        if (kpi) kpi.textContent = '0';
-        rowHtml = '<tr><td colspan="6" class="text-center text-muted py-4">No service agreements yet.</td></tr>';
+        if (kpi && !agreementsListState.search && !agreementsListState.status) kpi.textContent = '0';
+        rowHtml = '<tr><td colspan="6" class="text-center text-muted py-4">No service agreements found.</td></tr>';
       } else {
         const kpi = document.getElementById('kpiAgreements');
-        if (kpi) kpi.textContent = data.agreements.length;
+        if (kpi && !agreementsListState.search && !agreementsListState.status && data.pagination) kpi.textContent = data.pagination.total;
         rowHtml = data.agreements.map(a => {
           const docLink = a.SignedDocumentPath
             ? '<button type="button" class="btn btn-sm btn-outline-primary btn-view-agreement" data-doc-path="' + escapeHtml(a.SignedDocumentPath) + '" data-contract-no="' + escapeHtml(a.ContractNumber || '') + '">View</button>'
@@ -1042,6 +1271,12 @@ function loadAgreements() {
       }
       const el = document.getElementById('agreementsTableBody');
       if (el) el.innerHTML = rowHtml;
+
+      if (data.success && data.pagination && typeof renderPaginationControls === 'function') {
+        renderPaginationControls('agreementsPagination', data.pagination, function (targetPage) {
+          loadAgreements(targetPage);
+        }, 'agreements');
+      }
     })
     .catch(err => {
       const errRow = '<tr><td colspan="6" class="text-center text-danger py-4">Failed to load agreements.</td></tr>';
@@ -1091,7 +1326,10 @@ function openAgreementPreview(docPath, contractNo) {
 function populateClientSelect() {
   const select = document.getElementById('agreementClientSelect');
   select.innerHTML = '<option value="">Select company</option>';
-  fetch(API.clients, { credentials: 'include' })
+  // ST-500: client_companies.php's list branch is now paginated (10/page)
+  // for the main Admin table, but this dropdown needs every company —
+  // request the (raised) max page size explicitly rather than page 1 of 10.
+  fetch(API.clients + '?limit=1000', { credentials: 'include' })
     .then(res => res.json())
     .then(data => {
       if (data.success && data.companies && data.companies.length > 0) {
@@ -1138,6 +1376,7 @@ function submitClient() {
     });
     return;
   }
+  if (!(form.team_lead_id && form.team_lead_id.value)) {
   if (!tlName || !tlEmail || !tlPass) {
     Swal.fire({ icon: 'warning', title: 'Required', text: 'Team Lead full name, email, and password are required.' });
     return;
@@ -1148,12 +1387,16 @@ function submitClient() {
   }
   const pwdCheck = validateStrongPassword(tlPass);
   if (!pwdCheck.isValid) {
-    Swal.fire({ icon: 'warning', title: 'Password policy', text: 'Password must include ' + pwdCheck.failed.join(', ') + '.' });
+    const pwdMsg = pwdCheck.commonOrPredictable
+      ? 'Password is too common or predictable. Please choose a stronger password.'
+      : 'Password must include ' + pwdCheck.failed.join(', ') + '.';
+    Swal.fire({ icon: 'warning', title: 'Password policy', text: pwdMsg });
     return;
   }
   if (tlPass !== tlPass2) {
     Swal.fire({ icon: 'warning', title: 'Password', text: 'Passwords do not match.' });
     return;
+  }
   }
   if (!agreementStartDate) {
     Swal.fire({ icon: 'warning', title: 'Required', text: 'Contract Start Date is required.' });
@@ -1171,6 +1414,8 @@ function submitClient() {
   fd.append('contact_number', contactNumber);
   fd.append('industry', form.industry.value.trim());
   fd.append('payroll_type', (form.payroll_type && form.payroll_type.value) ? form.payroll_type.value : 'B');
+  fd.append('team_lead_id',form.team_lead_id ? form.team_lead_id.value : '');
+  fd.append('site_name',form.site_name ? form.site_name.value : '');
   fd.append('tl_full_name', tlName);
   fd.append('tl_email', tlEmail);
   fd.append('tl_password', tlPass);
@@ -1183,7 +1428,7 @@ function submitClient() {
   fd.append('signed_document', signedDocInput.files[0]);
 
   fetch(API.clients, { method: 'POST', body: fd, credentials: 'include' })
-    .then(res => res.json())
+    .then(handleAuthExpired)
     .then(data => {
       if (data.success) {
         if (window.OwSystemEvents && data.response && typeof OwSystemEvents.afterUploadResponse === 'function') {
@@ -1198,10 +1443,11 @@ function submitClient() {
         loadAgreements();
         refreshAdminSidebarBadges();
       } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to add client.' });
+        Swal.fire({ icon: 'error', title: 'Error', text: data.message || data.error || 'Failed to add client.' });
       }
     })
     .catch(err => {
+      if (err && err.message === 'auth_expired') return;
       Swal.fire({ icon: 'error', title: 'Error', text: 'Request failed.' });
       console.error(err);
     });
@@ -1213,7 +1459,8 @@ function submitEditClient() {
 
   const companyId = form.company_id.value;
   const name = form.name.value.trim();
-  const hasNewTl = editTeamLeadFormHasInput();
+  const selectedTeamLead = form.team_lead_id ? form.team_lead_id.value : '';
+  const hasNewTl = !selectedTeamLead && editTeamLeadFormHasInput();
   const tlName = (form.tl_full_name && form.tl_full_name.value) ? form.tl_full_name.value.trim() : '';
   const tlEmail = (form.tl_email && form.tl_email.value) ? form.tl_email.value.trim() : '';
   const tlPass = (form.tl_password && form.tl_password.value) ? form.tl_password.value : '';
@@ -1229,7 +1476,7 @@ function submitEditClient() {
     Swal.fire({ icon: 'warning', title: 'Required', text: 'Company name is required.' });
     return;
   }
-  if (!hasCurrentTl && !hasNewTl) {
+  if (!hasCurrentTl && !hasNewTl && !selectedTeamLead) {
     Swal.fire({ icon: 'warning', title: 'Required', text: 'Create a Team Lead account below (name, Gmail, and password).' });
     return;
   }
@@ -1244,7 +1491,10 @@ function submitEditClient() {
     }
     const pwdCheck = validateStrongPassword(tlPass);
     if (!pwdCheck.isValid) {
-      Swal.fire({ icon: 'warning', title: 'Password policy', text: 'Password must include ' + pwdCheck.failed.join(', ') + '.' });
+      const pwdMsg = pwdCheck.commonOrPredictable
+        ? 'Password is too common or predictable. Please choose a stronger password.'
+        : 'Password must include ' + pwdCheck.failed.join(', ') + '.';
+      Swal.fire({ icon: 'warning', title: 'Password policy', text: pwdMsg });
       return;
     }
     if (tlPass !== tlPass2) {
@@ -1255,6 +1505,7 @@ function submitEditClient() {
 
   const fd = new FormData();
   fd.append('action', 'update');
+  if (selectedTeamLead) fd.append('team_lead_id', selectedTeamLead);
   fd.append('company_id', companyId);
   fd.append('name', name);
   fd.append('address', form.address.value.trim());
@@ -1269,10 +1520,10 @@ function submitEditClient() {
   }
 
   fetch(API.clients, { method: 'POST', body: fd, credentials: 'include' })
-    .then(res => res.json())
+    .then(handleAuthExpired)
     .then(data => {
       if (!data.success) {
-        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to update client.' });
+        Swal.fire({ icon: 'error', title: 'Error', text: data.message || data.error || 'Failed to update client.' });
         return;
       }
       return uploadEditClientAgreement(companyId).then(function (agResult) {
@@ -1301,6 +1552,7 @@ function submitEditClient() {
       });
     })
     .catch(err => {
+      if (err && err.message === 'auth_expired') return;
       Swal.fire({ icon: 'error', title: 'Error', text: 'Request failed.' });
       console.error(err);
     });
@@ -1333,7 +1585,7 @@ function submitAgreement() {
   fd.append('signed_document', fileInput.files[0]);
 
   fetch(API.agreements, { method: 'POST', body: fd, credentials: 'include' })
-    .then(res => res.json())
+    .then(handleAuthExpired)
     .then(data => {
       if (data.success) {
         Swal.fire({ icon: 'success', title: 'Saved', text: data.message || 'Service Agreement created successfully.' });
@@ -1355,10 +1607,11 @@ function submitAgreement() {
         loadCompanies();
         refreshAdminSidebarBadges();
       } else {
-        Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to create agreement.' });
+        Swal.fire({ icon: 'error', title: 'Error', text: data.message || data.error || 'Failed to create agreement.' });
       }
     })
     .catch(err => {
+      if (err && err.message === 'auth_expired') return;
       Swal.fire({ icon: 'error', title: 'Error', text: 'Request failed.' });
       console.error(err);
     });

@@ -13,7 +13,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role
 }
 
 $userId = (int)$_SESSION['user_id'];
-$site = work_site_resolve_for_user($conn, $userId);
+try { $site = work_site_resolve_for_user($conn, $userId); }
+catch (DomainException $e) { http_response_code(409); echo json_encode(['success'=>false,'message'=>$e->getMessage(),'work_site'=>null]); exit(); }
 
 if (!$site) {
     echo json_encode([
@@ -27,6 +28,9 @@ if (!$site) {
 echo json_encode([
     'success' => true,
     'work_site' => [
+        'site_id' => $site['site_id'],
+        'site_name' => $site['site_name'],
+        'deployment_id' => $site['deployment_id'],
         'company_id' => $site['company_id'],
         'company_name' => $site['company_name'],
         'deployment_location' => $site['deployment_location'],

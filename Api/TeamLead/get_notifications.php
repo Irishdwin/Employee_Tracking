@@ -19,28 +19,39 @@ try {
         throw new Exception("Database connection failed");
     }
 
-    // Auto-create notifications table if missing
+    // NOTE (fixed): this previously created/queried a table shape
+    // (`Type`, `CreatedAt`) that never matched the ACTUAL production
+    // `notifications` table (real columns: NotificationType; there is no
+    // created-at/timestamp column at all — see onazul_hris_db.sql and the
+    // real writers Api/Common/NotificationHelper.php /
+    // Api/Helpers/notification_helper.php, both of which insert
+    // UserID/NotificationType/Title/Message/RelateedModule/RelatedRecord/
+    // IsRead/Priority). Every call here failed at prepare() and was caught
+    // below, returning an empty list even when unread notifications existed.
+    // This endpoint is no longer used by team_lead_dashboard.html (it now
+    // calls the shared Api/Common/notifications.php, matching every other
+    // role), but is corrected here too rather than left broken.
     $conn->query("
         CREATE TABLE IF NOT EXISTS `notifications` (
           `NotificationID` INT(11) NOT NULL AUTO_INCREMENT,
           `UserID` INT(11) NOT NULL,
-          `Title` VARCHAR(255) NOT NULL,
-          `Message` TEXT NOT NULL,
-          `Type` VARCHAR(50) NOT NULL DEFAULT 'general',
-          `ReferenceID` INT(11) DEFAULT NULL,
-          `IsRead` TINYINT(1) NOT NULL DEFAULT 0,
-          `CreatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          `NotificationType` VARCHAR(50) DEFAULT NULL,
+          `Title` VARCHAR(200) DEFAULT NULL,
+          `Message` TEXT,
+          `RelateedModule` VARCHAR(100) DEFAULT NULL,
+          `RelatedRecord` INT(11) DEFAULT NULL,
+          `IsRead` TINYINT(1) DEFAULT 0,
+          `Priority` VARCHAR(20) DEFAULT NULL,
           PRIMARY KEY (`NotificationID`),
-          KEY `idx_user_read_type` (`UserID`, `IsRead`, `Type`),
-          KEY `idx_created_at` (`CreatedAt`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          KEY `idx_user_read_type` (`UserID`, `IsRead`, `NotificationType`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
     ");
 
     $sql = "
-        SELECT NotificationID, Title, Message, Type, IsRead, CreatedAt 
+        SELECT NotificationID, Title, Message, NotificationType, IsRead
         FROM notifications 
         WHERE UserID = ? 
-        ORDER BY CreatedAt DESC 
+        ORDER BY NotificationID DESC 
         LIMIT " . (int)$limit;
 
     $stmt = $conn->prepare($sql);
@@ -58,10 +69,8 @@ try {
             'id' => (int)$row['NotificationID'],
             'title' => $row['Title'],
             'message' => $row['Message'],
-            'type' => $row['Type'],
+            'type' => $row['NotificationType'],
             'is_read' => (bool)$row['IsRead'],
-            'created_at' => date('M d, Y h:i A', strtotime($row['CreatedAt'])),
-            'raw_time' => $row['CreatedAt']
         ];
     }
     $stmt->close();

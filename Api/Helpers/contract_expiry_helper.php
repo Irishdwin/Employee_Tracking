@@ -59,14 +59,55 @@ function contract_expiry_sa_notify_roles(): array
  *
  * @return array{employment_contracts_notified:int, service_agreements_notified:int}
  */
+/** Agency policy: six calendar months from signing, only while the employee is active.
+ * No signed date means no inferred eligibility. Existing signed files are retained.
+ */
+function employment_contract_open_after_six_months(mysqli $conn): int
+{
+    $conn->begin_transaction();
+    try {
+        $conn->query("UPDATE employmentcontract ec JOIN employee e ON e.EmployeeID=ec.EmployeeID
+            SET ec.ContractType='Open Contract', ec.ContractEndDate=NULL
+            WHERE e.IsActive=1 AND ec.ContractType='Expiring Contract'
+              AND ec.SignedDate IS NOT NULL AND DATE_ADD(ec.SignedDate, INTERVAL 6 MONTH)<=CURDATE()");
+        $changed=$conn->affected_rows;
+        // The applicant upload flow stores metadata in Remarks, including after hiring.
+        $rows=$conn->query("SELECT ja.ApplicationID, ja.Remarks FROM job_applications ja
+            JOIN applicants a ON a.ApplicantID=ja.ApplicantID
+            JOIN employee e ON e.Email=a.Email AND e.IsActive=1
+            WHERE ja.HiredDate IS NOT NULL AND ja.Remarks LIKE '%Contract uploaded: type=Expiring Contract;%'
+            FOR UPDATE");
+        $stmt=$conn->prepare('UPDATE job_applications SET Remarks=? WHERE ApplicationID=?');
+        while($row=$rows->fetch_assoc()) {
+            if(!preg_match('/Contract uploaded: ([^\r\n]*)/', $row['Remarks'], $entry)) continue;
+            if(!preg_match('/(?:^|; )signed_date=(\d{4}-\d{2}-\d{2})(?:;|$)/', $entry[1], $date)) continue;
+            $signed=DateTimeImmutable::createFromFormat('!Y-m-d', $date[1]);
+            if(!$signed || $signed->format('Y-m-d')!==$date[1]) continue;
+            // MySQL calendar-month addition clamps month-end, matching stored contracts.
+            $eligible=$conn->prepare('SELECT DATE_ADD(?, INTERVAL 6 MONTH)<=CURDATE() AS eligible');
+            $eligible->bind_param('s',$date[1]);$eligible->execute();
+            $due=(bool)$eligible->get_result()->fetch_assoc()['eligible'];$eligible->close();
+            if(!$due) continue;
+            $updated=str_replace('type=Expiring Contract;', 'type=Open Contract;', $entry[0]);
+            $updated=preg_replace('/expiry_date=\d{4}-\d{2}-\d{2}/', 'expiry_date=', $updated);
+            $remarks=str_replace($entry[0],$updated,$row['Remarks']);
+            $id=(int)$row['ApplicationID'];$stmt->bind_param('si',$remarks,$id);$stmt->execute();
+            $changed+=$stmt->affected_rows;
+        }
+        $stmt->close();$conn->commit();return $changed;
+    } catch(Throwable $e) { $conn->rollback();throw $e; }
+}
+
 function run_contract_expiry_check(mysqli $conn): array
 {
     service_agreement_contract_type_ensure_schema($conn);
 
+    $converted = employment_contract_open_after_six_months($conn);
     $employmentNotified = contract_expiry_check_employment_contracts($conn);
     $serviceAgreementNotified = contract_expiry_check_service_agreements($conn);
 
     return [
+        'employment_contracts_converted' => $converted,
         'employment_contracts_notified' => $employmentNotified,
         'service_agreements_notified' => $serviceAgreementNotified,
     ];

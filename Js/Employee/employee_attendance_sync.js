@@ -44,6 +44,15 @@
       }
     }
 
+    // Same "Holiday" badge color (#7c3aed) already used for this purpose in
+    // Html/Accounting/accounting_dashboard.html and
+    // Html/TeamLead/team_lead_dashboard.html — reused here, not a new color.
+    function holidayBadgeHtml(holiday) {
+      if (!holiday) return '';
+      var title = esc(holiday.name || 'Holiday') + (holiday.type ? ' (' + esc(holiday.type) + ')' : '');
+      return ' <span class="badge" style="background:#7c3aed;color:#fff;" title="' + title + '">' + esc(holiday.name || 'Holiday') + '</span>';
+    }
+
     function renderToday(today) {
       if (!today) return;
       var badge = document.getElementById('empTodayStatusBadge');
@@ -55,10 +64,16 @@
       setText('empTodayTimeIn', today.time_in_display);
       setText('empTodayBreak', today.break_time_display);
       setText('empTodayTimeOut', today.time_out_display);
+      var expected = today.expected_schedule;
+      setText('empExpectedScheduleToday', expected ? (expected.is_working_day
+        ? 'Expected today: ' + expected.schedule_type + ' · ' + expected.time_in_display + '–' + expected.time_out_display +
+          (expected.overnight ? ' (next day)' : '') + ' · Break: ' + expected.break_duration + ' min · Grace: ' + expected.grace_period + ' min'
+        : 'Expected today: Rest Day') : 'No assigned schedule found for today.');
       var hours = today.total_hours != null ? today.total_hours : today.total_hours_rendered;
       setText('empTodayHours', hours != null ? hours + ' hrs total' : '—');
       setUndertime('empTodayUndertime', today.undertime_minutes);
-      setText('empTodayDate', today.date || new Date().toISOString().slice(0, 10));
+      var dateEl = document.getElementById('empTodayDate');
+      if (dateEl) dateEl.innerHTML = esc(today.date || new Date().toISOString().slice(0, 10)) + holidayBadgeHtml(today.holiday);
     }
   
     function buildLogRow(log, includeLateCol) {
@@ -66,7 +81,7 @@
       var hours = log.total_hours != null ? log.total_hours : log.total_hours_rendered;
       var breakLabel = log.break_time_display || '—';
       var row =
-        '<tr><td>' + esc(log.date) + '</td>' +
+        '<tr><td>' + esc(log.date) + holidayBadgeHtml(log.holiday) + '</td>' +
         '<td><span class="badge rounded-pill ' + attendanceStatusBadgeClass(attStatus) + '">' + esc(attStatus) + '</span></td>' +
         '<td>' + esc(log.time_in_display) + '</td>' +
         '<td>' + esc(breakLabel) + '</td>' +
@@ -80,6 +95,7 @@
           badges += '<span class="text-amber-700 small fw-semibold">Undertime ' + esc(log.undertime_minutes) + 'm</span>';
         }
         row += '<td>' + (badges || '—') + '</td>';
+        row += '<td><button type="button" class="btn btn-sm btn-outline-primary" data-attendance-evidence-date="' + esc(log.date) + '">View Evidence</button></td>';
       }
       return row + '</tr>';
     }
@@ -89,7 +105,7 @@
       var timesheetBody = document.getElementById('empTimesheetLogsBody');
       logs = logs || [];
       var empty6 = '<tr><td colspan="6" class="text-center text-muted py-3">No duty logs recorded yet.</td></tr>';
-      var empty7 = '<tr><td colspan="7" class="text-center text-muted py-3">No duty logs recorded yet.</td></tr>';
+      var empty7 = '<tr><td colspan="8" class="text-center text-muted py-3">No duty logs recorded yet.</td></tr>';
       if (tbody) {
         tbody.innerHTML = logs.length ? logs.map(function (log) { return buildLogRow(log, false); }).join('') : empty6;
       }
@@ -190,6 +206,8 @@
   var workSiteLoadPromise = null;
   var workSitePollTimer = null;
   var workSitePollMs = 4000; // near-real-time refresh of the Team Lead's registered geofence
+  var workSiteError = '';
+  var gpsFailure = null;
   window.employeeWorkSite = null;
   window.currentEmployeeCoords = null;
 
@@ -206,6 +224,7 @@
   window.calculateHaversine = calculateHaversine;
 
   function validCoordinate(value, min, max) {
+      if (value === null || value === undefined || String(value).trim() === '') return false;
       var n = Number(value);
       return Number.isFinite(n) && n >= min && n <= max;
   }
@@ -264,8 +283,19 @@
       var badge = document.getElementById('geofenceBadge');
       var text = document.getElementById('gpsDistanceText');
 
+      var title=document.getElementById('employeeTodayShiftTitle');
+      if(title && window.employeeWorkSite)title.textContent="Today's Shift: "+window.employeeWorkSite.site_name;
+      var context=document.getElementById('employeeWorkSiteSummary');
+      if(context) context.textContent=window.employeeWorkSite
+          ? 'Work Site: '+window.employeeWorkSite.site_name+' · '+(window.employeeWorkSite.is_registered
+              ? 'Registered · Geofence: '+window.employeeWorkSite.geofence_radius+' meters'
+              : 'Geofence not registered. Please contact your Team Lead.')
+          : workSiteError || 'Loading assigned work site...';
       if (!currentGpsLocation) {
           setAttendanceButtons(false);
+          if(badge) { badge.className='badge '+(gpsFailure?'bg-danger':'bg-warning text-dark')+' mb-1';
+              badge.textContent=gpsFailure ? ({1:'Location Permission Denied',2:'Location Unavailable',3:'GPS Timeout'}[gpsFailure.code]||'GPS Unavailable') : gpsStarting?'Acquiring Live GPS...':'GPS Not Ready'; }
+          if(text)text.textContent=gpsFailure?gpsErrorMessage(gpsFailure):'Requesting your device location. Please allow browser location access.';
           return;
       }
 
@@ -280,14 +310,14 @@
               if (text) text.textContent = 'Your Team Lead must register the work site before attendance.';
           } else {
               if (badge) {
-                  badge.className = 'badge bg-success mb-1';
-                  badge.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i>GPS Live';
+                  badge.className = 'badge bg-warning text-dark mb-1';
+                  badge.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Work Site Unavailable';
               }
               if (text) {
                   text.textContent =
                       'Lat: ' + currentGpsLocation.latitude.toFixed(6) +
                       ', Lng: ' + currentGpsLocation.longitude.toFixed(6) +
-                      ' (±' + Math.round(currentGpsLocation.accuracy || 0) + 'm)';
+                      ' (±' + Math.round(currentGpsLocation.accuracy || 0) + 'm). Unable to verify the assigned work site. Retry GPS.';
               }
           }
           setAttendanceButtons(false);
@@ -296,29 +326,32 @@
 
       var radius = Number(window.employeeWorkSite.geofence_radius || 100);
       var inside = dist <= radius;
+      var lowAccuracy = currentGpsLocation.accuracy === null || currentGpsLocation.accuracy > radius;
 
       if (badge) {
-          badge.className = inside
+          badge.className = !inside ? 'badge bg-danger mb-1' : lowAccuracy ? 'badge bg-warning text-dark mb-1' : inside
               ? 'badge bg-success mb-1'
               : 'badge bg-danger mb-1';
-          badge.innerHTML = inside
+          badge.innerHTML = !inside ? '<i class="bi bi-geo-alt-fill me-1"></i>Outside Geofence' : lowAccuracy ? '<i class="bi bi-exclamation-triangle me-1"></i>Location Accuracy Too Low' : inside
               ? '<i class="bi bi-geo-alt-fill me-1"></i>Inside Geofence'
               : '<i class="bi bi-geo-alt-fill me-1"></i>Outside Geofence';
       }
 
       if (text) {
           text.innerHTML =
-              'Lat: ' + currentGpsLocation.latitude.toFixed(6) +
-              ', Lng: ' + currentGpsLocation.longitude.toFixed(6) +
-              ' (±' + Math.round(currentGpsLocation.accuracy || 0) + 'm)' +
-              '<br><span class="' + (inside ? 'text-success' : 'text-danger') +
+              'GPS Ready · Accuracy: ±' + Math.round(currentGpsLocation.accuracy || 0) + 'm' +
+              '<br><span class="' + (lowAccuracy ? 'text-warning' : inside ? 'text-success' : 'text-danger') +
               ' fw-bold">' +
-              (inside ? 'INSIDE GEOFENCE' : 'OUTSIDE GEOFENCE') +
-              ' — Distance: ' + Math.round(dist) + 'm / Max: ' + Math.round(radius) + 'm</span>';
+              (!inside ? 'OUTSIDE GEOFENCE' : lowAccuracy ? 'LOCATION ACCURACY TOO LOW' : 'INSIDE GEOFENCE') +
+              ' — Distance: ' + Math.round(dist) + 'm / Max: ' + Math.round(radius) + 'm</span>' +
+              '<details class="mt-2"><summary>Location comparison</summary><div>Saved site: ' + Number(window.employeeWorkSite.latitude).toFixed(6) + ', ' + Number(window.employeeWorkSite.longitude).toFixed(6) +
+              '<br>Your device: ' + currentGpsLocation.latitude.toFixed(6) + ', ' + currentGpsLocation.longitude.toFixed(6) + '</div></details>' +
+              (!inside ? '<br><span class="text-danger">Move inside the registered work site. If you are already there, ask your Team Lead to verify and update this site’s saved center.</span>' : '') +
+              (lowAccuracy ? '<br><span class="text-warning">GPS accuracy must be within the site radius. Refresh GPS or use a device with a better location signal.</span>' : '');
       }
 
       // Never enable attendance while outside the official registered radius.
-      setAttendanceButtons(inside);
+      setAttendanceButtons(inside && !lowAccuracy && !window.employeeGpsRefreshing);
   }
 
   function setGpsLocation(position) {
@@ -327,7 +360,7 @@
       currentGpsLocation = {
           latitude: Number(position.coords.latitude),
           longitude: Number(position.coords.longitude),
-          accuracy: Number.isFinite(Number(position.coords.accuracy))
+          accuracy: position.coords.accuracy !== null && position.coords.accuracy !== undefined && Number.isFinite(Number(position.coords.accuracy)) && Number(position.coords.accuracy) >= 0
               ? Number(position.coords.accuracy)
               : null,
           timestamp: Number(position.timestamp) || Date.now()
@@ -341,31 +374,39 @@
   function loadEmployeeWorkSite() {
       if (workSiteLoadPromise) return workSiteLoadPromise;
 
+      var controller=new AbortController();
+      var siteTimeout=setTimeout(function(){controller.abort();},10000);
       workSiteLoadPromise = fetch('../../Api/Employee/get_employee_work_site.php', {
+          signal:controller.signal,
           credentials: 'same-origin',
           cache: 'no-store',
           headers: { 'Accept': 'application/json' }
       })
       .then(function (response) {
           if (!response.ok) {
-              throw new Error('Work-site request failed with HTTP ' + response.status);
+              return response.json().then(function(data){throw new Error(data.message || 'Work-site request failed.');});
           }
           return response.json();
       })
       .then(function (data) {
           if (!data || !data.success || !data.work_site) {
               window.employeeWorkSite = null;
-              return null;
+              workSiteError=(data && data.message)||'No active deployment was found for your account.';
+              updateGpsUi(); return null;
           }
 
           var site = data.work_site;
           var lat = Number(site.latitude);
           var lng = Number(site.longitude);
           var registered = !!site.is_registered &&
-              validCoordinate(lat, -90, 90) &&
-              validCoordinate(lng, -180, 180);
+              validCoordinate(site.latitude, -90, 90) &&
+              validCoordinate(site.longitude, -180, 180);
 
+          workSiteError='';
           window.employeeWorkSite = {
+              site_id:site.site_id,
+              deployment_id:site.deployment_id,
+              site_name:site.site_name||site.company_name||'',
               company_id: site.company_id || null,
               company_name: site.company_name || '',
               deployment_location: site.deployment_location || '',
@@ -381,19 +422,21 @@
       })
       .catch(function (error) {
           console.error('[GPS] Failed to retrieve registered work site:', error);
-          // A background poll tick failing (network hiccup, etc.) should not wipe out a
-          // previously good work-site config or scare the user with an error message —
-          // only show that state on the very first load, when we have nothing yet.
+          // Fail closed instead of authorizing attendance with potentially stale site data.
+          window.employeeWorkSite = null;
+          workSiteError=error.name==='AbortError'?'Work-site request timed out. Please retry.':error.message;
+          updateGpsUi();
           if (!window.employeeWorkSite) {
               var text = document.getElementById('gpsDistanceText');
               if (text) {
-                  text.textContent = 'Unable to load the registered work site. Please retry.';
+                  text.textContent = workSiteError;
               }
               setAttendanceButtons(false);
           }
           return null;
       })
       .finally(function () {
+          clearTimeout(siteTimeout);
           workSiteLoadPromise = null;
       });
 
@@ -427,6 +470,7 @@
 
   function startGpsWatcher() {
       if (!navigator.geolocation) return;
+      var lastErrorCode = null;
 
       if (watchPositionId !== null) {
           navigator.geolocation.clearWatch(watchPositionId);
@@ -436,16 +480,22 @@
       watchPositionId = navigator.geolocation.watchPosition(
           function (position) {
               if (setGpsLocation(position)) {
-                  console.log(
-                      '[GPS] Live employee coordinates:',
-                      currentGpsLocation.latitude,
-                      currentGpsLocation.longitude,
-                      'accuracy:', currentGpsLocation.accuracy
-                  );
+                  lastErrorCode = null;
               }
           },
           function (error) {
-              console.warn('[GPS] Live watcher error:', error.code, error.message);
+              currentGpsLocation=null; window.currentEmployeeCoords=null;
+              setAttendanceButtons(false);
+              var badge=document.getElementById('geofenceBadge');
+              if (badge) { badge.className='badge bg-warning text-dark mb-1'; badge.textContent='Location Unavailable'; }
+              if (error.code === 1) {
+                  if (watchPositionId !== null) navigator.geolocation.clearWatch(watchPositionId);
+                  watchPositionId=null;
+              }
+              var text=document.getElementById('gpsDistanceText');
+              if (text) text.textContent=gpsErrorMessage(error);
+              if (lastErrorCode !== error.code) console.warn('[GPS] Live watcher error:', error.code, error.message);
+              lastErrorCode = error.code;
           },
           {
               enableHighAccuracy: true,
@@ -457,150 +507,81 @@
 
   function requestEmployeeGps() {
       return new Promise(function (resolve, reject) {
-          if (!navigator.geolocation) {
-              reject(new Error('Your browser does not support device geolocation.'));
-              return;
-          }
-
-          var settled = false;
-
-          function success(position) {
-              if (settled) return;
-              if (!setGpsLocation(position)) {
-                  settled = true;
-                  reject(new Error('Browser returned invalid GPS coordinates.'));
-                  return;
-              }
-              settled = true;
+          var settled=false, fallbackStarted=false, best=null, acquisitionWatch=null;
+          var highTimer;
+          var deadline=setTimeout(function () { finish(best, best?null:{code:3}); }, 18000);
+          function finish(position,error) {
+              if(settled) return;
+              settled=true;clearTimeout(deadline);clearTimeout(highTimer);
+              if(acquisitionWatch!==null)navigator.geolocation.clearWatch(acquisitionWatch);
+              if(error) { reject(error);return; }
+              if(!setGpsLocation(position)) { reject(new Error('Invalid GPS coordinates.'));return; }
               resolve(currentGpsLocation);
           }
-
-          function failure(error) {
-              if (settled) return;
-              // Fallback to standard accuracy if high accuracy stalls or times out
-              navigator.geolocation.getCurrentPosition(
-                  function(pos) {
-                      if (settled) return;
-                      if (!setGpsLocation(pos)) {
-                          settled = true;
-                          reject(new Error('Browser returned invalid GPS coordinates.'));
-                          return;
-                      }
-                      settled = true;
-                      resolve(currentGpsLocation);
-                  },
-                  function(err) {
-                      if (settled) return;
-                      settled = true;
-                      reject(err || error || new Error('Unable to acquire GPS location.'));
-                  },
-                  {
-                      enableHighAccuracy: false,
-                      timeout: 10000,
-                      maximumAge: 10000
-                  }
-              );
+          function sample(position) {
+              if(settled || !isValidGpsPosition(position))return;
+              var accuracy=position.coords.accuracy;
+              if(!Number.isFinite(accuracy) || accuracy<0)return;
+              // Only samples acquired during this refresh are candidates.
+              if(!best || accuracy<best.coords.accuracy)best=position;
+              var radius=window.employeeWorkSite?Number(window.employeeWorkSite.geofence_radius):0;
+              if(radius>0 && accuracy<=radius) { finish(position);return; }
+              setGpsLocation(best);
+              var badge=document.getElementById('geofenceBadge');
+              if(badge) { badge.className='badge bg-warning text-dark mb-1';badge.textContent='Improving GPS Accuracy...'; }
           }
-
-          var highAccuracyTimer = setTimeout(function() {
-              if (!settled) {
-                  console.warn('[GPS] High accuracy timed out, falling back to standard accuracy.');
-                  failure({ code: 3, message: 'High accuracy timeout' });
-              }
-          }, 6000);
-
-          navigator.geolocation.getCurrentPosition(
-              function(pos) {
-                  clearTimeout(highAccuracyTimer);
-                  success(pos);
-              },
-              function(err) {
-                  clearTimeout(highAccuracyTimer);
-                  failure(err);
-              },
-              {
-                  enableHighAccuracy: true,
-                  timeout: 6000,
-                  maximumAge: 0
-              }
-          );
+          function failed(error) {
+              if(error && error.code===1)finish(null,error);
+              // Unavailable/timeout may be transient; the overall deadline still settles.
+          }
+          function fallback(error) {
+              if(settled || fallbackStarted)return;
+              if(error && error.code===1){finish(null,error);return;}
+              fallbackStarted=true;clearTimeout(highTimer);
+              try { navigator.geolocation.getCurrentPosition(sample,failed,
+                  {enableHighAccuracy:false,timeout:10000,maximumAge:0}); }
+              catch(e){failed(e);}
+          }
+          if(!navigator.geolocation){finish(null,new Error('GPS Unsupported'));return;}
+          highTimer=setTimeout(function(){fallback({code:3});},6000);
+          try {
+              navigator.geolocation.getCurrentPosition(sample,fallback,
+                  {enableHighAccuracy:true,timeout:6000,maximumAge:0});
+              if(!settled)acquisitionWatch=navigator.geolocation.watchPosition(sample,failed,
+                  {enableHighAccuracy:true,timeout:18000,maximumAge:0});
+          }catch(e){finish(null,e);}
       });
   }
 
-  function initEmployeeGeolocation() {
-      if (gpsStarting) return;
-      gpsStarting = true;
-      var requestId = ++gpsRequestToken;
-
-      setAttendanceButtons(false);
-
-      var badge = document.getElementById('geofenceBadge');
-      var text = document.getElementById('gpsDistanceText');
-
-      if (!navigator.geolocation) {
-          gpsStarting = false;
-          if (badge) {
-              badge.className = 'badge bg-danger mb-1';
-              badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>GPS Unsupported';
-          }
-          if (text) text.textContent = 'This browser does not support device geolocation.';
-          return;
-      }
-
-      if (badge) {
-          badge.className = 'badge bg-warning text-dark mb-1';
-          badge.innerHTML = '<i class="bi bi-geo-alt me-1"></i>Acquiring Live GPS...';
-      }
-      if (text) {
-          text.textContent = 'Requesting your device location. Please allow the browser location permission.';
-      }
-
-      Promise.allSettled([
-          loadEmployeeWorkSite(),
-          requestEmployeeGps()
-      ])
-      .then(function (results) {
-          if (requestId !== gpsRequestToken) return;
-
-          var gpsResult = results[1];
-          if (gpsResult.status === 'rejected') {
-              setAttendanceButtons(false);
-              if (badge) {
-                  badge.className = 'badge bg-danger mb-1';
-                  badge.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>GPS Error';
-              }
-              if (text) {
-                  text.innerHTML =
-                      gpsErrorMessage(gpsResult.reason) +
-                      ' <button type="button" class="btn btn-sm btn-outline-dark ms-2 py-0 px-1" onclick="initEmployeeGeolocation()">Retry</button>';
-              }
-              return;
-          }
-
-          updateGpsUi();
+  function refreshGpsButton(busy) {
+      var button=document.getElementById('btnRefreshEmployeeGps');
+      if (!button) return;
+      button.disabled=busy;
+      button.innerHTML='<i class="bi bi-arrow-clockwise me-1"></i>'+ (busy?'Refreshing GPS...':'Refresh GPS Location');
+  }
+  function initEmployeeGeolocation(manual) {
+      if(gpsStarting) { updateGpsUi();refreshGpsButton(true);return; }
+      gpsStarting=true;window.employeeGpsRefreshing=true;gpsFailure=null;
+      refreshGpsButton(true);setAttendanceButtons(false);
+      if(watchPositionId!==null && navigator.geolocation) navigator.geolocation.clearWatch(watchPositionId);
+      watchPositionId=null;currentGpsLocation=null;window.currentEmployeeCoords=null;
+      var token=++gpsRequestToken;
+      updateGpsUi();
+      // Site metadata/polling runs independently of device GPS acquisition.
+      loadEmployeeWorkSite(); startWorkSitePolling();
+      return requestEmployeeGps().then(function(){
+          if(token!==gpsRequestToken)return;
           startGpsWatcher();
-          startWorkSitePolling();
-
-          if (!window.employeeWorkSite) {
-              if (badge) {
-                  badge.className = 'badge bg-warning text-dark mb-1';
-                  badge.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i>Work Site Unavailable';
-              }
-              if (text) {
-                  text.textContent = 'No active registered work site was found for your deployment.';
-              }
-              setAttendanceButtons(false);
-          }
-      })
-      .catch(function (error) {
-          console.error('[GPS] Initialization error:', error);
-          setAttendanceButtons(false);
-      })
-      .finally(function () {
-          if (requestId === gpsRequestToken) gpsStarting = false;
+      }).catch(function(error){
+          if(token===gpsRequestToken)gpsFailure=error;
+      }).finally(function(){
+          if(token!==gpsRequestToken)return;
+          gpsStarting=false;window.employeeGpsRefreshing=false;
+          refreshGpsButton(false);updateGpsUi();
       });
   }
   window.initEmployeeGeolocation = initEmployeeGeolocation;
+  window.refreshEmployeeGpsLocation = function () { return initEmployeeGeolocation(true); };
 
   function updateLiveCameraHud() {
       var dtEl = document.getElementById('hudDateTime');
@@ -664,6 +645,11 @@
   }
 
   function openSelfieModal(action) {
+      if (gpsStarting) return;
+      return Promise.resolve(initEmployeeGeolocation(true)).then(function () { openSelfieModalWithPosition(action); });
+  }
+
+  function openSelfieModalWithPosition(action) {
       if (!currentGpsLocation) {
           alert('Your live GPS location has not been acquired yet. Please wait or retry GPS.');
           initEmployeeGeolocation();
@@ -680,6 +666,9 @@
           return;
       }
 
+      if (currentGpsLocation.accuracy === null || currentGpsLocation.accuracy > radius) {
+          alert('Location accuracy is too low for this work-site radius. Refresh GPS Location and try again.'); return;
+      }
       if (dist > radius) {
           alert(
               'You are outside the allowed work site.\n\n' +
@@ -909,6 +898,9 @@
           return;
       }
 
+      if (currentGpsLocation.accuracy === null || currentGpsLocation.accuracy > radius) {
+          alert('Location accuracy is too low for this work-site radius. Refresh GPS Location and try again.'); return;
+      }
       if (dist > radius) {
           alert('Attendance rejected: you are outside the registered work-site geofence.');
           updateGpsUi();

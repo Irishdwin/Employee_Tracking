@@ -18,6 +18,7 @@ if (!in_array($_SESSION['role'], $allowedRoles)) {
 
 require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/AuditLogger.php';
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
 
 header('Content-Type: application/json');
 
@@ -30,6 +31,11 @@ function json_resp($data, $status = 200) {
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    if(($_GET['list']??'')==='sites') {
+        $company=(int)($_GET['company_id']??0);
+        json_resp(['success'=>true,'sites'=>site_query($conn,'SELECT SiteID,Name,Address,TeamLeadID FROM deployment_sites WHERE CompanyID=? AND IsActive=1','i',[$company])->fetch_all(MYSQLI_ASSOC)]);
+    }
+
     if (isset($_GET['list']) && $_GET['list'] === 'employees') {
         $res = $conn->query("SELECT e.EmployeeID, e.EmployeeNumber, e.FirstName, e.LastName, e.Email, e.Position FROM employee e WHERE e.IsActive = 1 ORDER BY e.LastName, e.FirstName");
         $employees = [];
@@ -89,6 +95,10 @@ if ($method === 'POST') {
         $startDate = trim($_POST['start_date'] ?? '');
         $endDate = trim($_POST['end_date'] ?? '');
         $teamLeadId = isset($_POST['team_lead_id']) && $_POST['team_lead_id'] !== '' ? (int)$_POST['team_lead_id'] : null;
+        $siteId=(int)($_POST['site_id']??0);
+        $site=site_query($conn,'SELECT * FROM deployment_sites WHERE SiteID=? AND CompanyID=? AND IsActive=1','ii',[$siteId,$companyId])->fetch_assoc();
+        if(!$site)json_resp(['success'=>false,'message'=>'Select an active deployment site for this company.'],422);
+        $teamLeadId=$site['TeamLeadID']?(int)$site['TeamLeadID']:null;$location=substr((string)$site['Address'],0,150);
         $timeIn = trim($_POST['time_in'] ?? '08:00:00');
         $timeOut = trim($_POST['time_out'] ?? '17:00:00');
         $breakDuration = (int)($_POST['break_duration'] ?? 60);
@@ -123,8 +133,8 @@ if ($method === 'POST') {
         $conn->query("ALTER TABLE deployment ADD COLUMN IF NOT EXISTS WorkingDays VARCHAR(100) DEFAULT 'Mon-Fri'");
         $conn->query("ALTER TABLE deployment ADD COLUMN IF NOT EXISTS ShiftName VARCHAR(100) DEFAULT 'Regular Shift'");
 
-        $insert = $conn->prepare("INSERT INTO deployment (EmployeeID, CompanyID, Position, Location, StartDate, EndDate, StatusID, SiteSuperVisorID, TimeIn, TimeOut, BreakDuration, GracePeriod, WorkingDays, ShiftName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $insert->bind_param("iissssiiisisss", $employeeId, $companyId, $position, $location, $startDate, $endDateParam, $statusId, $teamLeadId, $timeIn, $timeOut, $breakDuration, $gracePeriod, $workingDays, $shiftName);
+        $insert = $conn->prepare("INSERT INTO deployment (SiteID, EmployeeID, CompanyID, Position, Location, StartDate, EndDate, StatusID, SiteSuperVisorID, TimeIn, TimeOut, BreakDuration, GracePeriod, WorkingDays, ShiftName) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $insert->bind_param("iiissssiissiiss", $siteId, $employeeId, $companyId, $position, $location, $startDate, $endDateParam, $statusId, $teamLeadId, $timeIn, $timeOut, $breakDuration, $gracePeriod, $workingDays, $shiftName);
 
         if ($insert->execute()) {
             $depId = $conn->insert_id;

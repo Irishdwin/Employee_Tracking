@@ -18,7 +18,7 @@
   var MARK_READ_API = '../../Api/Common/mark_messages_read.php';
   var COUNTERS_API = '../../Api/Common/realtime_counters.php';
   var WS_URL = global.OW_WS_URL || global.ADMIN_WS_URL || 'ws://127.0.0.1:8080';
-  var WS_ENABLED = global.OW_WS_ENABLED === true;
+  var WS_ENABLED = false; // Persisted, authorized API polling is the transport. Browser-claimed WebSocket identities are not trusted.
   var WS_MAX_RETRIES = 3;
 
   var E = {
@@ -46,6 +46,8 @@
 
   /** Global unread state: total + per-sender (contact) counts. */
   var unreadData = { total: 0, byContact: {} };
+  var unreadRevision = 0;
+  var latestUnread = {};
 
   var state = {
     open: false,
@@ -61,6 +63,9 @@
     wsDisabled: false,
     reconnectTimer: null,
     sending: false,
+    csrf: null,
+    history: [],
+    moreHistory: false,
     messagesUnread: 0,
     badgePollTimer: null
   };
@@ -86,7 +91,6 @@
   function formatBadgeCount(count) {
     var n = parseInt(count, 10) || 0;
     if (n <= 0) return { n: 0, label: '' };
-    if (n > 99) return { n: n, label: '99+' };
     return { n: n, label: String(n) };
   }
 
@@ -97,6 +101,7 @@
   function applyUnreadPayload(payload) {
     if (!payload) return;
     unreadData.total = parseInt(payload.total, 10) || 0;
+    latestUnread = payload.latest_unread || {};
     Object.keys(unreadData.byContact).forEach(function (k) {
       delete unreadData.byContact[k];
     });
@@ -117,6 +122,7 @@
         var key = String(c.user_id != null ? c.user_id : c.id);
         var n = unreadData.byContact[key] || 0;
         c.unread_count = n;
+        c.latest_unread = latestUnread[key] || null;
       });
     }
     walk(state.allUsers);
@@ -124,10 +130,11 @@
   }
 
   function fetchUnreadCounts() {
-    return fetch(UNREAD_API, { credentials: 'same-origin' })
+    var revision = unreadRevision;
+    return fetch(UNREAD_API, { credentials: 'same-origin', cache: 'no-store' })
       .then(function (r) { return r.json().catch(function () { return null; }); })
       .then(function (d) {
-        if (d && d.success) {
+        if (d && d.success && revision === unreadRevision) {
           applyUnreadPayload(d);
           if (gid('contacts') && state.filteredContacts.length) {
             onSearchInput();
@@ -215,10 +222,8 @@
   function updateMessengerFabBadge(count) {
     var formatted = formatBadgeCount(count);
     state.messagesUnread = formatted.n;
-    if (typeof global.updateGlobalMessageBadge === 'function') {
-      global.updateGlobalMessageBadge(formatted.n);
-      return;
-    }
+    // Messenger owns this badge; dashboard notification renderers must not
+    // change its message count or truncate it to a notification-style label.
     var badge = ensureMessengerFabBadge();
     var fab = gid('fab');
     if (!badge || !fab) return;
@@ -254,7 +259,12 @@
   function startMessengerBadgePoll() {
     if (state.badgePollTimer) clearInterval(state.badgePollTimer);
     fetchUnreadCounts();
-    state.badgePollTimer = setInterval(fetchUnreadCounts, 30000);
+    var refreshing=false;
+    state.badgePollTimer = setInterval(function(){
+      if(refreshing)return;refreshing=true;
+      var refresh=state.open?loadContacts().then(function(){return state.activeThreadId&&!state.sending?loadThreadMessages(state.activeThreadId):fetchUnreadCounts();}):fetchUnreadCounts();
+      refresh.finally(function(){refreshing=false;});
+    },5000);
   }
 
   /* ---------- Live search (RBAC list only, no API reload) ---------- */
@@ -272,6 +282,10 @@
     } else {
       state.filteredContacts = state.contacts.slice();
     }
+    state.filteredContacts.sort(function(a,b){
+      var admin=state.currentUser&&state.currentUser.role==='HR'?((a.role==='Admin'?0:1)-(b.role==='Admin'?0:1)):0;
+      return admin || Number(b.unread_count>0)-Number(a.unread_count>0) || String(b.latest_unread?.created_at||'').localeCompare(String(a.latest_unread?.created_at||'')) || (Number(b.latest_unread?.message_id||0)-Number(a.latest_unread?.message_id||0)) || String(a.full_name||'').localeCompare(String(b.full_name||'')) || Number(a.user_id)-Number(b.user_id);
+    });
     renderContacts(state.filteredContacts);
   }
 
@@ -287,7 +301,7 @@
         unreadMessageState: unreadData.byContact,
         emptyMessage: list && list.length === 0 && (gid('search') && gid('search').value.trim())
           ? 'No contacts match your search.'
-          : 'No contacts available for your role.',
+          : (state.currentUser?.role==='Applicant'?'No HR contact is currently available.':'No authorized contacts found.'),
         onSelect: selectContact
       });
       return;
@@ -384,7 +398,7 @@
     }
   }
 
-  function markBubbleFailed(tempId) {
+  function markBubbleFailed(tempId, message) {
     var body = gid('messages');
     if (!body || !tempId) return;
     var el = body.querySelector('[data-temp-id="' + tempId + '"]');
@@ -395,7 +409,7 @@
     if (!err) {
       var hint = document.createElement('div');
       hint.className = 'ow-msgr-bubble-meta text-danger';
-      hint.textContent = 'Failed to send';
+      hint.textContent = 'Failed to send. ' + (message || 'Please try again.');
       el.appendChild(hint);
     }
   }
@@ -433,7 +447,7 @@
       return;
     }
     if (title) title.textContent = contact.full_name;
-    if (sub) sub.textContent = contact.role + ' · ' + (contact.company || contact.company_name || '');
+    if (sub) sub.textContent = (contact.is_online ? '● Online' : '○ Offline') + ' · ' + contact.role + ' · ' + (contact.company || contact.company_name || '');
   }
 
   /* ---------- Data loading ---------- */
@@ -444,7 +458,7 @@
     var fab = gid('fab');
     if (panel) panel.classList.toggle('is-open', open);
     if (fab) fab.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (open) loadContacts();
+    if (open) loadContacts().then(fetchUnreadCounts);
     if (open && shouldUseWebSocket() && !state.wsConnected) connectWebSocket();
   }
 
@@ -467,21 +481,22 @@
   function loadContacts() {
     return Promise.resolve()
       .then(function () { if (!state.currentUser) return loadSessionUser(); })
-      .then(function () { return fetch(CONTACTS_API, { credentials: 'same-origin' }); })
+      .then(function () { return fetch(CONTACTS_API+'?q='+encodeURIComponent(gid('search')?.value||'')+'&role='+encodeURIComponent(document.getElementById('owMessengerRole')?.value||''), { credentials: 'same-origin',cache:'no-store' }); })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.success) throw new Error((d && d.message) || 'contacts');
         if (d.viewer) {
           state.currentUser = { user_id: d.viewer.user_id, id: d.viewer.user_id, role: d.viewer.role };
         }
-        state.allUsers = d.all_users || d.contacts || [];
-        (state.allUsers || []).forEach(function (c) {
-          var key = String(c.user_id != null ? c.user_id : c.id);
-          if (parseInt(c.unread_count, 10) > 0) {
-            unreadData.byContact[key] = parseInt(c.unread_count, 10);
-          }
-        });
-        return fetchUnreadCounts();
+        state.csrf=d.csrf_token;
+        var roleSelect=document.getElementById('owMessengerRole');
+        if(roleSelect){var selectedRole=roleSelect.value;roleSelect.innerHTML='<option value="">All contacts</option>'+(d.roles||[]).map(function(r){return '<option value="'+esc(r)+'">'+esc(r==='TeamLead'?'Team Lead':r)+'</option>';}).join('');roleSelect.value=selectedRole;}
+        state.allUsers = d.contacts || [];
+        if(state.activeContact){var refreshed=state.allUsers.find(function(c){return Number(c.user_id)===Number(state.activeContact.user_id);});if(refreshed){state.activeContact=refreshed;setChatHeader(refreshed);}}
+        // Counts have their own request lifecycle; an older contacts response
+        // must not restore a badge after history has marked messages read.
+        syncUnreadStateToContacts();
+        return Promise.resolve();
       })
       .then(function () {
         applyContactFilters(gid('search') ? gid('search').value : '');
@@ -495,18 +510,30 @@
       });
   }
 
-  function loadThreadMessages(threadId) {
+  function loadThreadMessages(threadId,before) {
     if (!threadId) {
       renderMessages([]);
       return Promise.resolve();
     }
-    return fetch(MESSAGES_API + '?thread_id=' + threadId, { credentials: 'same-origin' })
+    return fetch(MESSAGES_API + '?thread_id=' + threadId + (before?'&before_message_id='+before:''), { credentials: 'same-origin', cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.success) throw new Error('messages');
-        renderMessages(d.messages || []);
+        if(state.activeThreadId!==threadId)return;
+        var body=gid('messages'),oldHeight=body.scrollHeight,oldTop=body.scrollTop,atBottom=oldHeight-oldTop-body.clientHeight<60;
+        var byId=new Map(state.history.map(function(m){return [m.message_id,m];}));(d.messages||[]).forEach(function(m){byId.set(m.message_id,m);});
+        var previousOldest=state.history[0]?.message_id;state.history=Array.from(byId.values()).sort(function(a,b){return a.message_id-b.message_id;});
+        if(before||!previousOldest)state.moreHistory=!!d.has_more;
+        renderMessages(state.history);
+        if(state.moreHistory&&state.history.length){var earlier=document.createElement('button');earlier.type='button';earlier.className='btn btn-outline-primary btn-sm mb-2';earlier.textContent='Load earlier messages';earlier.onclick=function(){earlier.disabled=true;loadThreadMessages(threadId,state.history[0].message_id);};body.prepend(earlier);}
+        if(before)body.scrollTop=body.scrollHeight-oldHeight+oldTop;else if(!atBottom)body.scrollTop=oldTop;
+        // Successful history loading advances the server's observed-message
+        // cursor. Clear visible badges now, then reconcile any newer arrivals.
+        unreadRevision++;
+        if(d.read_confirmed&&d.unread){applyUnreadPayload(d.unread);onSearchInput();return;}
+        return fetchUnreadCounts();
       })
-      .catch(function () { renderMessages([]); });
+      .catch(function () {var body=gid('messages');if(body)body.innerHTML='<p class="ow-msgr-placeholder">Unable to load this conversation. Refresh contacts or try again.</p>';setComposerEnabled(false);});
   }
 
   function ensureActiveThread() {
@@ -533,15 +560,13 @@
     if (R && state.currentUser) {
       if (!R.filterAllowedContacts(state.currentUser, [contact]).length) return Promise.resolve();
     }
+    state.history=[];state.moreHistory=false;
     state.activeContact = contact;
     state.activeThreadId = null;
     setChatHeader(contact);
 
     var senderId = contact.user_id != null ? contact.user_id : contact.id;
-    if (getContactUnreadCount(senderId) > 0) {
-      markContactReadOptimistic(senderId);
-      markMessagesReadOnServer(senderId);
-    }
+    // Mark read only after the history request succeeds and is displayed.
 
     setComposerEnabled(true);
     onSearchInput();
@@ -553,7 +578,7 @@
         state.activeThreadId = d.thread_id;
         return loadThreadMessages(state.activeThreadId);
       })
-      .catch(function () { renderMessages([]); });
+      .catch(function () {var body=gid('messages');if(body)body.innerHTML='<p class="ow-msgr-placeholder">Unable to load this conversation. Refresh contacts or try again.</p>';setComposerEnabled(false);});
   }
 
   /* ---------- Send (no page reload, optimistic UI) ---------- */
@@ -575,13 +600,24 @@
     }
   }
 
-  function persistMessage(text, threadId) {
-    return fetch(SEND_API, {
+  function persistMessage(text, threadId, requestId) {
+    function refreshToken() {
+      return fetch(CONTACTS_API, {credentials:'same-origin',cache:'no-store'})
+        .then(function(r){return r.json();})
+        .then(function(d){if(!d||!d.success||!d.csrf_token)throw new Error((d&&d.message)||'Please sign in again before sending a message.');state.csrf=d.csrf_token;});
+    }
+    function post() {return fetch(SEND_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify({ thread_id: threadId, message_text: text })
-    }).then(function (r) { return r.json(); });
+      body: JSON.stringify({ thread_id: threadId, message_text: text, csrf_token: state.csrf, request_id: requestId })
+    }).then(function (r) { return r.json(); });}
+    return (state.csrf?Promise.resolve():refreshToken()).then(post).then(function(d){
+      // Refresh only a rejected CSRF token, never a recipient permission error.
+      // Reuse the request ID so a retry cannot create a duplicate message.
+      if(d&&d.code==='MESSENGER_CSRF_EXPIRED')return refreshToken().then(post);
+      return d;
+    });
   }
 
   function sendMessage(evt) {
@@ -604,7 +640,7 @@
 
     ensureActiveThread()
       .then(function (threadId) {
-        return persistMessage(text, threadId).then(function (d) {
+        return persistMessage(text, threadId, tempId).then(function (d) {
           return { d: d, threadId: threadId };
         });
       })
@@ -618,7 +654,7 @@
       })
       .catch(function (err) {
         console.warn('Messenger send:', err);
-        markBubbleFailed(tempId);
+        markBubbleFailed(tempId, err instanceof TypeError ? 'Check your connection and try again.' : err.message);
       })
       .finally(function () {
         state.sending = false;
@@ -779,6 +815,10 @@
       });
     }
     if (search) {
+      var timer;search.addEventListener('input',function(){clearTimeout(timer);timer=setTimeout(loadContacts,250);});
+      var roleSelect=document.getElementById('owMessengerRole');
+      if(!roleSelect){roleSelect=document.createElement('select');roleSelect.id='owMessengerRole';roleSelect.className='form-select form-select-sm mt-2';roleSelect.setAttribute('aria-label','Filter contacts by role');roleSelect.innerHTML='<option value="">All contacts</option>';search.parentNode.appendChild(roleSelect);}
+      roleSelect.addEventListener('change',loadContacts);
       search.addEventListener('input', onSearchInput);
       search.addEventListener('search', onSearchInput);
     }
@@ -786,6 +826,7 @@
     bindComposeForm();
     ensureMessengerFabBadge();
     loadSessionUser().then(function () {
+      if(!viewerId()){if(gid('fab'))gid('fab').style.display='none';return;}
       fetchUnreadCounts();
       startMessengerBadgePoll();
     });
@@ -797,6 +838,8 @@
 
   global.OwMessenger = {
     init: init,
+    open: function(){setOpen(true);},
+    openContact: function(id){setOpen(true);return loadContacts().then(function(){var c=state.contacts.find(function(c){return Number(c.user_id)===Number(id);});if(c)return selectContact(c);});},
     loadContacts: loadContacts,
     fetchUnreadCounts: fetchUnreadCounts,
     pollUnreadMessages: pollUnreadMessages,

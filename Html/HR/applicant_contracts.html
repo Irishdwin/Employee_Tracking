@@ -99,6 +99,7 @@
         <div class="sidebar-header"><span>Onazul HR</span></div>
         <ul class="sidebar-nav mt-2">
             <li><a href="hr_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="hr_dashboard.html#section-employee-management" class="sidebar-link"><i class="bi bi-person-vcard"></i><span>Employee Management</span></a></li>
             <li><a href="job_orders.html" class="sidebar-link"><i class="bi bi-briefcase"></i><span>Job Orders</span></a></li>
             <li><a href="applicant_review.html" class="sidebar-link"><i class="bi bi-people"></i><span>Applicant Review</span></a></li>
             <li><a href="applicant_contracts.html" class="sidebar-link active"><i class="bi bi-file-earmark-text"></i><span>Applicant Contracts</span></a></li>
@@ -183,10 +184,10 @@
                     <div class="mb-3">
                         <label class="form-label">Duration *</label>
                         <div class="d-flex gap-2">
-                            <input type="number" id="contractYearsDisplay" class="form-control" value="2" disabled style="max-width: 120px;">
-                            <input type="number" id="contractMonths" class="form-control" min="0" max="11" placeholder="Months (0-11)" required style="max-width: 180px;">
+                            <input type="number" id="contractYearsDisplay" class="form-control" value="0" min="0" max="100" aria-label="Contract years" disabled style="max-width: 120px;">
+                            <input type="number" id="contractMonths" class="form-control" min="0" max="11" placeholder="Months (0-11)" aria-label="Contract months" value="0" disabled style="max-width: 180px;">
                         </div>
-                        <div class="form-text">Total duration will be 2 years + selected months (used for expiry on expiring contracts).</div>
+                        <div class="form-text"><span id="contractDurationHelp">Open contracts have no expiry or fixed duration.</span></div>
                     </div>
 
                     <div class="mb-3">
@@ -275,7 +276,7 @@
                 <td>
                     ${app.contract_uploaded ? `
                         <div><span class="badge ${getContractBadgeClass(app)}">${escapeHtml((app.contract_meta && app.contract_meta.contract_type) ? app.contract_meta.contract_type : 'Open Contract')}</span></div>
-                        <div class="small text-muted">Duration: ${escapeHtml(String(app.contract_meta && app.contract_meta.contract_years != null ? app.contract_meta.contract_years : 2))} years ${escapeHtml(String(app.contract_meta && app.contract_meta.contract_months != null ? app.contract_meta.contract_months : 0))} months</div>
+                        <div class="small text-muted">${app.contract_meta && app.contract_meta.contract_state === 'open' ? 'Duration: No fixed expiry' : 'Duration: ' + escapeHtml(String(app.contract_meta && app.contract_meta.contract_years != null ? app.contract_meta.contract_years : 0)) + ' years ' + escapeHtml(String(app.contract_meta && app.contract_meta.contract_months != null ? app.contract_meta.contract_months : 0)) + ' months'}</div>
                         <div class="small">Signed: ${escapeHtml((app.contract_meta && app.contract_meta.signed_date) ? app.contract_meta.signed_date : '—')}</div>
                         <div class="small">Expiry: ${escapeHtml((app.contract_meta && app.contract_meta.expiry_date) ? app.contract_meta.expiry_date : 'Open')}</div>
                         <div class="small text-muted">Uploaded: ${escapeHtml((app.contract_meta && app.contract_meta.uploaded_at) ? app.contract_meta.uploaded_at : '—')}</div>
@@ -289,6 +290,7 @@
                     `}
                 </td>
                 <td>
+                    ${app.contract_uploaded ? `<button type="button" class="btn btn-sm btn-primary me-1" onclick="goToEmployeeConversion(${app.application_id})"><i class="bi bi-person-check me-1"></i>Convert</button>` : ''}
                     <button class="btn btn-sm btn-outline-primary" onclick="openContractUpload(${app.application_id})">
                         <i class="bi bi-upload me-1"></i>${app.contract_uploaded ? 'Replace Contract' : 'Upload Contract'}
                     </button>
@@ -296,6 +298,57 @@
             </tr>
         `).join('');
     }
+
+    function goToEmployeeConversion(appId) {
+        var url = new URL('employee_conversion.html', window.location.href);
+        url.searchParams.set('application_id', appId);
+        if (window.parent !== window) {
+            var section = window.parent.document.getElementById('section-employee-conversion');
+            var frame = section && section.querySelector('iframe');
+            var link = window.parent.document.querySelector('[data-target="section-employee-conversion"]');
+            if (frame && link) {
+                url.searchParams.set('embedded', '1');
+                frame.src = url.href;
+                link.click();
+                return;
+            }
+        }
+        window.location.href = url.href;
+    }
+
+    function refreshConversionAfterContractUpload(appId, contract) {
+        var app = contractAppsCache.find(function (item) { return Number(item.application_id) === appId; });
+        if (app) {
+            app.contract_uploaded = true;
+            if (contract) app.contract_meta = {
+                contract_type: contract.type, contract_years: contract.years, contract_months: contract.months,
+                signed_date: contract.signed_date, expiry_date: contract.expiry_date,
+                uploaded_at: contract.uploaded_at, contract_path: contract.path,
+                contract_state: String(contract.type).toLowerCase().indexOf('open') !== -1 ? 'open' : 'expiring'
+            };
+            applyContractLookup();
+        }
+        if (window.parent !== window) {
+            var section = window.parent.document.getElementById('section-employee-conversion');
+            var frame = section && section.querySelector('iframe');
+            if (frame && frame.contentWindow && typeof frame.contentWindow.loadConversions === 'function') frame.contentWindow.loadConversions();
+        }
+        loadContracts();
+    }
+
+    function syncContractDuration() {
+        var expiring = document.getElementById('contractTypeSelect').value === 'expiring';
+        ['contractYearsDisplay', 'contractMonths'].forEach(function (id) {
+            var input = document.getElementById(id);
+            input.disabled = !expiring;
+            input.required = expiring;
+        });
+        document.getElementById('contractDurationHelp').textContent = expiring
+            ? 'Set years and months. Active employees become Open Contract six months after the contract signed date.'
+            : 'Open contracts have no expiry or fixed duration.';
+    }
+    document.getElementById('contractTypeSelect').addEventListener('change', syncContractDuration);
+    syncContractDuration();
 
     function openContractUpload(appId) {
         document.getElementById('uploadContractApplicationId').value = appId;
@@ -311,6 +364,8 @@
 
         var monthsInput = document.getElementById('contractMonths');
         if (monthsInput) monthsInput.value = 0;
+        document.getElementById('contractYearsDisplay').value = 0;
+        syncContractDuration();
 
         var signedDateInput = document.getElementById('contractSignedDate');
         if (signedDateInput) {
@@ -341,13 +396,14 @@
         }
 
         var contractMonthsVal = parseInt(monthsInput.value, 10);
+        var contractYearsVal = Number(document.getElementById('contractYearsDisplay').value);
         var signedDateVal = signedDateInput.value;
         var contractTypeVal = typeSelect.value || 'open';
 
-        if (Number.isNaN(contractMonthsVal) || contractMonthsVal < 0 || contractMonthsVal > 11 || !signedDateVal) {
+        if (!signedDateVal || (contractTypeVal === 'expiring' && (!Number.isInteger(contractYearsVal) || contractYearsVal < 0 || contractYearsVal > 100 || !Number.isInteger(Number(monthsInput.value)) || contractMonthsVal < 0 || contractMonthsVal > 11 || contractYearsVal * 12 + contractMonthsVal <= 0))) {
             if (alertEl) {
                 alertEl.className = 'alert alert-danger';
-                alertEl.textContent = 'Please provide valid months (0-11) and a date signed.';
+                alertEl.textContent = 'Provide a positive duration in years/months (months 0–11) and a date signed.';
                 alertEl.classList.remove('d-none');
             }
             return;
@@ -357,7 +413,8 @@
         fd.append('application_id', appId);
         fd.append('contract', fileInput.files[0]);
         fd.append('contract_type', contractTypeVal);
-        fd.append('contract_months', contractMonthsVal);
+        fd.append('contract_months', contractTypeVal === 'expiring' ? contractMonthsVal : 0);
+        fd.append('contract_years', contractTypeVal === 'expiring' ? contractYearsVal : 0);
         fd.append('signed_date', signedDateVal);
 
         if (alertEl) {
@@ -385,10 +442,15 @@
                 alertEl.textContent = data.message || 'Contract uploaded successfully.';
                 alertEl.classList.remove('d-none');
             }
-            setTimeout(() => {
-                bootstrap.Modal.getInstance(document.getElementById('contractUploadModal')).hide();
-                loadContracts();
-            }, 1200);
+            refreshConversionAfterContractUpload(appId, data.contract);
+            if (alertEl) {
+                var convertButton = document.createElement('button');
+                convertButton.type = 'button';
+                convertButton.className = 'btn btn-primary d-block mt-3';
+                convertButton.textContent = 'Convert to Employee';
+                convertButton.addEventListener('click', function () { goToEmployeeConversion(appId); });
+                alertEl.appendChild(convertButton);
+            }
         })
         .catch(() => {
             if (alertEl) {

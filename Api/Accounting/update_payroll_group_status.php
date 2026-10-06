@@ -157,7 +157,7 @@ if (isset($_FILES['proof_image']) && $_FILES['proof_image']['error'] !== UPLOAD_
 
 try {
     $insStmt = $conn->prepare("
-        INSERT INTO payroll_status_history
+        INSERT INTO payroll_group_status_history
             (SiteSupervisorID, CompanyID, CutoffStartDate, CutoffEndDate, Status, Remarks, ProofImagePath, UpdatedBy, CreatedAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");

@@ -22,9 +22,11 @@ if (!in_array($role, ['TeamLead', 'Team Lead'], true)) {
 require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/jor_multi_position.php';
 
-jor_multi_ensure_schema($conn);
+require_once __DIR__ . '/../Helpers/job_order_request_workflow.php';
+if (!jorw_active_user($conn,(int)$_SESSION['user_id'],['TeamLead','Team Lead'])) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
 
 $userId = (int)$_SESSION['user_id'];
+if (($_GET['action'] ?? '') === 'companies') { echo json_encode(['success'=>true,'sites'=>jorw_companies($conn,$userId)]); exit; }
 
 $stmt = $conn->prepare("
     SELECT
@@ -36,6 +38,7 @@ $stmt = $conn->prepare("
         r.Location,
         r.WorkSchedule,
         r.Remarks,
+        r.RejectionReason,
         r.Status,
         r.IsConsolidated,
         r.CreatedAt,
@@ -44,10 +47,12 @@ $stmt = $conn->prepare("
         d.required_workers,
         d.deployment_site,
         d.work_schedule,
-        d.job_category
+        d.job_category,k.classification_name,s.sub_classification_name
     FROM job_order_requests r
     INNER JOIN clientcompany c ON r.CompanyID = c.CompanyID
     LEFT JOIN job_order_details d ON d.RequestID = r.RequestID
+    LEFT JOIN job_classifications k ON k.id=d.classification_id
+    LEFT JOIN job_sub_classifications s ON s.id=d.sub_classification_id
     WHERE r.RequestedBy = ?
     ORDER BY r.CreatedAt DESC, r.RequestID DESC, d.detail_id ASC
 ");
@@ -75,6 +80,7 @@ while ($row = $res->fetch_assoc()) {
             'company_name' => $row['CompanyName'] ?? '',
             'status' => $row['Status'] ?? 'Pending',
             'remarks' => $row['Remarks'] ?? '',
+            'rejection_reason' => $row['RejectionReason'] ?? '',
             'is_consolidated' => (int)($row['IsConsolidated'] ?? 0) === 1,
             'deployments' => [],
             'position' => trim((string)($row['Position'] ?? '')),
@@ -94,6 +100,8 @@ while ($row = $res->fetch_assoc()) {
             'deployment_site' => (string)$row['deployment_site'],
             'work_schedule' => (string)$row['work_schedule'],
             'job_category' => (string)($row['job_category'] ?? ''),
+            'classification_name'=>(string)($row['classification_name']??''),
+            'sub_classification_name'=>(string)($row['sub_classification_name']??''),
         ];
     }
 }

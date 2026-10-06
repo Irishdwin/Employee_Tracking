@@ -45,48 +45,11 @@ function company_has_active_agreement(mysqli $conn, int $companyId): bool {
     return $has;
 }
 
-$conn->query("CREATE TABLE IF NOT EXISTS job_order_requests (
-    RequestID INT(11) NOT NULL AUTO_INCREMENT,
-    RequestedBy INT(11) NOT NULL,
-    CompanyID INT(11) NOT NULL,
-    Position VARCHAR(100) NOT NULL,
-    JobCategory VARCHAR(255) DEFAULT NULL,
-    RequiredCount INT(11) NOT NULL DEFAULT 1,
-    Location VARCHAR(150) DEFAULT NULL,
-    WorkSchedule VARCHAR(100) DEFAULT NULL,
-    Remarks TEXT DEFAULT NULL,
-    Status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
-    ProcessedBy INT(11) DEFAULT NULL,
-    ProcessedAt DATETIME DEFAULT NULL,
-    JobOrderID INT(11) DEFAULT NULL,
-    CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (RequestID),
-    KEY fk_jor_requested (RequestedBy),
-    KEY fk_jor_company (CompanyID),
-    KEY fk_jor_processed (ProcessedBy),
-    KEY idx_jor_joborder (JobOrderID),
-    CONSTRAINT fk_jor_requested FOREIGN KEY (RequestedBy) REFERENCES users (UsersID),
-    CONSTRAINT fk_jor_company FOREIGN KEY (CompanyID) REFERENCES clientcompany (CompanyID),
-    CONSTRAINT fk_jor_processed FOREIGN KEY (ProcessedBy) REFERENCES users (UsersID)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+require_once __DIR__ . '/../Helpers/job_order_request_workflow.php';
+if (!jorw_active_user($conn,(int)$_SESSION['user_id'],['TeamLead','Team Lead'])) json_resp(['success'=>false,'message'=>'Forbidden'],403);
 
-try {
-    $cols = $conn->query("SHOW COLUMNS FROM job_order_requests LIKE 'JobCategory'");
-    if ($cols && $cols->num_rows === 0) {
-        $conn->query("ALTER TABLE job_order_requests ADD COLUMN JobCategory VARCHAR(255) DEFAULT NULL");
-    }
-    $cid = $conn->query("SHOW COLUMNS FROM job_order_requests LIKE 'category_id'");
-    if ($cid && $cid->num_rows === 0) {
-        $conn->query("ALTER TABLE job_order_requests ADD COLUMN category_id INT UNSIGNED DEFAULT NULL");
-    }
-} catch (Throwable $e) {}
-try {
-    $pdoBoot = hris_pdo();
-    job_categories_ensure_schema($pdoBoot);
-} catch (Throwable $e) {}
-
-$userId = (int)$_SESSION['user_id'];
 $method = $_SERVER['REQUEST_METHOD'];
+$userId = (int)$_SESSION['user_id'];
 
 if ($method === 'GET') {
     $stmt = $conn->prepare("
@@ -102,6 +65,7 @@ if ($method === 'GET') {
             r.Location,
             r.WorkSchedule,
             r.Remarks,
+            r.RejectionReason,
             r.Status,
             r.CreatedAt
         FROM job_order_requests r
@@ -132,7 +96,9 @@ if ($method === 'GET') {
             'location' => $r['Location'] ?? '',
             'work_schedule' => $r['WorkSchedule'] ?? '',
             'remarks' => $r['Remarks'] ?? '',
+            'rejection_reason' => $r['RejectionReason'] ?? '',
             'status' => $r['Status'] ?? 'Pending',
+            'deployments' => jorw_rows($conn,'SELECT d.job_category,k.classification_name,s.sub_classification_name FROM job_order_details d LEFT JOIN job_classifications k ON k.id=d.classification_id LEFT JOIN job_sub_classifications s ON s.id=d.sub_classification_id WHERE d.RequestID=? ORDER BY d.detail_id','i',[(int)$r['RequestID']]),
             'created_at' => $r['CreatedAt'],
         ];
     }
@@ -141,89 +107,22 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
-    $companyId = (int)($_POST['company_id'] ?? 0);
-    $position = trim($_POST['position'] ?? '');
-    $categoryId = (int)($_POST['category_id'] ?? $_POST['job_category'] ?? 0);
-    $categoryName = trim((string)($_POST['job_category_name'] ?? ''));
-    $requiredCount = (int)($_POST['required_count'] ?? 0);
-    $location = trim($_POST['location'] ?? '');
-    $workSchedule = trim($_POST['work_schedule'] ?? '');
-    $remarks = trim($_POST['remarks'] ?? '');
-
-    $pdo = hris_pdo();
-    job_categories_ensure_schema($pdo);
-    $resolved = job_category_resolve_input($pdo, $categoryId, $categoryName);
-    if (!$resolved && $categoryId <= 0) {
-        $resolved = job_category_resolve_input($pdo, 0, trim((string)($_POST['job_category'] ?? '')));
-    }
-    if (!$resolved && $position !== '') {
-        $resolved = job_category_infer_from_text($pdo, $position);
-    }
-
-    if ($companyId <= 0 || $position === '' || $requiredCount <= 0 || !$resolved) {
-        $payload = job_category_invalid_response($position);
-        if ($companyId <= 0 || $position === '' || $requiredCount <= 0) {
-            $payload['message'] = 'Company, position, job category, and number of workers are required.';
-        }
-        json_resp($payload, 400);
-    }
-
-    $categoryId = (int)$resolved['id'];
-    $jobCategory = $resolved['category_name'];
-
-    $checkDep = $conn->prepare('SELECT DeploymentID FROM deployment WHERE SiteSuperVisorID = ? AND CompanyID = ? LIMIT 1');
-    if (!$checkDep) json_resp(['success' => false, 'message' => 'Failed to validate assignment.'], 500);
-    $checkDep->bind_param('ii', $userId, $companyId);
-    $checkDep->execute();
-    $assigned = $checkDep->get_result()->num_rows > 0;
-    $checkDep->close();
-    if (!$assigned) {
-        $checkCc = $conn->prepare('SELECT CompanyID FROM clientcompany WHERE CompanyID = ? AND UserID = ? LIMIT 1');
-        if (!$checkCc) json_resp(['success' => false, 'message' => 'Failed to validate assignment.'], 500);
-        $checkCc->bind_param('ii', $companyId, $userId);
-        $checkCc->execute();
-        $assigned = $checkCc->get_result()->num_rows > 0;
-        $checkCc->close();
-    }
-    if (!$assigned) {
-        json_resp(['success' => false, 'message' => 'You can only request job orders for companies assigned to you.'], 403);
-    }
-
-    if (!company_has_active_agreement($conn, $companyId)) {
-        json_resp([
-            'success' => false,
-            'message' => 'Your company needs to upload an active service agreement before requesting a job order.',
-            'error_code' => 'NO_ACTIVE_SERVICE_AGREEMENT',
-        ], 403);
-    }
-
-    $hasCatId = false;
-    try {
-        $cc = $conn->query("SHOW COLUMNS FROM job_order_requests LIKE 'category_id'");
-        $hasCatId = ($cc && $cc->num_rows > 0);
-    } catch (Throwable $e) {}
-
-    if ($hasCatId) {
-        $ins = $conn->prepare("INSERT INTO job_order_requests (RequestedBy, CompanyID, Position, category_id, JobCategory, RequiredCount, Location, WorkSchedule, Remarks, Status)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
-        if (!$ins) json_resp(['success' => false, 'message' => 'Failed to create request.'], 500);
-        $ins->bind_param("iisisisss", $userId, $companyId, $position, $categoryId, $jobCategory, $requiredCount, $location, $workSchedule, $remarks);
-    } else {
-        $ins = $conn->prepare("INSERT INTO job_order_requests (RequestedBy, CompanyID, Position, JobCategory, RequiredCount, Location, WorkSchedule, Remarks, Status)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Pending')");
-        if (!$ins) json_resp(['success' => false, 'message' => 'Failed to create request.'], 500);
-        $ins->bind_param("iisissss", $userId, $companyId, $position, $jobCategory, $requiredCount, $location, $workSchedule, $remarks);
-    }
-    if (!$ins->execute()) {
-        $ins->close();
-        json_resp(['success' => false, 'message' => 'Failed to save request.'], 500);
-    }
-    $newId = (int)$conn->insert_id;
-    $ins->close();
-
-    AuditLogger::log($conn, 'Job Order', 'Submit Request', "Submitted Job Order Request #{$newId} for '{$position}' ({$requiredCount} worker/s).", (string)$newId);
-
-    json_resp(['success' => true, 'message' => 'Job order request submitted.', 'request_id' => $newId]);
+    // Keep the legacy form endpoint, routing its write through the same validated transaction.
+    $jorConsolidatedInputOverride=[
+        'company_id'=>$_POST['company_id'] ?? 0,
+        'remarks'=>$_POST['remarks'] ?? '',
+        'positions'=>[[
+            'position'=>$_POST['position'] ?? '',
+            'category_id'=>is_numeric($_POST['category_id'] ?? $_POST['job_category'] ?? '') ? (int)($_POST['category_id'] ?? $_POST['job_category']) : 0,
+            'job_category_name'=>$_POST['job_category_name'] ?? $_POST['job_category'] ?? '',
+            'classification_id'=>$_POST['classification_id'] ?? null,
+            'sub_classification_id'=>$_POST['sub_classification_id'] ?? null,
+            'workers_needed'=>$_POST['required_count'] ?? 0,
+            'deployment_site'=>$_POST['location'] ?? '',
+            'work_schedule'=>$_POST['work_schedule'] ?? '',
+        ]],
+    ];
+    require __DIR__.'/submit_consolidated_jor.php';
+    exit;
 }
-
-json_resp(['success' => false, 'message' => 'Invalid request method.'], 405);
+json_resp(['success'=>false,'message'=>'Invalid request method.'],405);

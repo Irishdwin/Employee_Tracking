@@ -33,7 +33,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     };
     
-    // 1. CAPTCHA CHECK (math-based, e.g. "1 + 2 = ?")
+    // 1. CAPTCHA CHECK (math-based, e.g. "42 + 87 = ?"). Both numerator and
+    // denominator are random 1-100 (Api/Login/captcha_gen.php); the expected
+    // sum is what's actually stored server-side and validated.
     $user_captcha = isset($_POST['captcha_input']) ? trim($_POST['captcha_input']) : '';
     $system_captcha = isset($_SESSION['captcha_code']) ? (int)$_SESSION['captcha_code'] : null;
 
@@ -97,10 +99,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if ($passwordValid) {
+            $configured = $conn->prepare('UPDATE users SET LocalPasswordConfigured=1 WHERE UsersID=?');
+            $configured->bind_param('i', $row['user_id']);
+            $configured->execute();
+            $configured->close();
             $_SESSION['user_id'] = $row['user_id'];
             $_SESSION['email'] = $row['email'];
             $_SESSION['role'] = $row['role'];
             $_SESSION['full_name'] = $row['full_name'];
+            unset($_SESSION['verified_google_login']);
+            $_SESSION['last_activity'] = time(); // starts the idle-timeout clock fresh on login
 
             // Audit Trail Logger
             require_once __DIR__ . '/../Helpers/AuditLogger.php';

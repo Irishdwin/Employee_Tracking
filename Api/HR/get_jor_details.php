@@ -34,6 +34,8 @@ if (!in_array((string)$_SESSION['role'], $allowedRoles, true)) {
 require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/hris_pdo.php';
 require_once __DIR__ . '/../Helpers/jor_multi_position.php';
+require_once __DIR__ . '/../Helpers/job_order_request_workflow.php';
+if (!jorw_active_user($conn,(int)$_SESSION['user_id'],['HR','Admin'])) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
 
 $jorId = isset($_GET['jor_id']) ? (int)$_GET['jor_id'] : 0;
 if ($jorId <= 0) {
@@ -43,7 +45,6 @@ if ($jorId <= 0) {
 }
 
 try {
-    jor_multi_ensure_schema($conn);
     $pdo = hris_pdo();
 
     $parentStmt = $pdo->prepare("
@@ -51,10 +52,12 @@ try {
             r.RequestID,
             r.CompanyID,
             r.Position,
+            r.category_id,
             r.RequiredCount,
             r.Location,
             r.WorkSchedule,
             r.Remarks,
+            r.RejectionReason,
             r.Status,
             r.CreatedAt,
             c.Name AS company_name,
@@ -77,6 +80,8 @@ try {
     $detailStmt = $pdo->prepare("
         SELECT
             d.detail_id,
+            d.category_id,d.classification_id,d.sub_classification_id,
+            k.classification_name,s.sub_classification_name,
             d.position_title,
             COALESCE(c.category_name, d.job_category, '') AS category_name,
             d.required_workers,
@@ -84,6 +89,8 @@ try {
             d.work_schedule
         FROM job_order_details d
         LEFT JOIN job_categories c ON d.category_id = c.id
+        LEFT JOIN job_classifications k ON k.id=d.classification_id
+        LEFT JOIN job_sub_classifications s ON s.id=d.sub_classification_id
         WHERE d.RequestID = :jor_id
         ORDER BY d.detail_id ASC
     ");
@@ -94,6 +101,11 @@ try {
     foreach ($rows as $row) {
         $positions[] = [
             'detail_id' => (int)$row['detail_id'],
+            'category_id' => (int)$row['category_id'],
+            'classification_id' => (int)$row['classification_id'],
+            'sub_classification_id' => (int)$row['sub_classification_id'],
+            'classification_name' => (string)($row['classification_name'] ?? ''),
+            'sub_classification_name' => (string)($row['sub_classification_name'] ?? ''),
             'position_title' => (string)$row['position_title'],
             'category_name' => (string)$row['category_name'],
             'required_workers' => (int)$row['required_workers'],
@@ -105,6 +117,7 @@ try {
     if (empty($positions)) {
         $positions[] = [
             'detail_id' => 0,
+            'category_id' => (int)$parent['category_id'],
             'position_title' => (string)$parent['Position'],
             'category_name' => '',
             'required_workers' => (int)$parent['RequiredCount'],
@@ -122,6 +135,7 @@ try {
         'created_at' => (string)$parent['CreatedAt'],
         'status' => (string)$parent['Status'],
         'remarks' => (string)($parent['Remarks'] ?? ''),
+        'rejection_reason' => (string)($parent['RejectionReason'] ?? ''),
         'positions' => $positions,
     ], JSON_UNESCAPED_UNICODE);
 } catch (Throwable $e) {

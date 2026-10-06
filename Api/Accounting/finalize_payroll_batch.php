@@ -87,6 +87,7 @@ function payroll_finalize_status_id(mysqli $conn): ?int
 try {
     $pdo = attendance_pdo();
 
+    require_once __DIR__.'/../Helpers/add_back_payroll.php';
     $statusId = payroll_finalize_status_id($conn);
     if ($statusId === null) {
         http_response_code(500);
@@ -124,8 +125,8 @@ try {
             (EmployeeID, PayPeriodStart, PayPeriodEnd, TotalDaysWorked, TotalHoursWorked, RegularHours,
              OvertimeHours, BasicSalary, OvertimePay, HolidayPay, Allowances, GrossPay,
              SSSDeduction, PhilHealthDeduction, PagIBIGDeduction, TotalDeductions, NetPay,
-             PaymentDate, ProcessedBy, ProcessedDate, PayslipGenerated, DTR_SubmissionID, StatusID, CreatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1, ?, ?, NOW())
+             PaymentDate, ProcessedBy, ProcessedDate, PayslipGenerated, DTR_SubmissionID, StatusID, HolidayID, CreatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1, ?, ?, ?, NOW())
     ");
     $updateStmt = $conn->prepare("
         UPDATE payroll SET
@@ -133,7 +134,7 @@ try {
             BasicSalary = ?, OvertimePay = ?, HolidayPay = ?, Allowances = ?, GrossPay = ?,
             SSSDeduction = ?, PhilHealthDeduction = ?, PagIBIGDeduction = ?, TotalDeductions = ?, NetPay = ?,
             PaymentDate = ?, ProcessedBy = ?, ProcessedDate = NOW(), PayslipGenerated = 1,
-            DTR_SubmissionID = ?, StatusID = ?
+            DTR_SubmissionID = ?, StatusID = ?, HolidayID = ?
         WHERE Payroll_ID = ?
     ");
 
@@ -154,19 +155,23 @@ try {
             continue;
         }
 
-        $dailyRate = (float)($empRow['daily_rate'] ?? 0);
-        $hourlyRate = (float)($empRow['hourly_rate'] ?? 0);
-        $allowance = (float)($empRow['allowance'] ?? 0);
-        $msc = (float)($empRow['monthly_salary_credit'] ?? 0);
-        if ($dailyRate <= 0 && (float)($empRow['BasicSalary'] ?? 0) > 0) {
-            $dailyRate = round((float)$empRow['BasicSalary'] / 26, 2);
-            $hourlyRate = round($dailyRate / 8, 2);
-            $msc = round((float)$empRow['BasicSalary'], 2);
-        }
-        if ($hourlyRate <= 0 && $dailyRate > 0) {
-            $hourlyRate = round($dailyRate / 8, 2);
-        }
+        require_once __DIR__ . '/../Helpers/employee_payroll_rates.php';
+        $resolvedRates=payroll_employee_rates($empRow,false);
+        $dailyRate=$resolvedRates['daily_rate'];
+        $hourlyRate=$resolvedRates['hourly_rate'];
+        $allowance=$resolvedRates['allowance'];
+        $msc=$resolvedRates['monthly_salary_credit'];
 
+        $conn->begin_transaction();
+        $employeeLock=$conn->prepare('SELECT EmployeeID FROM employee WHERE EmployeeID=? FOR UPDATE');
+        $employeeLock->bind_param('i',$employeeId); $employeeLock->execute(); $employeeLock->close();
+        $existingPayrollStmt->bind_param('iss',$employeeId,$cutoffStart,$cutoffEnd);
+        $existingPayrollStmt->execute(); $lockedExisting=$existingPayrollStmt->get_result()->fetch_assoc();
+        if ($lockedExisting) {
+            $conn->commit();
+            $finalized[]=['employee_id'=>$employeeId,'payroll_id'=>(int)$lockedExisting['Payroll_ID'],'already_finalized'=>true];
+            continue;
+        }
         $totals = payroll_compute_period(
             $conn,
             $pdo,
@@ -177,7 +182,9 @@ try {
             $msc,
             $cutoffStart,
             $cutoffEnd,
-            null
+            null,
+            null,
+            (int)$sub['DeploymentID']
         );
 
         $earnings = $totals['earnings'] ?? [];
@@ -187,10 +194,16 @@ try {
         $totalDaysWorked = (float)($totals['days_worked'] ?? 0);
         $totalHoursWorked = round($totalDaysWorked * 8, 2);
         $regularHours = $totalHoursWorked;
-        $overtimeHours = (float)($otDetail['sunday_hours'] ?? 0) + (float)($otDetail['regular_ot_hours'] ?? 0) + (float)($otDetail['approved_overtime_hours'] ?? 0);
+        $overtimeHours = (float)($otDetail['sunday_hours'] ?? 0) + (float)($otDetail['regular_ot_hours'] ?? 0) + (float)($otDetail['approved_overtime_hours'] ?? 0) + (float)($otDetail['holiday_ot_hours'] ?? 0);
         $basicSalary = (float)($earnings['basic_pay'] ?? 0);
-        $overtimePay = (float)($earnings['sunday_overtime'] ?? 0) + (float)($earnings['regular_overtime'] ?? 0) + (float)($earnings['approved_overtime'] ?? 0);
+        // Holiday OT (overtime rendered on a holiday, paid at multiplier x 1.3
+        // per Templates/SAMPLE.xlsx) is folded into OvertimePay rather than
+        // HolidayPay — it IS overtime, and the payroll table has no separate
+        // "holiday OT" column, so this avoids adding a duplicate pay column.
+        // HolidayPay stays dedicated to the non-OT holiday-duty premium only.
+        $overtimePay = (float)($earnings['sunday_overtime'] ?? 0) + (float)($earnings['regular_overtime'] ?? 0) + (float)($earnings['approved_overtime'] ?? 0) + (float)($earnings['holiday_ot_pay'] ?? 0);
         $holidayPay = (float)($earnings['holiday_pay'] ?? 0);
+        $holidayId = $totals['holiday_id'] ?? null;
         $allowancesPaid = (float)($earnings['allowance'] ?? 0) + (float)($earnings['sil_accrual'] ?? 0);
         $grossPay = (float)($totals['gross_pay'] ?? 0);
         $sss = (float)($deductions['sss_ee'] ?? 0);
@@ -208,7 +221,7 @@ try {
         if ($existingRow) {
             $payrollId = (int)$existingRow['Payroll_ID'];
             $updateStmt->bind_param(
-                'ddddddddddddddsiiii',
+                'ddddddddddddddsiiiii',
                 $totalDaysWorked,
                 $totalHoursWorked,
                 $regularHours,
@@ -227,12 +240,13 @@ try {
                 $accountingUserId,
                 $dtrSubmissionId,
                 $statusId,
+                $holidayId,
                 $payrollId
             );
             $ok = $updateStmt->execute();
         } else {
             $insertStmt->bind_param(
-                'issddddddddddddddsiii',
+                'issddddddddddddddsiiii',
                 $employeeId,
                 $cutoffStart,
                 $cutoffEnd,
@@ -253,15 +267,19 @@ try {
                 $paymentDate,
                 $accountingUserId,
                 $dtrSubmissionId,
-                $statusId
+                $statusId,
+                $holidayId
             );
             $ok = $insertStmt->execute();
             $payrollId = $insertStmt->insert_id;
         }
 
         if ($ok) {
+            add_back_post_payroll($conn,(int)$payrollId,$employeeId,(int)$sub['DeploymentID'],$cutoffStart,$cutoffEnd);
+            $conn->commit();
             $finalized[] = ['employee_id' => $employeeId, 'payroll_id' => $payrollId, 'net_pay' => round($netPay, 2)];
         } else {
+            $conn->rollback();
             $errors[] = ['employee_id' => $employeeId, 'message' => $conn->error];
         }
     }
@@ -273,6 +291,7 @@ try {
         'message' => count($finalized) . ' payroll record(s) finalized.',
     ]);
 } catch (Throwable $e) {
+    $conn->rollback();
     error_log('finalize_payroll_batch: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([

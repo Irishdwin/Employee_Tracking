@@ -49,12 +49,14 @@
     <script>window.REQUIRED_ROLE = 'TeamLead';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
     <script src="../../Js/Shared/hydrate_user_profile.js"></script>
+<script src="../../Js/Shared/client_review_reason.js"></script>
 </head>
 <body>
 <div class="layout-wrapper">
     <aside class="sidebar">
         <div class="sidebar-header"><span>Onazul Team Lead</span></div>
         <ul class="sidebar-nav mt-2">
+            <li><a href="team_lead_dashboard.html#view-schedule" class="sidebar-link"><i class="bi bi-calendar-week"></i><span class="flex-grow-1">TEAM SCHEDULE</span></a></li>
             <li><a href="team_lead_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span class="flex-grow-1">Dashboard</span><span class="sidebar-nav-badge d-none" id="tlDashboardBadge" aria-label="Team members absent today">0</span></a></li>
             <li><a href="endorsed_applicants.html" class="sidebar-link active"><i class="bi bi-person-check"></i><span class="flex-grow-1">Endorsed Applicants</span><span class="sidebar-nav-badge d-none" id="tlEndorsedBadge" aria-label="Endorsed applicants awaiting decision">0</span></a></li>
             <li><a href="request_job_order.html" class="sidebar-link"><i class="bi bi-clipboard-plus"></i><span class="flex-grow-1">Request Job Order</span><span class="sidebar-nav-badge d-none" id="tlJobOrdersBadge" aria-label="New job order updates">0</span></a></li>
@@ -177,6 +179,7 @@
         return '<span class="badge badge-status bg-' + (map[key] || 'secondary') + '">' + key + '</span>';
     }
 
+    const endorsementAttempts = {};
     function loadEndorsed() {
         fetch(API, { credentials: 'same-origin' })
             .then(r => r.json())
@@ -188,7 +191,8 @@
                 }
                 tbody.innerHTML = data.applications.map(app => {
                     const status = app.client_status || 'Pending';
-                    const canAct = status === 'Pending';
+                    endorsementAttempts[app.application_id]=app.attempt_id;
+                    const canAct = app.can_decide === true;
                     return `
                         <tr>
                             <td><strong>${escapeHtml(app.applicant_name)}</strong><br><small class="text-muted">${escapeHtml(app.email || '')}</small></td>
@@ -216,13 +220,15 @@
             });
     }
 
-    function submitDecision(appId, decision) {
-        const note = prompt('Optional: add a short note for this decision (leave blank for none).');
+    async function submitDecision(appId, decision) {
+        const attemptId=endorsementAttempts[appId];
+        const note = await window.ClientReviewReason(decision);
+        if (note === null) return;
         fetch(API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
-            body: JSON.stringify({ application_id: appId, decision: decision, comment: note || '' })
+            body: JSON.stringify({ application_id: appId, attempt_id: attemptId, decision: decision, comment: note || '' })
         })
         .then(r => r.json())
         .then(data => {

@@ -4,6 +4,7 @@
  */
 require_once __DIR__ . '/session_init.php';
 header('Content-Type: application/json');
+header('Cache-Control: no-store');
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
@@ -17,7 +18,11 @@ require_once __DIR__ . '/../Helpers/messenger_unread.php';
 
 chat_ensure_tables($conn);
 
-$viewerId = (int)$_SESSION['user_id'];
+require_once __DIR__.'/../Helpers/messenger_rbac.php';
+try{$actor=messenger_actor($conn);}catch(Throwable $e){messenger_api_error($e);exit;}
+$viewerId=(int)$actor['user_id'];
+require_once __DIR__.'/../Helpers/messenger_presence.php';
+messenger_record_activity($conn,$actor);
 $counts = messenger_get_unread_counts($conn, $viewerId);
 
 $byContact = [];
@@ -29,6 +34,7 @@ echo json_encode([
     'success' => true,
     'total' => (int)$counts['total'],
     'by_contact' => $byContact,
+    'latest_unread' => $counts['latest_unread'],
     'byContact' => $byContact,
     'sender_id' => $byContact,
 ]);

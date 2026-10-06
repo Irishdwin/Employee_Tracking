@@ -44,9 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once __DIR__ . '/../Db_connection/db_connect.php'; // mysqli $conn
 require_once __DIR__ . '/../Helpers/attendance_pdo.php';
+require_once __DIR__ . '/../Helpers/dtr_classification.php';
 require_once __DIR__ . '/../Helpers/employee_payroll_helper.php'; // payroll_kinsenas_period(), payroll_compute_period()
 require_once __DIR__ . '/../Helpers/employee_deployment_context.php';
 
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
+require_once __DIR__ . '/../Helpers/payroll_type_helper.php';
 $teamLeadUserId = (int)$_SESSION['user_id'];
 
 // Accept either JSON body or classic form POST.
@@ -82,6 +85,19 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $cutoffStart) || !preg_match('/^\d{4}-\
 }
 
 try {
+    $input=is_array($json)?$json:$_POST;$siteId=(int)($input['site_id']??0);
+    $site=site_for_lead($conn,$teamLeadUserId,$siteId);
+    $period=payroll_type_period_for_company($conn,(int)$site['CompanyID'],$cutoffStart);
+    if($period['start']!==$cutoffStart || $period['end']!==$cutoffEnd)throw new InvalidArgumentException('Cutoff does not match this site’s production payroll calendar.');
+    $owned=[];
+    foreach($employeeIds as $eid){
+        $d=site_owned_employee($conn,$teamLeadUserId,$eid,$siteId);
+        if(!$d || !(int)$d['AllowDTRSubmission'] || $d['StartDate']>$cutoffEnd)throw new DomainException('An employee is not eligible for DTR submission at this site.',403);
+        $owned[$eid]=$d;
+    }
+    $conn->begin_transaction();
+    // A site lock serializes concurrent submission checks and assignment changes.
+    site_query($conn,'SELECT SiteID FROM deployment_sites WHERE SiteID=? AND TeamLeadID=? AND IsActive=1 FOR UPDATE','ii',[$siteId,$teamLeadUserId]);
     $pdo = attendance_pdo();
     if (function_exists('attendance_ensure_table')) {
         attendance_ensure_table($pdo);
@@ -89,7 +105,7 @@ try {
 
     // Resolve the cutoff's display label the same way get_dtr_cutoff_review.php does,
     // by re-deriving it from a date inside the range via payroll_kinsenas_period().
-    $period = payroll_kinsenas_period($cutoffStart);
+    $period = payroll_type_period_for_company($conn,(int)$site['CompanyID'],$cutoffStart);
     $cutoffLabel = ($period['start'] === $cutoffStart && $period['end'] === $cutoffEnd)
         ? $period['label']
         : (date('M j, Y', strtotime($cutoffStart)) . ' – ' . date('M j, Y', strtotime($cutoffEnd)));
@@ -97,13 +113,6 @@ try {
     $submitted = [];
     $alreadySubmitted = [];
     $skippedNotOwned = [];
-
-    $ownerCheckStmt = $conn->prepare("
-        SELECT DeploymentID, CompanyID
-        FROM deployment
-        WHERE EmployeeID = ? AND SiteSuperVisorID = ?
-        LIMIT 1
-    ");
 
     $existsStmt = $conn->prepare("
         SELECT DTR_SubmissionID FROM dtr_submissions
@@ -118,21 +127,17 @@ try {
 
     $insertStmt = $conn->prepare("
         INSERT INTO dtr_submissions
-            (EmployeeID, DeploymentID, SiteSupervisorID, CutoffPeriod, CutoffStartDate, CutoffEndDate,
-             TotalHours, OvertimeHours, TotalOvertimeHours, SubmittedBy, CreatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            (SiteID, EmployeeID, DeploymentID, SiteSupervisorID, CutoffPeriod, CutoffStartDate, CutoffEndDate,
+             TotalHours, OvertimeHours, TotalOvertimeHours, SubmittedBy, Remarks, CreatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
 
     foreach ($employeeIds as $employeeId) {
+        // Shares the employee mutex with clock writes and Add Back review.
+        site_query($conn,'SELECT EmployeeID FROM employee WHERE EmployeeID=? FOR UPDATE','i',[$employeeId]);
         // 1) Ownership check — this employee must actually be on this TL's roster.
-        $ownerCheckStmt->bind_param('ii', $employeeId, $teamLeadUserId);
-        $ownerCheckStmt->execute();
-        $ownerRow = $ownerCheckStmt->get_result()->fetch_assoc();
-        if (!$ownerRow) {
-            $skippedNotOwned[] = $employeeId;
-            continue;
-        }
-
+        $ownerRow=site_owned_employee($conn,$teamLeadUserId,$employeeId,$siteId);
+        if(!$ownerRow)throw new DomainException('Site assignment changed. Reload before submitting.',403);
         // 2) Duplicate-submission check — same employee + same cutoff can't submit twice.
         $existsStmt->bind_param('iss', $employeeId, $cutoffStart, $cutoffEnd);
         $existsStmt->execute();
@@ -193,25 +198,22 @@ try {
             $msc,
             $cutoffStart,
             $cutoffEnd,
-            $workSchedule !== '' ? $workSchedule : null
+            $workSchedule !== '' ? $workSchedule : null,
+            null,
+            (int)$ownerRow['DeploymentID']
         );
 
-        $totalHours = (float)($periodTotals['days_worked'] * 8); // regular-hours basis, consistent with basic_pay's day-rate calc
-        $overtimeHours = (float)($periodTotals['ot_detail']['regular_ot_hours'] ?? 0);
-        // Approved Team-Lead-recorded overtime (from the `overtime` table, via
-        // payroll_compute_period() -> payroll_fetch_approved_overtime() rolls
-        // into the same TotalOvertimeHours figure Accounting already reads —
-        // no new dtr_submissions column needed.
-        $approvedOtHours = (float)($periodTotals['ot_detail']['approved_overtime_hours'] ?? 0);
-        $totalOvertimeHours = round(
-            (float)($periodTotals['ot_detail']['sunday_hours'] ?? 0) + $overtimeHours + $approvedOtHours,
-            2
-        );
+        $classification=dtr_classification_from_payroll($periodTotals);
+        $totalHours=$classification['regular_hours'];
+        $overtimeHours=$classification['ordinary_overtime_hours'];
+        $totalOvertimeHours=$classification['overtime_hours'];
+        $classificationRemarks='DTR_CLASSIFICATION_V1:'.json_encode($classification,JSON_THROW_ON_ERROR);
 
         // 4) Insert the real submission row.
         $deploymentId = (int)$ownerRow['DeploymentID'];
         $insertStmt->bind_param(
-            'iiisssdddi',
+            'iiiisssdddis',
+            $siteId,
             $employeeId,
             $deploymentId,
             $teamLeadUserId,
@@ -221,7 +223,8 @@ try {
             $totalHours,
             $overtimeHours,
             $totalOvertimeHours,
-            $teamLeadUserId
+            $teamLeadUserId,
+            $classificationRemarks
         );
         if ($insertStmt->execute()) {
             $submitted[] = $employeeId;
@@ -230,7 +233,8 @@ try {
         }
     }
 
-    $ownerCheckStmt->close();
+    $conn->commit();
+    try { site_dtr_sync_notifications($conn,$teamLeadUserId); } catch(Throwable $notificationError) { error_log('DTR reminder refresh: '.$notificationError->getMessage()); }
     $existsStmt->close();
     $employeeRateStmt->close();
     $insertStmt->close();
@@ -245,6 +249,8 @@ try {
             : 'No new DTRs were submitted.',
     ]);
 } catch (Throwable $e) {
+    $conn->rollback();
+    if($e instanceof DomainException || $e instanceof InvalidArgumentException){http_response_code($e->getCode()?:422);echo json_encode(['success'=>false,'message'=>$e->getMessage()]);exit;}
     error_log('submit_dtr: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/job_hierarchy.php';
 /**
  * Shared strict filters for applicant job wall APIs.
  * Modes: all (open jobs), search (keyword title/company), profile (applicant preference).
@@ -143,46 +144,8 @@ function job_wall_build_filters(mysqli $conn, array $options): array
     $categoryId = 0;
 
     if ($mode === 'profile') {
-        if ($savedJobCategory !== '') {
-            $categoryId = job_wall_resolve_category_id($conn, $savedJobCategory);
-            $hasCategoryIdCol = job_wall_column_exists($conn, 'joborder', 'category_id');
-            if ($categoryId > 0 && $hasCategoryIdCol) {
-                $extraWhere .= ' AND (jo.category_id = ? OR jo.JobCategory = ? OR LOWER(jo.JobCategory) = LOWER(?))';
-                $types .= 'iss';
-                $params[] = $categoryId;
-                $params[] = $savedJobCategory;
-                $params[] = $savedJobCategory;
-            } else {
-                $extraWhere .= ' AND (jo.JobCategory = ? OR LOWER(jo.JobCategory) = LOWER(?))';
-                $types .= 'ss';
-                $params[] = $savedJobCategory;
-                $params[] = $savedJobCategory;
-            }
-        }
-
-        if ($savedClass !== '') {
-            $classClean = trim($savedClass);
-            if (strcasecmp($classClean, 'Promodiser') === 0 || strcasecmp($classClean, 'Diser') === 0) {
-                $extraWhere .= ' AND (jo.Position LIKE ? OR jo.Position LIKE ? OR jor.Position LIKE ? OR jor.Position LIKE ?)';
-                $types .= 'ssss';
-                $params[] = '%Promodiser%';
-                $params[] = '%Promo Diser%';
-                $params[] = '%Promodiser%';
-                $params[] = '%Promo Diser%';
-            } else {
-                $like = '%' . $classClean . '%';
-                $extraWhere .= ' AND (jo.Position LIKE ? OR jor.Position LIKE ?)';
-                $types .= 'ss';
-                $params[] = $like;
-                $params[] = $like;
-            }
-        } elseif ($savedSub !== '') {
-            $likeSub = '%' . $savedSub . '%';
-            $extraWhere .= ' AND (jo.Position LIKE ? OR jor.Position LIKE ?)';
-            $types .= 'ss';
-            $params[] = $likeSub;
-            $params[] = $likeSub;
-        }
+        $profile=jh_profile_filter($conn,(int)($options['user_id']??$_SESSION['user_id']??0));
+        $extraWhere.=$profile['where'];$types.=$profile['types'];$params=array_merge($params,$profile['params']);
     } elseif ($mode === 'search' && $keyword !== '') {
         $companyIds = job_wall_resolve_company_ids($conn, $keyword);
         if ($companyIds !== []) {
@@ -249,6 +212,8 @@ function job_wall_build_filters(mysqli $conn, array $options): array
         $params[] = $sinceDays;
     }
 
+    $hierarchy=jh_request_filter($conn,$_GET);
+    $extraWhere.=$hierarchy['where'];$types.=$hierarchy['types'];$params=array_merge($params,$hierarchy['params']);
     return [
         'where' => $extraWhere,
         'types' => $types,
@@ -319,3 +284,4 @@ function job_wall_query_with_filters(mysqli $conn, string $sql, string $types, a
     $stmt->close();
     return $result;
 }
+

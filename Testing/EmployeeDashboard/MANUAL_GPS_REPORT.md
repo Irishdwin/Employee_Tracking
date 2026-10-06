@@ -1,0 +1,18 @@
+# Manual GPS refresh
+
+Implemented directly in the connected project.
+
+1. Reused `initEmployeeGeolocation()`, `requestEmployeeGps()`, `loadEmployeeWorkSite()`, `updateGpsUi()` and the existing watcher/Haversine calculation. Public refresh wrapper calls initialization in manual mode.
+2. Production files modified: `Html/Employee/employee_dashboard.html` and `Js/Employee/employee_attendance_sync.js`. Created `Testing/EmployeeDashboard/manualgps_test.js` and this report.
+3. A full-width Bootstrap refresh button appears directly below Clock In/Clock Out in Today's Shift. It changes to Refreshing GPS and disables while acquisition is running. Duplicate requests are blocked.
+4. Both high-accuracy and fallback requests already used maximumAge=0; this was retained. Refresh now clears the previous live fix and stops the old watcher before requesting new coordinates. It does not simply redisplay cached coordinates.
+5. Reused bounded six-second high-accuracy request and ten-second standard-accuracy fallback. Existing fallbackStarted protection permits only one fallback. No extra permanent watchers or unbounded best-reading loop added; successful completion restarts the existing single watcher.
+6. Actual coords.accuracy remains displayed. Accuracy wider than the site radius, or unknown, now shows Location Accuracy Too Low rather than a definitive Inside/Outside label. Attendance buttons remain disabled for insufficient accuracy and throughout refresh; existing photo/submit actions also reject insufficient accuracy. Radius is never enlarged. No assertion that device accuracy improved is made.
+7. A successful new reading immediately recomputes distance/status through the existing GPS UI function and restores controls according to inside-radius and accuracy checks. No full page reload.
+8. Work-site lookup still uses the existing authenticated Employee API and current deployment/company/assigned Lead relationship. Re-reading that API performs no coordinate writes.
+9. Refresh modifies only browser live-location state. No work-site, deployment, Team Lead, attendance record or database changes were made. Existing backend geofence validation remains intact.
+10. Existing safe messages handle unsupported geolocation, permission denial, unavailable position and timeout. Error/cancellation paths restore the refresh button and leave attendance disabled. No new coordinate console spam.
+11. Executed: manual refresh controller suite (10 PASS), existing Employee Dashboard frontend suite (22 PASS), existing server suite (29 PASS including actual three employee/deployment/site mappings), modified JavaScript and dashboard inline syntax checks (PASS). Controller tests use mocked browser APIs/DOM; server tests read actual relationships and isolated fixtures.
+12. Requested test results: button placement PASS by markup assertion; new GPS request PASS mocked browser API; loading/duplicate prevention PASS; new coordinate/accuracy replacement PASS mocked results; UI recalculation/watcher restart PASS; actual reported accuracy handling PASS controlled results, physical improvement NOT VERIFIED; permission denial PASS mock; timeout/fallback PASS existing mock regression; no radius/geofence bypass PASS frontend regression and unchanged server validation suite; expected deployment source PASS actual database suite. Signed-in browser click-through, physical device readings and responsive viewport appearance are NOT VERIFIED.
+
+No holiday/calendar status rendering, schedules, payroll, session behavior or assignments were modified. The HTML change is confined to the Today attendance action panel.

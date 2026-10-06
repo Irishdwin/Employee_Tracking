@@ -17,7 +17,8 @@ if (!in_array(strtoupper($role), ['ADMIN', 'HR'], true)) {
 }
 
 require __DIR__ . '/../Db_connection/db_connect.php';
-require __DIR__ . '/../Helpers/application_status_helper.php';
+require_once __DIR__ . '/../Helpers/application_endorsement.php';
+try { ae_authorize($conn,(int)$_SESSION['user_id'],['Admin','HR']); } catch (DomainException $e) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
 
 header('Content-Type: application/json');
 
@@ -30,7 +31,7 @@ $sql = "
         a.FullName AS ApplicantName,
         a.Email,
         a.MobileNumber,
-        jo.Position,
+        COALESCE(jod.position_title,jo.Position) Position,
         c.Name AS CompanyName,
         ja.ApplicationDate,
         ja.InterviewDate,
@@ -49,6 +50,7 @@ $sql = "
     INNER JOIN applicants a ON ja.ApplicantID = a.ApplicantID
     INNER JOIN joborder jo ON ja.JobOrderID = jo.JobOrderID
     INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
+    LEFT JOIN job_order_details jod ON jod.detail_id=ja.target_detail_id AND jod.JobOrderID=ja.JobOrderID
     LEFT JOIN status s ON ja.StatusID = s.StatusID
     WHERE 1=1
 ";
@@ -78,8 +80,10 @@ if ($statusFilter !== '') {
                   AND ja.ClientApprovalStatus = 'Pending'";
     } elseif ($statusFilter === 'Approved by Company' || $statusFilter === 'Approved') {
         $sql .= " AND ja.HiredDate IS NULL AND ja.ClientApprovalStatus = 'Approved'";
+    } elseif ($statusFilter === 'Rejected by Client') {
+        $sql .= " AND ja.ClientApprovalStatus = 'Rejected' AND COALESCE(s.Name,'') NOT IN ('Rejected','Declined','Failed')";
     } elseif ($statusFilter === 'Rejected' || $statusFilter === 'Declined') {
-        $sql .= " AND ja.ClientApprovalStatus = 'Rejected'";
+        $sql .= " AND s.Name IN ('Rejected','Declined','Failed')";
     } elseif ($statusFilter === 'Hired') {
         $sql .= ' AND ja.HiredDate IS NOT NULL';
     } else {
@@ -117,6 +121,7 @@ while ($row = $result->fetch_assoc()) {
         'company_name'     => $row['CompanyName'],
         'application_date' => date('M d, Y', strtotime($row['ApplicationDate'])),
         'status'           => $label,
+        'can_reendorse' => ae_can_reendorse($row),
         'status_badge'     => ash_admin_badge_bootstrap($label),
         'doc_count'        => (int)$row['DocCount'],
         'document_count'   => (int)$row['DocCount'],

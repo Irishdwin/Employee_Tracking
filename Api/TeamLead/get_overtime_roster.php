@@ -36,6 +36,8 @@ if (!in_array($role, ['TeamLead', 'Team Lead'], true)) {
 require_once __DIR__ . '/../Db_connection/db_connect.php'; // mysqli $conn
 require_once __DIR__ . '/../Helpers/employee_payroll_helper.php'; // payroll_resolve_deployment_schedule()
 
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
+$current=site_current_deployment_sql();
 $teamLeadUserId = (int)$_SESSION['user_id'];
 
 $date = isset($_GET['date']) ? trim((string)$_GET['date']) : date('Y-m-d');
@@ -55,9 +57,10 @@ try {
             d.CompanyID AS company_id,
             cc.Name AS company_name
         FROM deployment d
+        INNER JOIN deployment_sites s ON s.SiteID=d.SiteID AND s.IsActive=1
         INNER JOIN employee e ON e.EmployeeID = d.EmployeeID AND e.IsActive = 1
         LEFT JOIN clientcompany cc ON cc.CompanyID = d.CompanyID
-        WHERE d.SiteSuperVisorID = ?
+        WHERE s.TeamLeadID = ? AND {$current}
           AND (d.EndDate IS NULL OR d.EndDate >= CURDATE())
         GROUP BY e.EmployeeID
         ORDER BY employee_name ASC

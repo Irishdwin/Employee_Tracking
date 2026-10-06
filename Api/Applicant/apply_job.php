@@ -133,6 +133,8 @@ if ($insertStmt->execute()) {
     $insertStmt->close();
 
     require_once __DIR__ . '/../Helpers/application_notify_helper.php';
+    require_once __DIR__ . '/../Helpers/notification_helper.php';
+    createApplicationNotification($conn, $applicationId, 'application_submitted', 'Application Submitted', 'Your application has been received. You can track its progress in My Applications.');
 
     $metaStmt = $conn->prepare("
         SELECT a.FullName AS ApplicantName, jo.Position, c.Name AS CompanyName,

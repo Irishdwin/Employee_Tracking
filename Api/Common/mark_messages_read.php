@@ -44,43 +44,7 @@ if ($senderId <= 0 || $senderId === $viewerId) {
     exit();
 }
 
-$roleStmt = $conn->prepare("
-    SELECT r.RoleName AS role,
-        (
-            SELECT d.SiteSuperVisorID
-            FROM deployment d
-            INNER JOIN employee e ON e.EmployeeID = d.EmployeeID
-            INNER JOIN users u ON u.Email = e.Email
-            WHERE u.UsersID = ?
-              AND (d.EndDate IS NULL OR d.EndDate >= CURDATE())
-            ORDER BY d.DeploymentID DESC
-            LIMIT 1
-        ) AS team_lead_id
-    FROM users u
-    INNER JOIN roles r ON r.RolesID = u.RoleID
-    WHERE u.UsersID = ? AND u.IsActive = 1
-    LIMIT 1
-");
-$contactRole = '';
-$teamLeadId = null;
-if ($roleStmt) {
-    $roleStmt->bind_param('ii', $senderId, $senderId);
-    $roleStmt->execute();
-    $roleRow = $roleStmt->get_result()->fetch_assoc();
-    $roleStmt->close();
-    if ($roleRow) {
-        $contactRole = (string)$roleRow['role'];
-        $teamLeadId = isset($roleRow['team_lead_id']) && $roleRow['team_lead_id'] !== null
-            ? (int)$roleRow['team_lead_id']
-            : null;
-    }
-}
-
-if (!messenger_contact_allowed($viewerRole, $viewerId, $contactRole, $senderId, $teamLeadId)) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Forbidden']);
-    exit();
-}
+try{$actor=messenger_actor($conn);messenger_require_recipient($conn,$actor,$senderId);}catch(Throwable $e){messenger_api_error($e);exit;}
 
 $threadId = messenger_mark_read_with_user($conn, $viewerId, $senderId);
 if ($threadId === null) {
@@ -92,6 +56,7 @@ if ($threadId === null) {
     exit();
 }
 
+try{messenger_require_thread($conn,$actor,$threadId);}catch(Throwable $e){messenger_api_error($e);exit;}
 chat_mark_thread_read($conn, $threadId, $viewerId);
 
 $counts = messenger_get_unread_counts($conn, $viewerId);

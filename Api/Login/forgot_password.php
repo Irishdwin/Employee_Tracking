@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../Common/session_init.php';
 require_once __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/send_mail.php';
+require_once __DIR__ . '/../Helpers/password_policy.php';
 
 header('Content-Type: application/json');
 
@@ -11,13 +12,11 @@ function fp_json(array $data, int $status = 200): void {
     exit();
 }
 
+// fp_validate_password() now delegates to the shared, authoritative
+// validate_strong_password() in Api/Helpers/password_policy.php, which also
+// rejects common/predictable passwords (not just format-only checks).
 function fp_validate_password(string $password): ?string {
-    if (strlen($password) < 8) return 'Password must be at least 8 characters.';
-    if (!preg_match('/[A-Z]/', $password)) return 'Password must include at least one uppercase letter.';
-    if (!preg_match('/[a-z]/', $password)) return 'Password must include at least one lowercase letter.';
-    if (!preg_match('/\d/', $password)) return 'Password must include at least one number.';
-    if (!preg_match('/[^A-Za-z0-9]/', $password)) return 'Password must include at least one special character.';
-    return null;
+    return validate_strong_password($password);
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -148,7 +147,7 @@ if ($action === 'reset_password') {
 
     $hash = password_hash($newPassword, PASSWORD_DEFAULT);
     $uid = (int)$user['UsersID'];
-    $upd = $conn->prepare("UPDATE users SET Password = ? WHERE UsersID = ?");
+    $upd = $conn->prepare("UPDATE users SET Password = ?, LocalPasswordConfigured = 1 WHERE UsersID = ?");
     $upd->bind_param('si', $hash, $uid);
     $ok = $upd->execute();
     $upd->close();

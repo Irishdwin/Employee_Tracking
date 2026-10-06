@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../Common/session_init.php';
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store');
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     http_response_code(401);
@@ -49,6 +50,8 @@ try {
 
 echo json_encode([
     'success'  => true,
+    'timeout_seconds' => SESSION_IDLE_TIMEOUT_SECONDS,
+    'remaining_seconds' => max(0, SESSION_IDLE_TIMEOUT_SECONDS - (time() - (int)$_SESSION['last_activity'])),
     'user_id'  => $_SESSION['user_id'] ?? null,
     'role'     => $_SESSION['role'],
     'full_name'=> $_SESSION['full_name'] ?? '',

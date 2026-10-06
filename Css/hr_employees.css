@@ -1,0 +1,30 @@
+#section-employee-management, #hrEmployeeDetailsModal { min-width: 0; }
+#section-employee-management .row > *, #section-employee-management .card-body { min-width: 0; }
+#section-employee-management .form-select { max-width: 100%; }
+#section-employee-management .hr-employees-table { min-width: 960px; }
+#section-employee-management .hr-employees-table td { max-width: 220px; overflow-wrap: anywhere; }
+#section-employee-management .hr-employees-table th { white-space: nowrap; }
+#section-employee-management .hr-employees-table td:first-child,
+#section-employee-management .hr-employees-table td:nth-child(6),
+#section-employee-management .hr-employees-table td:last-child .btn { white-space: nowrap; }
+#section-employee-management .hr-employees-table td:nth-child(3) { min-width: 110px; }
+#section-employee-management .table-responsive { max-width: 100%; }
+#hrEmployeeDetailsModal dl { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr); gap: .5rem 1rem; }
+#hrEmployeeDetailsModal dt { color: var(--ow-text-muted, #64748b); font-weight: 500; }
+#hrEmployeeDetailsModal dd { margin: 0; overflow-wrap: anywhere; }
+#hrEmployeeDetailsModal .hr-deployment-history { display: grid; gap: 1rem; }
+#hrEmployeeDetailsModal .hr-deployment-record { min-width: 0; padding: 1rem; border: 1px solid var(--ow-border, #e2e8f0); border-radius: .75rem; background: var(--ow-surface, #f8fafc); }
+#hrEmployeeDetailsModal .hr-deployment-record.is-current { border-left: 3px solid var(--ow-brand-primary, #0056b3); }
+#hrEmployeeDetailsModal .hr-deployment-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .5rem 1rem; }
+#hrEmployeeDetailsModal .hr-deployment-company { flex: 1 1 180px; min-width: 0; margin: 0; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+#hrEmployeeDetailsModal .hr-deployment-badges { display: flex; flex-wrap: wrap; gap: .4rem; }
+#hrEmployeeDetailsModal .hr-deployment-address { margin: .5rem 0 1rem; color: var(--ow-text-muted, #64748b); line-height: 1.6; overflow-wrap: anywhere; }
+#hrEmployeeDetailsModal dl.hr-deployment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 0; gap: 1rem; }
+#hrEmployeeDetailsModal .hr-deployment-grid > div { min-width: 0; }
+#hrEmployeeDetailsModal .hr-deployment-grid dt { font-size: .8rem; margin-bottom: .25rem; }
+#hrEmployeeDetailsModal .hr-deployment-grid dd { font-weight: 500; }
+#hrEmployeeDetailsModal .hr-deployment-empty { padding: 1rem; background: var(--ow-surface, #f8fafc); border-radius: .75rem; }
+/* Same content clearance used by the shared sidebar layout; keep the shared viewport-fixed FAB unchanged. */
+.hr-dashboard #main-content-area:has(> #section-employee-management.active) { padding-bottom: 5.5rem; }
+@media (max-width: 575px) { #hrEmployeeDetailsModal dl.hr-deployment-grid { grid-template-columns: 1fr; gap: .75rem; } #hrEmployeeDetailsModal .hr-deployment-grid dd { margin-bottom: 0; } }
+@media (max-width: 575px) { #hrEmployeeDetailsModal dl { grid-template-columns: 1fr; gap: .25rem; } #hrEmployeeDetailsModal dd { margin-bottom: .5rem; } }

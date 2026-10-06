@@ -43,7 +43,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/_testing_guard.php';
+require_once __DIR__ . '/_selection_context.php';
 require_once __DIR__ . '/../../../Api/Helpers/employee_payroll_helper.php'; // payroll_resolve_deployment_schedule(), payroll_timesheet_day_status() — REUSED
+require_once __DIR__ . '/../../../Api/Helpers/attendance_pdo.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -116,6 +118,8 @@ try {
             exit();
         }
     }
+
+    $selectedDeployment=testing_employee_context($conn,$body,$employeeId,$date);
 
     // Verify the employee actually exists and is active — never trust a
     // client-supplied ID blindly, even in a dev tool.
@@ -263,6 +267,24 @@ try {
         $dtrIns->execute();
         $dtrIns->close();
     }
+
+    // Derive holiday metadata from the same production engine, not a testing multiplier.
+    $ratesStmt = $conn->prepare('SELECT daily_rate, hourly_rate, BasicSalary FROM employee WHERE EmployeeID = ?');
+    $ratesStmt->bind_param('i', $employeeId); $ratesStmt->execute();
+    $rates = $ratesStmt->get_result()->fetch_assoc(); $ratesStmt->close();
+    $dailyRate = (float)($rates['daily_rate'] ?? 0);
+    if ($dailyRate <= 0) $dailyRate = round((float)($rates['BasicSalary'] ?? 0) / 26, 2);
+    $hourlyRate = (float)($rates['hourly_rate'] ?? 0);
+    if ($hourlyRate <= 0) $hourlyRate = round($dailyRate / 8, 2);
+    $dayPayroll = payroll_compute_period($conn, attendance_pdo(), $employeeId, $dailyRate, $hourlyRate, 0, 0, $date, $date);
+    $holiday = $dayPayroll['holiday_breakdown'][0] ?? null;
+    $holidayId = $holiday['holiday_id'] ?? null;
+    $holidayWork = $holiday && !empty($holiday['worked']) ? 1 : 0;
+    $holidayRate = $holiday['pay_multiplier'] ?? null;
+    $isRestDay = payroll_is_scheduled_day($date, payroll_scheduled_weekdays($schedule['working_days'])) ? 0 : 1;
+    $metaStmt = $conn->prepare('UPDATE attendance SET HolidayID=?, IsHolidayWork=?, HolidayPayRate=?, IsRestDay=? WHERE AttendanceID=?');
+    $metaStmt->bind_param('iidii', $holidayId, $holidayWork, $holidayRate, $isRestDay, $attendanceId);
+    $metaStmt->execute(); $metaStmt->close();
 
     echo json_encode([
         'success' => true,

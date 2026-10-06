@@ -317,6 +317,7 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="usersPagination" class="d-flex justify-content-between align-items-center px-3 py-2 border-top small"></div>
             </div>
         </div>
     </main>
@@ -334,16 +335,18 @@
                 <div id="createUserAlert" class="alert d-none" role="alert"></div>
                 <form id="createUserForm">
                     <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" required>
+                        <label class="form-label">Username (Email)</label>
+                        <input type="email" name="username" id="createUserUsername" class="form-control" placeholder="name@onazul.com" required>
+                        <div class="text-danger small mt-1 d-none" id="createUserUsernameError">This field is required.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Full Name</label>
-                        <input type="text" name="full_name" class="form-control" required>
+                        <input type="text" name="full_name" id="createUserFullName" class="form-control" required>
+                        <div class="text-danger small mt-1 d-none" id="createUserFullNameError">This field is required.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Role</label>
-                        <select name="role" class="form-select" required>
+                        <select name="role" id="createUserRole" class="form-select" required>
                             <option value="">Select role</option>
                             <option value="Admin">Admin</option>
                             <option value="HR">HR</option>
@@ -352,6 +355,7 @@
                             <option value="Employee">Employee</option>
                             <option value="Applicant">Applicant</option>
                         </select>
+                        <div class="text-danger small mt-1 d-none" id="createUserRoleError">This field is required.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Password</label>
@@ -361,6 +365,7 @@
                                 <i class="bi bi-eye"></i>
                             </button>
                         </div>
+                        <div class="text-danger small mt-1 d-none" id="createUserPasswordError">This field is required.</div>
                         <ul class="small mb-0 ps-3" id="createUserPasswordChecklist">
                             <li id="createUserRuleLen" class="text-muted">At least 8 characters</li>
                             <li id="createUserRuleUpper" class="text-muted">At least 1 uppercase letter</li>
@@ -381,6 +386,60 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" id="btnCreateUser">Create User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ST-203: Edit User modal — replaces the old chained prompt() dialogs -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="editUserAlert" class="alert d-none" role="alert"></div>
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="mb-3">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" id="editUserFullName" class="form-control" required>
+                        <div class="text-danger small mt-1 d-none" id="editUserFullNameError">This field is required.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select id="editUserRole" class="form-select" required>
+                            <option value="Admin">Admin</option>
+                            <option value="HR">HR</option>
+                            <option value="Accounting">Accounting</option>
+                            <option value="TeamLead">TeamLead</option>
+                            <option value="Employee">Employee</option>
+                            <option value="Applicant">Applicant</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select id="editUserStatus" class="form-select" required>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">New Password <span class="text-muted small">(leave blank to keep current)</span></label>
+                        <div class="input-group">
+                            <input type="password" id="editUserPassword" class="form-control">
+                            <button type="button" class="btn btn-outline-secondary" data-toggle-password data-target="editUserPassword" aria-label="Show password">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnEditUserSave">Update</button>
             </div>
         </div>
     </div>
@@ -604,6 +663,9 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="../../Css/password_strength.css">
+<script src="../../Js/Shared/password_strength.js"></script>
+<script src="../../Js/Shared/pagination_ui.js"></script>
 <script>
     /**
  * User Management Module - Complete Profile Viewer & User Actions
@@ -630,6 +692,26 @@
     const adminNameEl = document.getElementById('adminName');
 
     let allUsers = [];
+    let currentPage = 1;
+    const PAGE_SIZE = 10;
+
+    function renderPagination(totalItems) {
+        const container = document.getElementById('usersPagination');
+        if (!container) return;
+        const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        // ST-500: shared numbered-pagination control (Previous/Next + page
+        // numbers), same component used by Client Companies/Service
+        // Agreements. This page paginates client-side over the already-
+        // loaded/filtered `allUsers` array, so "go to page N" just re-renders
+        // instead of re-fetching.
+        if (typeof renderPaginationControls === 'function') {
+            renderPaginationControls(container, { page: currentPage, pages: totalPages, total: totalItems }, function (targetPage) {
+                currentPage = targetPage;
+                renderTable();
+            }, 'users');
+        }
+    }
 
     function renderTable() {
         const search = (searchInput.value || '').toLowerCase();
@@ -652,11 +734,19 @@
                         No users found for the selected filters.
                     </td>
                 </tr>`;
+            renderPagination(0);
             return;
         }
 
+        // ST-205: paginate the filtered results instead of rendering
+        // everything on one page.
+        const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
         tbody.innerHTML = '';
-        filtered.forEach(user => {
+        pageItems.forEach(user => {
             const tr = document.createElement('tr');
             const statusClass = user.status === 'Active'
                 ? 'bg-success-subtle text-success border-success-subtle'
@@ -686,6 +776,7 @@
             `;
             tbody.appendChild(tr);
         });
+        renderPagination(filtered.length);
     }
 
     function loadUsers() {
@@ -751,9 +842,10 @@
         toggleStatus(userId, status);
     });
 
-    if (searchInput) searchInput.addEventListener('input', renderTable);
-    if (roleFilter) roleFilter.addEventListener('change', renderTable);
-    if (statusFilter) statusFilter.addEventListener('change', renderTable);
+    function resetToFirstPage() { currentPage = 1; renderTable(); }
+    if (searchInput) searchInput.addEventListener('input', resetToFirstPage);
+    if (roleFilter) roleFilter.addEventListener('change', resetToFirstPage);
+    if (statusFilter) statusFilter.addEventListener('change', resetToFirstPage);
 
     loadUsers();
     window.setInterval(loadUsers, 12000);
@@ -772,6 +864,11 @@
 
     const createModal = modalEl ? new bootstrap.Modal(modalEl) : null;
 
+    // ST-203: Edit User modal instance
+    const editModalEl = document.getElementById('editUserModal');
+    const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+    const editUserAlert = document.getElementById('editUserAlert');
+
     function validateStrongPassword(password) {
         const checks = [
             { ok: password.length >= 8, message: 'at least 8 characters' },
@@ -781,7 +878,12 @@
             { ok: /[^A-Za-z0-9]/.test(password), message: '1 special character' }
         ];
         const failed = checks.filter(c => !c.ok).map(c => c.message);
-        return { isValid: failed.length === 0, failed };
+        const formatOk = failed.length === 0;
+        const commonOrPredictable = formatOk
+            && typeof getPasswordStrength === 'function'
+            && getPasswordStrength(password).level === 'weak'
+            && failed.length === 0;
+        return { isValid: formatOk && !commonOrPredictable, failed, commonOrPredictable };
     }
 
     function updateCreateUserPasswordValidationUI() {
@@ -814,6 +916,9 @@
     function getPasswordPolicyMessage(password) {
         const check = validateStrongPassword(password);
         if (check.isValid) return null;
+        if (check.commonOrPredictable) {
+            return 'Password is too common or predictable. Please choose a stronger password.';
+        }
         return 'Password must include ' + check.failed.join(', ') + '.';
     }
 
@@ -821,6 +926,12 @@
         if (!createUserAlert) return;
         createUserAlert.textContent = message;
         createUserAlert.className = 'alert alert-' + type;
+    }
+
+    // UT-101: structural email format check, mirrored from the server-side
+    // filter_var(..., FILTER_VALIDATE_EMAIL) guard in Api/Admin/users.php.
+    function isValidEmailFormat(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
     }
 
     if (btnOpenCreateModal) {
@@ -834,6 +945,9 @@
 
     if (createUserPasswordInput) {
         createUserPasswordInput.addEventListener('input', updateCreateUserPasswordValidationUI);
+        if (typeof attachPasswordStrengthMeter === 'function') {
+            attachPasswordStrengthMeter(createUserPasswordInput);
+        }
     }
 
     document.querySelectorAll('[data-toggle-password]').forEach(btn => {
@@ -849,9 +963,33 @@
         });
     });
 
+    // ST-104: generic inline "This field is required." check, mirrored
+    // across every required field in the Add New User form.
+    function validateRequiredField(input, errorEl) {
+        const isEmpty = !input || String(input.value || '').trim() === '';
+        if (errorEl) errorEl.classList.toggle('d-none', !isEmpty);
+        if (input) input.classList.toggle('is-invalid', isEmpty);
+        return !isEmpty;
+    }
+
     if (btnCreateUser) {
         btnCreateUser.addEventListener('click', () => {
             const formData = new FormData(createUserForm);
+            const requiredOk = [
+                validateRequiredField(document.getElementById('createUserUsername'), document.getElementById('createUserUsernameError')),
+                validateRequiredField(document.getElementById('createUserFullName'), document.getElementById('createUserFullNameError')),
+                validateRequiredField(document.getElementById('createUserRole'), document.getElementById('createUserRoleError')),
+                validateRequiredField(document.getElementById('createUserPassword'), document.getElementById('createUserPasswordError')),
+            ].every(Boolean);
+            if (!requiredOk) {
+                showAlert('Please fill out all required fields.', 'warning');
+                return;
+            }
+            const username = String(formData.get('username') || '');
+            if (!isValidEmailFormat(username)) {
+                showAlert('Please enter a valid email address.', 'warning');
+                return;
+            }
             const password = String(formData.get('password') || '');
             const policyMessage = getPasswordPolicyMessage(password);
             if (policyMessage) {
@@ -1137,45 +1275,94 @@
         });
     }
 
+    // ST-203: populates and opens the Edit User modal instead of chaining
+    // native prompt() dialogs. The actual save happens in the
+    // btnEditUserSave click handler below, once, when the user clicks
+    // "Update" — matching the plan's "modify a field, click Update" flow.
     function triggerEditUser(userId, fullName, role, status) {
-        const newFullName = prompt('Edit full name:', fullName);
-        if (newFullName === null || newFullName.trim() === '') return;
+        document.getElementById('editUserId').value = userId;
+        document.getElementById('editUserFullName').value = fullName || '';
+        document.getElementById('editUserRole').value = role || 'Employee';
+        document.getElementById('editUserStatus').value = status || 'Active';
+        document.getElementById('editUserPassword').value = '';
+        document.getElementById('editUserFullNameError').classList.add('d-none');
+        document.getElementById('editUserFullName').classList.remove('is-invalid');
+        if (editUserAlert) editUserAlert.className = 'alert d-none';
+        if (editModal) editModal.show();
+    }
 
-        const newRole = prompt('Edit role (Admin, HR, Accounting, TeamLead, Employee, Applicant):', role);
-        if (newRole === null || newRole.trim() === '') return;
+    const btnEditUserSave = document.getElementById('btnEditUserSave');
+    if (btnEditUserSave) {
+        btnEditUserSave.addEventListener('click', () => {
+            const userId = document.getElementById('editUserId').value;
+            const fullNameInput = document.getElementById('editUserFullName');
+            const fullNameError = document.getElementById('editUserFullNameError');
+            const newFullName = fullNameInput.value.trim();
 
-        const newStatus = prompt('Edit status (Active or Inactive):', status);
-        if (newStatus === null || newStatus.trim() === '') return;
+            // ST-104: inline required-field check for the one free-text field.
+            const isEmpty = newFullName === '';
+            fullNameError.classList.toggle('d-none', !isEmpty);
+            fullNameInput.classList.toggle('is-invalid', isEmpty);
+            if (isEmpty) return;
 
-        const password = prompt('New password (leave blank to keep current):', '');
-        if (password) {
-            const policyMessage = getPasswordPolicyMessage(password);
-            if (policyMessage) {
-                alert(policyMessage);
-                return;
-            }
-        }
+            const newRole = document.getElementById('editUserRole').value;
+            const newStatus = document.getElementById('editUserStatus').value;
+            const password = document.getElementById('editUserPassword').value;
 
-        const formData = new FormData();
-        formData.append('action', 'update');
-        formData.append('user_id', userId);
-        formData.append('full_name', newFullName.trim());
-        formData.append('role', newRole.trim());
-        formData.append('status', newStatus.trim());
-        if (password) {
-            formData.append('password', password);
-        }
-
-        fetch(apiUrl, { method: 'POST', body: formData })
-            .then(res => res.json())
-            .then(data => {
-                if (!data.success) {
-                    alert(data.message || 'Failed to update user.');
+            if (password) {
+                const policyMessage = getPasswordPolicyMessage(password);
+                if (policyMessage) {
+                    if (editUserAlert) {
+                        editUserAlert.className = 'alert alert-warning';
+                        editUserAlert.textContent = policyMessage;
+                    }
                     return;
                 }
-                window.location.reload();
-            })
-            .catch(() => alert('Failed to update user.'));
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'update');
+            formData.append('user_id', userId);
+            formData.append('full_name', newFullName);
+            formData.append('role', newRole);
+            formData.append('status', newStatus);
+            if (password) {
+                formData.append('password', password);
+            }
+
+            btnEditUserSave.disabled = true;
+            btnEditUserSave.innerText = 'Updating...';
+
+            fetch(apiUrl, { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if (!data.success) {
+                        if (editUserAlert) {
+                            editUserAlert.className = 'alert alert-danger';
+                            editUserAlert.textContent = data.message || 'Failed to update user.';
+                        }
+                        return;
+                    }
+                    if (editUserAlert) {
+                        editUserAlert.className = 'alert alert-success';
+                        editUserAlert.textContent = 'User updated successfully.';
+                    }
+                    setTimeout(() => {
+                        if (editModal) editModal.hide();
+                        window.location.reload();
+                    }, 600);
+                })
+                .catch(() => {
+                    if (editUserAlert) {
+                        editUserAlert.className = 'alert alert-danger';
+                        editUserAlert.textContent = 'Failed to update user. Please try again.';
+                    }
+                })
+                .finally(() => {
+                    btnEditUserSave.disabled = false;
+                    btnEditUserSave.innerText = 'Update';
+                });
+        });
     }
 })();
 
@@ -1229,4 +1416,3 @@ function escapeHtml(str) {
 </script>
 </body>
 </html>
-

@@ -93,9 +93,15 @@ if (!$passwordValid) {
 }
 
 $userId = (int)$row['user_id'];
+$configured = $conn->prepare('UPDATE users SET LocalPasswordConfigured=1 WHERE UsersID=?');
+$configured->bind_param('i', $userId);
+$configured->execute();
+$configured->close();
 $fullName = trim((string)$row['full_name']);
 
 $_SESSION['user_id'] = $userId;
+unset($_SESSION['verified_google_login']);
+            $_SESSION['last_activity'] = time(); // A successful login starts a fresh inactivity cycle.
 $_SESSION['email'] = (string)$row['email'];
 $_SESSION['role'] = 'Applicant';
 $_SESSION['full_name'] = $fullName;

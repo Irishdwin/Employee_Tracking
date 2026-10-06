@@ -152,6 +152,7 @@
     setText('payslipBasicPay', money(e.basic_pay));
     setText('payslipSundayOt', money((e.sunday_overtime || 0) + (e.regular_overtime || 0)));
     setText('payslipHolidayPay', money(e.holiday_pay));
+    setText('payslipAddBack', money(e.add_back));
     setText('payslipSil', money(e.sil_accrual));
     setText('payslipAllowance', money(e.allowance));
 

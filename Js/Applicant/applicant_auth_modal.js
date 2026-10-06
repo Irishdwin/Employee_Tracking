@@ -17,6 +17,33 @@
   var EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   var MOBILE_RULE = /^\+639\d{9}$/;
 
+  // Client-side mirror of Api/Helpers/password_policy.php::is_common_or_predictable_password().
+  // UX hint only — register_applicant.php performs the authoritative check server-side (UT-102).
+  var COMMON_PASSWORD_BASES = [
+    'admin', 'administrator', 'password', 'welcome', 'qwerty', 'qwertyuiop',
+    'letmein', 'changeme', 'test', 'testing', 'user', 'guest', 'login',
+    'default', 'onazul', 'company', 'employee', 'hr', 'root', 'iloveyou',
+    'monkey', 'dragon', 'football', 'master', 'zxcvbnm', 'asdfgh'
+  ];
+  function isCommonOrPredictablePassword(password) {
+    var lower = password.toLowerCase();
+    var alnum = lower.replace(/[^a-z0-9]/g, '');
+    var base = alnum.replace(/\d+$/, '');
+    var normalizedBase = base
+      .replace(/0/g, 'o').replace(/1/g, 'i').replace(/3/g, 'e')
+      .replace(/4/g, 'a').replace(/5/g, 's').replace(/7/g, 't');
+
+    if (COMMON_PASSWORD_BASES.indexOf(base) !== -1
+      || COMMON_PASSWORD_BASES.indexOf(normalizedBase) !== -1
+      || COMMON_PASSWORD_BASES.indexOf(alnum) !== -1) {
+      return true;
+    }
+    if (/0123456789|1234567890|12345678|23456789|87654321|98765432/.test(alnum)) return true;
+    if (/qwertyui|asdfghjk|zxcvbnm|qazwsx/.test(alnum)) return true;
+    if (/(.)\1{4,}/.test(alnum)) return true;
+    return false;
+  }
+
   var state = {
     loggedIn: false,
     profile: null,
@@ -225,6 +252,9 @@
       valid = false;
     } else if (!PASSWORD_RULE.test(password)) {
       setRegisterFieldError('password', 'Use uppercase, lowercase, number, and special character (min. 8 chars).');
+      valid = false;
+    } else if (isCommonOrPredictablePassword(password)) {
+      setRegisterFieldError('password', 'Password is too common or predictable. Please choose a stronger password.');
       valid = false;
     }
 
@@ -583,7 +613,13 @@
       showToast('Google sign-in is not configured yet.', 'danger');
       return;
     }
-    var redirectUri = window.location.href.replace(/[?#].*$/, '');
+    // Must be the deterministic, server-computed URI (Api/config/google_oauth.php),
+    // NOT the raw current-page URL — the latter can drift from what's registered in
+    // Google Cloud Console (e.g. folder index requests, trailing slash, stray query
+    // params) and causes Error 400: redirect_uri_mismatch. This also has to match
+    // exactly what Html/Applicant/applicant_google_callback.html sends back during
+    // the server-side token exchange (it uses the same fixed landingUrl()).
+    var redirectUri = state.googleRedirectUri || window.location.href.replace(/[?#].*$/, '');
     var oauthState = String(Date.now()) + '_' + Math.random().toString(16).slice(2);
     try { window.sessionStorage.setItem('google_oauth_state', oauthState); } catch (err) {}
     var url = 'https://accounts.google.com/o/oauth2/v2/auth' +

@@ -21,12 +21,12 @@
    * TeamLead Employee rows require assignment check (see filterAllowedContacts).
    */
   var chatPermissions = {
-    Admin: [ROLES.HR, ROLES.ACCOUNTING],
-    HR: '*',
-    Accounting: [ROLES.HR, ROLES.TEAM_LEAD],
+    Admin: '*',
+    HR: [ROLES.ADMIN, ROLES.ACCOUNTING, ROLES.TEAM_LEAD, ROLES.APPLICANT, ROLES.EMPLOYEE],
+    Accounting: [ROLES.ADMIN, ROLES.HR, ROLES.TEAM_LEAD, ROLES.EMPLOYEE],
     TeamLead: [ROLES.EMPLOYEE, ROLES.ACCOUNTING, ROLES.HR],
     Applicant: [ROLES.HR],
-    Employee: [ROLES.TEAM_LEAD, ROLES.HR]
+    Employee: [ROLES.EMPLOYEE, ROLES.ACCOUNTING, ROLES.TEAM_LEAD, ROLES.HR]
   };
 
   /** Display / API aliases → canonical RoleName */
@@ -103,6 +103,7 @@
         return false;
       }
 
+      if (contact.server_authorized === true) return true;
       var contactRole = normalizeRole(contact.role);
       if (!contactRole) return false;
 
@@ -171,8 +172,8 @@
       var company = c.company || c.company_name || 'Onazul Manpower';
       var roleLabel = c.role || '';
       var unreadDot = hasUnread
-        ? '<span class="msgr-unread-dot p-1 bg-danger border border-light rounded-circle flex-shrink-0 d-inline-block" ' +
-          'style="width:8px;height:8px;" title="' + unread + ' unread" aria-label="Unread messages"></span>'
+        ? '<span class="msgr-unread-dot px-2 py-0 bg-danger text-white border border-light rounded-circle flex-shrink-0 d-inline-block" ' +
+          'title="' + unread + ' unread" aria-label="' + unread + ' unread messages">' + unread + '</span>'
         : '';
       return (
         '<button type="button" class="' + itemClass +
@@ -188,6 +189,7 @@
         (hasUnread ? 'fw-bold' : 'fw-semibold') + '">' +
         '<span class="text-truncate">' + escapeHtml(c.full_name || 'User') + '</span>' +
         unreadDot + '</span>' +
+        '<span class="messenger-contact-presence small d-block ' + (c.is_online ? 'text-success' : 'text-muted') + '">' + (c.is_online ? '● Online' : '○ Offline') + '</span>' +
         '<span class="messenger-contact-meta small text-muted text-truncate d-block">' +
         escapeHtml(roleLabel) + ' · ' + escapeHtml(company) + '</span>' +
         '</span></button>'

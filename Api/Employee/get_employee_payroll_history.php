@@ -178,6 +178,7 @@ try {
             'days_worked' => $daysWorked,
             'daily_rate' => $dailyRate,
             'earnings' => [
+                'add_back' => (float)($conn->query("SELECT COALESCE(SUM(Amount),0) amount FROM payroll_adjustments WHERE Payroll_ID=".(int)$row['Payroll_ID']." AND AdjustmentType='Add Back' AND IsAddition=1")->fetch_assoc()['amount'] ?? 0),
                 'basic_pay' => (float)($row['BasicSalary'] ?? 0),
                 'sunday_overtime' => 0.0, // not itemized separately in the persisted record; see note below
                 'regular_overtime' => (float)($row['OvertimePay'] ?? 0),

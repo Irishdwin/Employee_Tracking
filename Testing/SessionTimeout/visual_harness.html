@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Session warning visual test</title>
+<style>body{font-family:system-ui;background:#f1f5f9;padding:2rem;color:#1e293b}</style></head>
+<body><h1>Session warning visual test</h1><p>Isolated UI harness. No authenticated dashboard, credentials, database records or real session requests.</p><p id="test-state">Waiting for the shared warning controller.</p>
+<script>
+window.REQUIRED_ROLE='HR';
+// Explicit mock transport for rendering/interaction tests only. Production
+// configuration and controller are unchanged; no PHP request is sent.
+window.fetch=function(url){
+ var heartbeat=String(url).includes('session_heartbeat.php');
+ var logout=String(url).includes('logout.php');
+ document.getElementById('test-state').textContent=heartbeat?'Mock renewal acknowledged. New 60-second test cycle.':logout?'Mock logout acknowledged.':'Mock 60-second session; warning appears after 30 seconds.';
+ return Promise.resolve({status:200,ok:true,json:function(){return Promise.resolve(logout?{success:true}:{success:true,authenticated:true,role:'HR',timeout_seconds:60,remaining_seconds:60});}});
+};
+</script><script src="../../Js/Shared/role_guard.js"></script>
+<iframe title="Embedded session test" src="visual_child.html" style="width:100%;height:100px;border:1px solid #cbd5e1;margin-top:1rem"></iframe></body></html>

@@ -1,0 +1,25 @@
+#section-settings { max-width: 850px; margin: 0 auto; }
+#section-settings .security-card { border: 1px solid #dce5f0; border-radius: 18px; overflow: hidden; background: #fff; box-shadow: 0 8px 26px rgba(15,42,78,.06); }
+#section-settings .security-heading { background: #eef5ff; padding: 24px 28px; border-bottom: 1px solid #dce5f0; display:flex; gap:16px; align-items:center; }
+#section-settings .security-icon { background:#0a2a5e; color:white; width:48px; height:48px; border-radius:14px; display:grid; place-items:center; font-size:23px; flex-shrink:0; }
+#section-settings .security-content { padding:28px; }
+#section-settings h1 { font-size:26px; font-weight:700; margin:0; }
+#section-settings h2 { font-size:19px; font-weight:700; margin:0 0 5px; }
+#section-settings h3 { font-size:18px; font-weight:700; margin:0 0 10px; }
+#section-settings .form-label { display:block; font-size:14px; font-weight:600; margin-bottom:8px; }
+#section-settings .form-control { min-height:46px; border-color:#cfd9e7; font-size:15px; }
+#section-settings .input-group .btn { min-width:46px; }
+#section-settings .security-policy { background:#f5f8fc; border:1px solid #e1e8f1; border-radius:12px; padding:16px 20px; margin:20px 0; }
+#section-settings .security-policy ul { margin:8px 0; padding-left:20px; line-height:1.85; }
+#section-settings .security-policy p { margin:8px 0 0; }
+#section-settings .security-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+#section-settings .security-actions .btn { min-height:44px; padding:10px 20px; }
+#section-settings #employeePasswordForm { max-width:640px; margin:24px auto 0; }
+#section-settings #employeeEmailVerification { background:#f5f8fc; border:1px solid #dce5f0; border-radius:12px; padding:20px; margin-top:22px; max-width:560px; }
+#section-settings [hidden] { display:none !important; }
+#section-settings #employeeSecurityMessage { margin-top:20px; }
+@media(max-width:575px) {
+ #section-settings .security-heading { padding:20px; }
+ #section-settings .security-content { padding:20px; }
+ #section-settings .security-actions .btn { flex:1 1 auto; }
+}

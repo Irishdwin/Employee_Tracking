@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../Common/session_init.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id']) && !isset($_SESSION['id'])) {
@@ -7,38 +7,19 @@ if (!isset($_SESSION['user_id']) && !isset($_SESSION['id'])) {
     exit();
 }
 
+if(!in_array($_SESSION['role']??'', ['TeamLead','Team Lead'],true)){http_response_code(403);echo json_encode(['success'=>false]);exit;}
 $userId = (int)($_SESSION['user_id'] ?? $_SESSION['id']);
 
 require_once __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
 
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
 try {
-    // 1. Geofence check: Check if the Team Lead has registered a work site
-    $geoCount = 0;
-    $siteCheck = $conn->prepare("
-        SELECT COUNT(*) as cnt 
-        FROM clientcompany 
-        WHERE (UserID = ? OR CompanyID IN (SELECT CompanyID FROM deployment WHERE SiteSuperVisorID = ?)) 
-          AND (latitude IS NOT NULL OR registered_latitude IS NOT NULL)
-    ");
-    if ($siteCheck) {
-        $siteCheck->bind_param("ii", $userId, $userId);
-        $siteCheck->execute();
-        $res = $siteCheck->get_result()->fetch_assoc();
-        $siteCheck->close();
-        if (($res['cnt'] ?? 0) == 0) {
-            $anyCo = $conn->prepare("SELECT COUNT(*) as acnt FROM clientcompany WHERE UserID = ? OR CompanyID IN (SELECT CompanyID FROM deployment WHERE SiteSuperVisorID = ?)");
-            if ($anyCo) {
-                $anyCo->bind_param("ii", $userId, $userId);
-                $anyCo->execute();
-                $anyRes = $anyCo->get_result()->fetch_assoc();
-                $anyCo->close();
-                if (($anyRes['acnt'] ?? 0) > 0) {
-                    $geoCount = 1;
-                }
-            } else {
-                $geoCount = 1;
-            }
-        }
+    $obligations=site_dtr_sync_notifications($conn,$userId);
+    // Warn when ANY authorized current site lacks a complete valid coordinate pair.
+    $geoCount=0;
+    foreach(work_site_companies_for_team_lead($conn,$userId) as $site){
+        if(geofence_pick_coordinates($site,'dep')===null)++$geoCount;
     }
 
     // 2. Job Order requests count (pending)
@@ -51,22 +32,13 @@ try {
         $joStmt->close();
     }
 
-    // 3. Endorsed Applicants awaiting decision
+    // New endorsements only; viewing the list clears these notifications.
     $applicantsCount = 0;
-    $appStmt = $conn->prepare("
-        SELECT COUNT(*) as cnt 
-        FROM job_applications ja
-        INNER JOIN joborder jo ON ja.JobOrderID = jo.JobOrderID
-        INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
-        WHERE (c.UserID = ? OR c.CompanyID IN (SELECT CompanyID FROM deployment WHERE SiteSuperVisorID = ?))
-          AND ja.ClientApprovalStatus = 'Pending'
-    ");
-    if ($appStmt) {
-        $appStmt->bind_param("ii", $userId, $userId);
-        $appStmt->execute();
-        $applicantsCount = (int)($appStmt->get_result()->fetch_assoc()['cnt'] ?? 0);
-        $appStmt->close();
-    }
+    $appStmt = $conn->prepare("SELECT COUNT(*) AS cnt FROM notifications WHERE UserID = ? AND IsRead = 0 AND NotificationType = 'endorsed_applicant'");
+    $appStmt->bind_param('i', $userId);
+    $appStmt->execute();
+    $applicantsCount = (int)($appStmt->get_result()->fetch_assoc()['cnt'] ?? 0);
+    $appStmt->close();
 
     // 4. Unread notifications count
     $unreadCount = 0;
@@ -83,7 +55,8 @@ try {
         'badges' => [
             'geofence' => $geoCount,
             'job_orders' => $jobOrdersCount,
-            'applicants' => $applicantsCount
+            'applicants' => $applicantsCount,
+            'dtr'=>count($obligations)
         ],
         'unread_notifications' => $unreadCount
     ]);

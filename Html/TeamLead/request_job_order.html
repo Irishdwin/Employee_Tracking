@@ -55,6 +55,7 @@
     <aside class="sidebar">
         <div class="sidebar-header"><span>Onazul Team Lead</span></div>
         <ul class="sidebar-nav mt-2">
+            <li><a href="team_lead_dashboard.html#view-schedule" class="sidebar-link"><i class="bi bi-calendar-week"></i><span class="flex-grow-1">TEAM SCHEDULE</span></a></li>
             <li><a href="team_lead_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span class="flex-grow-1">Dashboard</span><span class="sidebar-nav-badge d-none" id="tlDashboardBadge" aria-label="Team members absent today">0</span></a></li>
             <li><a href="endorsed_applicants.html" class="sidebar-link"><i class="bi bi-person-check"></i><span class="flex-grow-1">Endorsed Applicants</span><span class="sidebar-nav-badge d-none" id="tlEndorsedBadge" aria-label="Endorsed applicants awaiting decision">0</span></a></li>
             <li><a href="request_job_order.html" class="sidebar-link active"><i class="bi bi-clipboard-plus"></i><span class="flex-grow-1">Request Job Order</span><span class="sidebar-nav-badge d-none" id="tlJobOrdersBadge" aria-label="New job order updates">0</span></a></li>
@@ -115,10 +116,11 @@
                             <th>Work Schedule</th>
                             <th>Date Requested</th>
                             <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                         </thead>
                         <tbody id="requestsBody">
-                            <tr><td colspan="7" class="text-center text-muted py-4">Loading…</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted py-4">Loading…</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -133,7 +135,7 @@
             <div class="modal-header"><h5 class="modal-title">Request Job Order</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <div id="requestAlert" class="alert d-none"></div>
-                <form id="requestForm">
+                <form id="requestForm" data-job-hierarchy>
                     <div class="mb-3">
                         <label class="form-label">Site / Company *</label>
                         <select name="company_id" class="form-select" required id="siteSelect">
@@ -185,6 +187,37 @@
     </div>
 </div>
 
+<div class="modal fade" id="tlJorDetailsModal" tabindex="-1" aria-labelledby="tlJorDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tlJorDetailsModalLabel">Job Order Request Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger py-2 px-3 mb-3 d-none" id="tlJorRejectionReasonBlock">
+                    <strong><i class="bi bi-x-circle me-1"></i>Rejection reason:</strong>
+                    <span id="tlJorRejectionReasonText"></span>
+                </div>
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted">Site / Company</dt><dd class="col-7" id="tlJorDetailCompany">—</dd>
+                    <dt class="col-5 text-muted">Position</dt><dd class="col-7" id="tlJorDetailPosition">—</dd>
+                    <dt class="col-5 text-muted">Workers</dt><dd class="col-7" id="tlJorDetailWorkers">—</dd>
+                    <dt class="col-5 text-muted">Location</dt><dd class="col-7" id="tlJorDetailLocation">—</dd>
+                    <dt class="col-5 text-muted">Work Schedule</dt><dd class="col-7" id="tlJorDetailSchedule">—</dd>
+                    <dt class="col-5 text-muted">Date Requested</dt><dd class="col-7" id="tlJorDetailDate">—</dd>
+                    <dt class="col-5 text-muted">Status</dt><dd class="col-7" id="tlJorDetailStatus">—</dd>
+                    <dt class="col-5 text-muted">Submitted hierarchy</dt><dd class="col-7" id="tlJorDetailHierarchy">—</dd>
+                    <dt class="col-5 text-muted" id="tlJorDetailRemarksLabel">Your remarks</dt><dd class="col-7" id="tlJorDetailRemarks">—</dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080">
     <div id="rtToast" class="toast text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
         <div class="d-flex">
@@ -196,6 +229,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../../Js/Shared/ow_job_categories.js"></script>
+<script src="../../Js/Shared/job_hierarchy_selects.js"></script>
 <script src="../../Js/Shared/common_logout_confirm.js"></script>
 <script src="../../Js/team_lead_notifications.js"></script>
 <script src="../../Js/TeamLead/team_lead_sidebar_badges.js"></script>
@@ -274,13 +308,20 @@ function requestPositionLabel(r) {
     return p;
 }
 
+// Cache of the last-loaded requests so the View modal can read details
+// straight from memory — no extra API call/endpoint needed.
+var tlLastRequests = [];
+var tlJorDetailsModalInstance = null;
+
 function loadRequests() {
     fetch(REQ_API, { credentials: 'same-origin' }).then(r => r.json()).then(d => {
         const tbody = document.getElementById('requestsBody');
         if (!d.success || !d.requests || d.requests.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No job order requests yet.</td></tr>';
+            tlLastRequests = [];
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No job order requests yet.</td></tr>';
             return;
         }
+        tlLastRequests = d.requests;
         tbody.innerHTML = d.requests.map(r => `
             <tr>
                 <td>${esc(r.company_name)}</td>
@@ -290,8 +331,38 @@ function loadRequests() {
                 <td>${esc(r.work_schedule) || '–'}</td>
                 <td>${r.created_at ? new Date(r.created_at).toLocaleDateString() : '–'}</td>
                 <td>${statusBadge(r.status)}</td>
+                <td><button type="button" class="btn btn-sm btn-outline-primary" title="View details" onclick="viewTlJorDetails(${r.request_id})"><i class="bi bi-eye"></i></button></td>
             </tr>`).join('');
-    }).catch(() => { document.getElementById('requestsBody').innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Failed to load.</td></tr>'; });
+    }).catch(() => { document.getElementById('requestsBody').innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Failed to load.</td></tr>'; });
+}
+
+function viewTlJorDetails(requestId) {
+    var r = tlLastRequests.find(function (x) { return String(x.request_id) === String(requestId); });
+    if (!r) return;
+
+    document.getElementById('tlJorDetailCompany').textContent = r.company_name || '—';
+    document.getElementById('tlJorDetailPosition').textContent = requestPositionLabel(r);
+    document.getElementById('tlJorDetailWorkers').textContent = r.required_count;
+    document.getElementById('tlJorDetailLocation').textContent = r.location || '—';
+    document.getElementById('tlJorDetailSchedule').textContent = r.work_schedule || '—';
+    document.getElementById('tlJorDetailDate').textContent = r.created_at ? new Date(r.created_at).toLocaleDateString() : '—';
+    document.getElementById('tlJorDetailStatus').innerHTML = statusBadge(r.status);
+    document.getElementById('tlJorDetailRemarks').textContent = r.remarks || '—';
+    document.getElementById('tlJorDetailHierarchy').textContent=(r.deployments||[]).map(function(d){return [d.job_category,d.classification_name||'Not provided',d.sub_classification_name||'Not provided'].join(' / ');}).join('; ')||r.job_category||'Not provided';
+
+    var rejectionBlock = document.getElementById('tlJorRejectionReasonBlock');
+    var rejectionText = document.getElementById('tlJorRejectionReasonText');
+    var reason = String(r.rejection_reason || '').trim();
+    if (r.status === 'Rejected' && reason) {
+        rejectionText.textContent = reason;
+        rejectionBlock.classList.remove('d-none');
+    } else {
+        rejectionBlock.classList.add('d-none');
+    }
+
+    var modalEl = document.getElementById('tlJorDetailsModal');
+    if (!tlJorDetailsModalInstance) tlJorDetailsModalInstance = new bootstrap.Modal(modalEl);
+    tlJorDetailsModalInstance.show();
 }
 
 function showToast(msg, ok) {
@@ -384,6 +455,7 @@ document.getElementById('btnNewRequest').onclick = () => {
 
 document.getElementById('btnSubmitRequest').onclick = () => {
     const form = document.getElementById('requestForm');
+    if(!form.reportValidity())return;
     const fd = new FormData(form);
     const alert = document.getElementById('requestAlert');
     fetch(REQ_API, { method: 'POST', body: fd, credentials: 'same-origin' })

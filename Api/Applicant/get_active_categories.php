@@ -28,6 +28,7 @@ try {
     $stmt = $pdo->query('
         SELECT id, category_name
         FROM job_categories
+        WHERE is_active = 1
         ORDER BY category_name ASC
     ');
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

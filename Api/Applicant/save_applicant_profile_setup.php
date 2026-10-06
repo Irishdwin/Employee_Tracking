@@ -21,9 +21,16 @@ if (
 $userId = (int)$_SESSION['user_id'];
 
 require_once __DIR__ . '/../Helpers/job_categories.php';
+require_once __DIR__ . '/../Helpers/job_hierarchy.php';
 
 $raw = file_get_contents('php://input');
 $input = $raw ? (json_decode($raw, true) ?: []) : [];
+require_once __DIR__.'/../Db_connection/db_connect.php';
+require_once __DIR__.'/../Helpers/applicant_profile_validation.php';
+try{$fieldErrors=applicant_profile_errors($input);}
+catch(Throwable $e){error_log('Profile validation: '.$e->getMessage());http_response_code(503);echo json_encode(['success'=>false,'message'=>'Profile validation is temporarily unavailable. Please retry.']);exit;}
+if($fieldErrors){http_response_code(400);echo json_encode(['success'=>false,'message'=>'Please complete the highlighted required fields.','errors'=>$fieldErrors]);exit;}
+try{$hierarchy=jh_resolve_profile($conn,$input);}catch(DomainException $e){http_response_code(400);echo json_encode(['success'=>false,'message'=>$e->getMessage(),'errors'=>['category_id'=>'Please verify your Job Category.','classification_id'=>'Please select a valid Classification for this Job Category.','sub_classification_id'=>'Please select a valid Sub-classification for this Classification.']]);exit;}
 
 $first = isset($input['first_name']) ? trim((string)$input['first_name']) : '';
 $middle = isset($input['middle_name']) ? trim((string)$input['middle_name']) : '';
@@ -33,6 +40,7 @@ $suffix = $hasSuffix ? trim((string)($input['suffix'] ?? '')) : '';
 
 $home = isset($input['home_location']) ? trim((string)$input['home_location']) : '';
 $streetAddress = isset($input['street_address']) ? trim((string)$input['street_address']) : '';
+$region = isset($input['region']) ? trim((string)$input['region']) : '';
 $city = isset($input['city']) ? trim((string)$input['city']) : '';
 $stateProvince = isset($input['state_province']) ? trim((string)$input['state_province']) : '';
 $barangay = isset($input['barangay']) ? trim((string)$input['barangay']) : '';
@@ -50,9 +58,9 @@ $stillInRole = isset($input['still_in_role']) ? (int)$input['still_in_role'] : 0
 $endMonth = isset($input['experience_end_month']) ? $input['experience_end_month'] : null;
 $endYear = isset($input['experience_end_year']) ? $input['experience_end_year'] : null;
 
-$preferredClass = isset($input['preferred_classification']) ? trim((string)$input['preferred_classification']) : '';
-$preferredSub = isset($input['preferred_sub_classification']) ? trim((string)$input['preferred_sub_classification']) : '';
-$jobCategory = job_category_normalize(isset($input['job_category']) ? trim((string)$input['job_category']) : '');
+$preferredClass = $hierarchy['classification_name'];
+$preferredSub = $hierarchy['sub_classification_name'];
+$jobCategory = $hierarchy['category_name'];
 $birthRaw = isset($input['birth_date']) ? trim((string)$input['birth_date']) : '';
 
 if ($birthRaw === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthRaw)) {
@@ -90,15 +98,19 @@ if ($last === '' || mb_strlen($last) < 2) {
     echo json_encode(['success' => false, 'message' => 'Last name is required.']);
     exit();
 }
-if ($streetAddress === '' || $city === '' || $stateProvince === '' || $barangay === '' || $postalCode === '') {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Province, city, barangay, street address, and postal/zip code are required.']);
-    exit();
-}
-$fullAddress = trim($streetAddress . ', ' . $barangay . ', ' . $city . ', ' . $stateProvince . ' ' . $postalCode . ', ' . $country);
-if ($home === '') {
-    $home = trim($barangay . ', ' . $city . ', ' . $stateProvince . ', ' . $country);
-}
+require_once __DIR__.'/../Helpers/psgc_address.php';
+try {
+    $codes=$input['address_psgc']??null;
+    if(!is_array($codes))throw new DomainException('Please select your PSGC address locations.');
+    $canonical=psgc_validate_address($codes);
+    $region=$canonical['region'];$stateProvince=$canonical['state_province'];$city=$canonical['city'];$barangay=$canonical['barangay'];
+    $addressPSGC=json_encode($canonical['psgc'],JSON_UNESCAPED_UNICODE);
+    if($streetAddress==='' || mb_strlen($streetAddress)>255 || preg_match('/[\x00-\x1f<>]/u',$streetAddress))throw new DomainException('Enter a valid street address (maximum 255 characters).');
+    if(!preg_match('/^\d{4}$/',$postalCode))throw new DomainException('Enter a four-digit Philippine postal/ZIP code.');
+} catch(DomainException $e){http_response_code(400);echo json_encode(['success'=>false,'message'=>$e->getMessage()]);exit;}
+catch(Throwable $e){error_log('PSGC address validation: '.$e->getMessage());http_response_code(503);echo json_encode(['success'=>false,'message'=>'Address locations are temporarily unavailable. Please retry.']);exit;}
+$fullAddress=implode(', ',array_filter([$streetAddress,$barangay,$city,$stateProvince,$region,$postalCode,$country],fn($v)=>$v!==''));
+$home=implode(', ',array_filter([$barangay,$city,$stateProvince,$country],fn($v)=>$v!==''));
 
 if ($jobCategory === '') {
     http_response_code(400);
@@ -133,7 +145,7 @@ if ($hasRecentExperience === 1) {
 }
 
 try {
-    require __DIR__ . '/../Db_connection/db_connect.php';
+    require_once __DIR__ . '/../Db_connection/db_connect.php';
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Service temporarily unavailable.']);
@@ -150,6 +162,7 @@ ensureApplicantColumn($conn, 'MiddleName', 'varchar(50) DEFAULT NULL');
 ensureApplicantColumn($conn, 'LastName', 'varchar(50) DEFAULT NULL');
 ensureApplicantColumn($conn, 'Suffix', 'varchar(20) DEFAULT NULL');
 ensureApplicantColumn($conn, 'StreetAddress', 'varchar(255) DEFAULT NULL');
+ensureApplicantColumn($conn, 'Region', 'varchar(120) DEFAULT NULL');
 ensureApplicantColumn($conn, 'City', 'varchar(120) DEFAULT NULL');
 ensureApplicantColumn($conn, 'StateProvince', 'varchar(120) DEFAULT NULL');
 ensureApplicantColumn($conn, 'Barangay', 'varchar(120) DEFAULT NULL');
@@ -187,12 +200,26 @@ $conn->query("CREATE TABLE IF NOT EXISTS applicant_profiles (
     UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-$profileVisibility = isset($input['profile_visibility']) ? trim((string)$input['profile_visibility']) : '';
+// Profile Visibility now has its own dedicated settings page
+// (Html/Applicant/applicant_visibility_settings.html +
+// Api/Applicant/save_applicant_visibility.php) and is no longer part of
+// this form. If this save doesn't include it, preserve whatever the
+// applicant already has (so re-saving this form never silently resets a
+// choice made on the dedicated settings page) — only default to "Public"
+// for a genuinely first-time save with nothing set yet.
+// ProfileVisibilityCompleted below is still set to 1 unconditionally, since
+// applicant_login.php / verify_signin_code.php / google_auth_rbac.php all
+// gate onboarding completion on that flag.
 $allowedVis = ['Public', 'Standard', 'Limited', 'Hidden'];
-if ($profileVisibility === '' || !in_array($profileVisibility, $allowedVis, true)) {
-    http_response_code(400);
-    echo json_encode(['success' => false, 'message' => 'Please select a profile visibility option.']);
-    exit();
+$profileVisibility = isset($input['profile_visibility']) ? trim((string)$input['profile_visibility']) : '';
+if (!in_array($profileVisibility, $allowedVis, true)) {
+    $existingVisStmt = $conn->prepare("SELECT ProfileVisibility FROM applicants WHERE UserID = ? LIMIT 1");
+    $existingVisStmt->bind_param('i', $userId);
+    $existingVisStmt->execute();
+    $existingVisRow = $existingVisStmt->get_result()->fetch_assoc();
+    $existingVisStmt->close();
+    $existingVis = trim((string)($existingVisRow['ProfileVisibility'] ?? ''));
+    $profileVisibility = in_array($existingVis, $allowedVis, true) ? $existingVis : 'Public';
 }
 
 $nameParts = array_filter([$first, $middle !== '' ? $middle : null, $last, $suffix !== '' ? $suffix : null]);
@@ -226,6 +253,7 @@ try {
             BirthDate = ?,
             HomeLocation = ?,
             StreetAddress = ?,
+            Region = ?,
             City = ?,
             StateProvince = ?,
             Barangay = ?,
@@ -260,7 +288,7 @@ try {
     $suffixVal = $suffix !== '' ? $suffix : null;
 
     $stmt->bind_param(
-        "ssssssssssssssissiiiiissssi",
+        "sssssssssssssssissiiiiissssi",
         $fullName,
         $fullAddress,
         $first,
@@ -270,6 +298,7 @@ try {
         $birthRaw,
         $home,
         $streetAddress,
+        $region,
         $city,
         $stateProvince,
         $barangay,
@@ -291,6 +320,12 @@ try {
     );
     $stmt->execute();
     $stmt->close();
+
+    $addressStmt=$conn->prepare('UPDATE applicants SET AddressPSGC=? WHERE UserID=?');
+    $addressStmt->bind_param('si',$addressPSGC,$userId);$addressStmt->execute();$addressStmt->close();
+
+    $hstmt=$conn->prepare('UPDATE applicants SET category_id=?,classification_id=?,sub_classification_id=? WHERE UserID=?');
+    $hstmt->bind_param('iiii',$hierarchy['category_id'],$hierarchy['classification_id'],$hierarchy['sub_classification_id'],$userId);$hstmt->execute();$hstmt->close();
 
     $profStmt = $conn->prepare("
         INSERT INTO applicant_profiles (

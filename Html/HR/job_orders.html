@@ -30,6 +30,7 @@
         <div class="sidebar-header"><span>Onazul HR</span></div>
         <ul class="sidebar-nav mt-2">
             <li><a href="hr_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="hr_dashboard.html#section-employee-management" class="sidebar-link"><i class="bi bi-person-vcard"></i><span>Employee Management</span></a></li>
             <li><a href="job_orders.html" class="sidebar-link active"><i class="bi bi-briefcase"></i><span>Job Orders</span></a></li>
             <li><a href="applicant_review.html" class="sidebar-link"><i class="bi bi-people"></i><span>Applicant Review</span></a></li>
             <li><a href="hr_dashboard.html#section-messages" class="sidebar-link"><i class="bi bi-chat-dots"></i><span>Messages (HR)</span></a></li>
@@ -144,7 +145,60 @@
     </div>
 </div>
 
+<div class="modal fade" id="hrJorDetailsModal" tabindex="-1" aria-labelledby="hrJorDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="hrJorDetailsModalLabel">Job Order Request Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger py-2 px-3 mb-3 d-none" id="hrJorRejectionReasonBlock">
+                    <strong><i class="bi bi-x-circle me-1"></i>Rejection reason:</strong>
+                    <span id="hrJorRejectionReasonText"></span>
+                </div>
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-muted">Requested By</dt><dd class="col-7" id="hrJorDetailRequestedBy">—</dd>
+                    <dt class="col-5 text-muted">Client</dt><dd class="col-7" id="hrJorDetailCompany">—</dd>
+                    <dt class="col-5 text-muted">Position</dt><dd class="col-7" id="hrJorDetailPosition">—</dd>
+                    <dt class="col-5 text-muted">Workers</dt><dd class="col-7" id="hrJorDetailWorkers">—</dd>
+                    <dt class="col-5 text-muted">Location</dt><dd class="col-7" id="hrJorDetailLocation">—</dd>
+                    <dt class="col-5 text-muted">Schedule</dt><dd class="col-7" id="hrJorDetailSchedule">—</dd>
+                    <dt class="col-5 text-muted">Date</dt><dd class="col-7" id="hrJorDetailDate">—</dd>
+                    <dt class="col-5 text-muted">Status</dt><dd class="col-7" id="hrJorDetailStatus">—</dd>
+                </dl>
+            </div>
+            <div class="modal-footer" id="hrJorDetailsFooter">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-danger" id="hrJorDetailRejectBtn">Reject</button>
+                <button type="button" class="btn btn-success" id="hrJorDetailPostBtn">Post</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="hrRejectJorModal" tabindex="-1" aria-labelledby="hrRejectJorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="hrRejectJorModalLabel">Reject Job Order Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label">Reason for rejection *</label>
+                <textarea class="form-control" id="hrRejectJorReason" rows="3" placeholder="This is sent to the Team Lead as a notification."></textarea>
+                <div class="text-danger small mt-1 d-none" id="hrRejectJorReasonError">Please enter a reason before rejecting.</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="hrRejectJorSubmitBtn">Reject Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/job_hierarchy_selects.js"></script>
 <script src="../../Js/Shared/ow_job_categories.js"></script>
 <script>
 const JO_API = '../../Api/HR/job_orders.php';
@@ -157,21 +211,23 @@ function statusBadge(s) {
     return '<span class="badge bg-' + c + '">' + esc(s) + '</span>';
 }
 
+let hrLastRequests = [];
+let hrJorDetailsModalInstance = null;
+let hrRejectJorModalInstance = null;
+let hrJorCurrentId = null;
+
 function loadJobOrderRequests() {
     const status = document.getElementById('requestFilter').value;
     const url = status ? REQ_API + '?status=' + encodeURIComponent(status) : REQ_API;
     fetch(url, { credentials: 'same-origin' }).then(r => r.json()).then(d => {
         const tbody = document.getElementById('requestsBody');
         if (!d.success || !d.requests || d.requests.length === 0) {
+            hrLastRequests = [];
             tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No job order requests.</td></tr>';
             return;
         }
+        hrLastRequests = d.requests;
         tbody.innerHTML = d.requests.map(r => {
-            let actions = '';
-            if (r.status === 'Pending') {
-                actions = '<button class="btn btn-sm btn-success me-1 btnApprove" data-id="' + r.request_id + '">Post</button>' +
-                    '<button class="btn btn-sm btn-outline-danger btnReject" data-id="' + r.request_id + '">Reject</button>';
-            }
             return '<tr>' +
                 '<td>' + esc(r.requested_by) + '</td>' +
                 '<td>' + esc(r.company_name) + '</td>' +
@@ -181,23 +237,98 @@ function loadJobOrderRequests() {
                 '<td>' + (esc(r.work_schedule) || '–') + '</td>' +
                 '<td>' + (r.created_at ? new Date(r.created_at).toLocaleDateString() : '–') + '</td>' +
                 '<td>' + statusBadge(r.status) + '</td>' +
-                '<td>' + actions + '</td></tr>';
+                '<td><button type="button" class="btn btn-sm btn-outline-primary" title="View details" onclick="viewJorDetails(' + r.request_id + ')"><i class="bi bi-eye"></i></button></td></tr>';
         }).join('');
-        document.querySelectorAll('.btnApprove').forEach(btn => {
-            btn.onclick = () => approveRequest(parseInt(btn.dataset.id));
-        });
-        document.querySelectorAll('.btnReject').forEach(btn => {
-            btn.onclick = () => rejectRequest(parseInt(btn.dataset.id));
-        });
     }).catch(() => { document.getElementById('requestsBody').innerHTML = '<tr><td colspan="9" class="text-center text-danger py-4">Failed to load.</td></tr>'; });
 }
 
+function viewJorDetails(requestId) {
+    hrJorCurrentId = requestId;
+    const r = hrLastRequests.find(x => String(x.request_id) === String(requestId));
+    if (!r) return;
+    const modalBody=document.querySelector('#hrJorDetailsModal .modal-body');
+    let choices=document.getElementById('hrReviewHierarchy');
+    if(!choices){choices=document.createElement('div');choices.id='hrReviewHierarchy';modalBody.appendChild(choices);}
+    choices.replaceChildren();
+    choices.textContent='Loading submitted classifications…';
+    fetch('../../Api/HR/get_jor_details.php?jor_id='+encodeURIComponent(requestId),{credentials:'same-origin'}).then(x=>x.json()).then(d=>{
+        if(hrJorCurrentId!==requestId)return;
+        choices.replaceChildren();
+        if(!d.success){choices.textContent=d.message||'Could not load classifications.';return;}
+        (d.positions||[]).forEach(p=>{
+            const info=document.createElement('p');info.className='small';info.textContent=[p.position_title,p.category_name||'Not provided',p.classification_name||'Not provided',p.sub_classification_name||'Not provided'].join(' / ');choices.appendChild(info);
+            if(d.status==='Pending'&&(!p.category_id||!p.classification_id||!p.sub_classification_id)){
+                const root=document.createElement('div');root.dataset.detailId=p.detail_id;root.id='standaloneJor-'+p.detail_id;choices.appendChild(root);
+                const note=document.createElement('p');note.className='small text-muted';note.textContent='Legacy request: complete missing classification before posting.';root.appendChild(note);
+                window.JobHierarchySelectors.set(root,p).then(()=>{['category_id','classification_id','sub_classification_id'].forEach(key=>{if(p[key])root.querySelector('[name="'+key+'"]').disabled=true;});});
+            }
+        });
+    }).catch(()=>{if(hrJorCurrentId===requestId)choices.textContent='Could not load classifications. Close and retry.';});
+
+    document.getElementById('hrJorDetailRequestedBy').textContent = r.requested_by || '—';
+    document.getElementById('hrJorDetailCompany').textContent = r.company_name || '—';
+    document.getElementById('hrJorDetailPosition').textContent = r.position || '—';
+    document.getElementById('hrJorDetailWorkers').textContent = r.required_count;
+    document.getElementById('hrJorDetailLocation').textContent = r.location || '—';
+    document.getElementById('hrJorDetailSchedule').textContent = r.work_schedule || '—';
+    document.getElementById('hrJorDetailDate').textContent = r.created_at ? new Date(r.created_at).toLocaleDateString() : '—';
+    document.getElementById('hrJorDetailStatus').innerHTML = statusBadge(r.status);
+
+    const rejectionBlock = document.getElementById('hrJorRejectionReasonBlock');
+    const rejectionText = document.getElementById('hrJorRejectionReasonText');
+    const reason = String(r.rejection_reason || '').trim();
+    if (r.status === 'Rejected' && reason) {
+        rejectionText.textContent = reason;
+        rejectionBlock.classList.remove('d-none');
+    } else {
+        rejectionBlock.classList.add('d-none');
+    }
+
+    const postBtn = document.getElementById('hrJorDetailPostBtn');
+    const rejectBtn = document.getElementById('hrJorDetailRejectBtn');
+    const showActions = r.status === 'Pending';
+    postBtn.classList.toggle('d-none', !showActions);
+    rejectBtn.classList.toggle('d-none', !showActions);
+
+    if (!hrJorDetailsModalInstance) hrJorDetailsModalInstance = new bootstrap.Modal(document.getElementById('hrJorDetailsModal'));
+    hrJorDetailsModalInstance.show();
+}
+
+document.getElementById('hrJorDetailPostBtn').onclick = () => {
+    if (hrJorCurrentId == null) return;
+    approveRequest(hrJorCurrentId);
+};
+
+document.getElementById('hrJorDetailRejectBtn').onclick = () => {
+    document.getElementById('hrRejectJorReason').value = '';
+    document.getElementById('hrRejectJorReasonError').classList.add('d-none');
+    if (!hrRejectJorModalInstance) hrRejectJorModalInstance = new bootstrap.Modal(document.getElementById('hrRejectJorModal'));
+    hrRejectJorModalInstance.show();
+};
+
+document.getElementById('hrRejectJorSubmitBtn').onclick = () => {
+    const reason = document.getElementById('hrRejectJorReason').value.trim();
+    if (!reason) {
+        document.getElementById('hrRejectJorReasonError').classList.remove('d-none');
+        return;
+    }
+    rejectRequest(hrJorCurrentId, reason, () => {
+        hrRejectJorModalInstance.hide();
+        if (hrJorDetailsModalInstance) hrJorDetailsModalInstance.hide();
+    });
+};
+
 function approveRequest(id) {
+    const review={action:'approve',request_id:id,placements:[]};let valid=true;
+    document.querySelectorAll('#hrReviewHierarchy [data-detail-id]').forEach(root=>{const v=window.JobHierarchySelectors.values(root);if(!v.classification_id||!v.sub_classification_id)valid=false;v.detail_id=parseInt(root.dataset.detailId,10);if(v.detail_id)review.placements.push(v);else{review.category_id=v.category_id;review.classification_id=v.classification_id;review.sub_classification_id=v.sub_classification_id;}});
+    if(!valid){alert('Select the classification and sub-classification for each requested placement.');return;}
     if (!confirm('Post this request as a Job Order?')) return;
-    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'approve', request_id: id }), credentials: 'same-origin' })
+    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(review), credentials: 'same-origin' })
         .then(r => r.json()).then(d => {
-            if (d.success) { loadJobOrderRequests(); loadJobOrders(); }
-            else {
+            if (d.success) {
+                if (hrJorDetailsModalInstance) hrJorDetailsModalInstance.hide();
+                loadJobOrderRequests(); loadJobOrders();
+            } else {
                 var alertEl = document.getElementById('createJOAlert');
                 if (d.error_type === 'invalid_category' && alertEl) {
                     showAlert(alertEl, d.message, 'warning');
@@ -208,11 +339,10 @@ function approveRequest(id) {
         });
 }
 
-function rejectRequest(id) {
-    if (!confirm('Reject this request?')) return;
-    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', request_id: id }), credentials: 'same-origin' })
+function rejectRequest(id, reason, onSuccess) {
+    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', request_id: id, reason: reason }), credentials: 'same-origin' })
         .then(r => r.json()).then(d => {
-            if (d.success) loadJobOrderRequests();
+            if (d.success) { if (onSuccess) onSuccess(); loadJobOrderRequests(); }
             else alert(d.message || 'Error');
         });
 }

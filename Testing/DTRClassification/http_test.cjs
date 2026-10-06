@@ -1,0 +1,29 @@
+const fs=require('fs'),cp=require('child_process'),path=require('path');
+const cfg=JSON.parse(fs.readFileSync(path.join(__dirname,'../MultiSite/runtime.json'),'utf8'));
+const base='http://127.0.0.1:8895';const checks=[];
+function check(ok,label,value){checks.push({label,result:ok?'PASS':'FAIL'});if(!ok)throw Error(label+': '+JSON.stringify(value));console.log('PASS '+label);}
+function quote(s){return "'"+s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";}
+function session(uid,role){const code=`ini_set('session.save_path',${quote(cfg.root+'/sessions')});ini_set('session.use_cookies','0');ini_set('session.cache_limiter','');$id=bin2hex(random_bytes(16));session_id($id);session_start();$_SESSION=['user_id'=>${uid},'role'=>${quote(role)},'last_activity'=>time()];session_write_close();echo $id;`;return cp.execFileSync('C:/xampp/php/php.exe',['-r',code],{encoding:'utf8'}).trim();}
+async function req(url,sid,body){let r=await fetch(base+url,{method:body?'POST':'GET',headers:{...(sid?{Cookie:'PHPSESSID='+sid}:{}),'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});let raw=await r.text(),data;try{data=JSON.parse(raw);}catch{data=raw;}return {status:r.status,data};}
+(async()=>{let r;const tl=session(113,'TeamLead'),acc=session(3,'Accounting'),other=session(114,'TeamLead');
+r=await req('/Api/TeamLead/get_dtr_cutoff_review.php?site_id=6');check(r.status===401,'Review rejects unauthenticated user',r);
+r=await req('/Api/TeamLead/get_dtr_cutoff_review.php?site_id=6',acc);check(r.status===403,'Review rejects wrong role',r);
+r=await req('/Api/TeamLead/get_dtr_cutoff_review.php?site_id=6',other);check(r.status===403,'Review rejects another Team Lead site',r);
+r=await req('/Api/TeamLead/get_dtr_cutoff_review.php?site_id=6&cutoff_ref=2026-10-01',tl);check(r.data.success,'Review API loads',r);
+let emp=r.data.employees.find(x=>x.employee_id===4);check(emp.total_regular_hours===8&&emp.total_overtime_hours===1&&emp.holiday_pay_hours===0,'Review equals authoritative engine',emp);check(r.data.employees.every(x=>[4,5].includes(x.employee_id)),'Review selected-site roster only',r);
+r=await req('/Api/TeamLead/submit_dtr.php',tl,{site_id:6,employee_ids:[6],cutoff_start:'2026-09-26',cutoff_end:'2026-10-10'});check(r.status===403,'Cross-site submission rejected',r);
+r=await req('/Api/TeamLead/submit_dtr.php',tl,{site_id:6,employee_ids:[4],cutoff_start:'2026-09-26',cutoff_end:'2026-10-10'});check(r.data.success,'Submit API succeeds',r);
+r=await req('/Api/TeamLead/get_dtr_cutoff_review.php?site_id=6&cutoff_ref=2026-10-01',tl);emp=r.data.employees.find(x=>x.employee_id===4);check(emp.is_submitted&&emp.total_overtime_hours===1&&emp.classification.overtime_hours===1,'Locked submission uses persisted snapshot',emp);
+cp.execFileSync('C:/xampp/mysql/bin/mysql.exe',['-u','root',cfg.database,'-e',"UPDATE overtime SET StatusID=4 WHERE EmployeeID=4 AND OvertimeDate='2026-10-01'"]);
+r=await req('/Api/TeamLead/get_dtr_cutoff_review.php?site_id=6&cutoff_ref=2026-10-01',tl);check(r.data.employees.find(x=>x.employee_id===4).total_overtime_hours===1,'Locked totals survive later source changes',r);
+r=await req('/Api/Accounting/get_submitted_dtrs.php?employee_id=4&cutoff_start=2026-09-26&cutoff_end=2026-10-10',acc);check(r.data.success&&r.data.submission.total_overtime_hours===1&&r.data.submission.classification.overtime_hours===1,'Accounting detail retains submitted classification',r);
+r=await req('/Api/Accounting/get_submitted_dtrs.php?tl_id=113&site_id=6&cutoff_start=2026-09-26&cutoff_end=2026-10-10',acc);check(r.data.success&&r.data.employees.find(x=>x.employee_id===4).approved_ot_hours===1,'Accounting batch uses persisted overtime',r);
+cp.execFileSync('C:/xampp/mysql/bin/mysql.exe',['-u','root',cfg.database,'-e',"UPDATE overtime SET StatusID=7 WHERE EmployeeID=4 AND OvertimeDate='2026-10-01'"]);
+r=await req('/Api/TeamLead/get_dtr_cutoff_review.php?site_id=6&cutoff_ref=2026-10-01',tl);let h=r.data.employees.find(x=>x.employee_id===5);check(h.holiday_pay_hours===8&&h.total_overtime_hours===2&&h.classification.holiday_overtime_hours===2,'Holiday review retains base duty and approved holiday OT',h);
+r=await req('/Api/TeamLead/submit_dtr.php',tl,{site_id:6,employee_ids:[5],cutoff_start:'2026-09-26',cutoff_end:'2026-10-10'});check(r.data.success,'Holiday DTR submission succeeds',r);
+r=await req('/Api/Accounting/get_submitted_dtrs.php?employee_id=5&cutoff_start=2026-09-26&cutoff_end=2026-10-10',acc);let before=r.data.submission;check(before.classification.holiday_work_hours===8&&before.classification.holiday_overtime_hours===2&&before.classification.holiday_breakdown[0].type==='Regular Holiday','Accounting receives holiday type and hours',r);
+r=await req('/Api/Accounting/verify_dtr_submission.php',acc,{tl_id:113,site_id:6,employee_id:5,cutoff_start:'2026-09-26',cutoff_end:'2026-10-10'});check(r.data.success,'Accounting verification API succeeds',r);
+r=await req('/Api/Accounting/get_submitted_dtrs.php?employee_id=5&cutoff_start=2026-09-26&cutoff_end=2026-10-10',acc);check(JSON.stringify(before.classification)===JSON.stringify(r.data.submission.classification),'Verification preserves classification snapshot',r);
+r=await req('/Api/Accounting/compute_payroll_for_batch.php',acc,{tl_id:113,cutoff_start:'2026-09-26',cutoff_end:'2026-10-10'});check(r.data.success,'Payroll run API succeeds on isolated verified DTR',r);fs.writeFileSync(path.join(__dirname,'payroll_run.json'),JSON.stringify(r.data));
+fs.writeFileSync(path.join(__dirname,'http_results.json'),JSON.stringify(checks,null,2));
+})().catch(e=>{fs.writeFileSync(path.join(__dirname,'http_results.json'),JSON.stringify(checks,null,2));console.error(e);process.exit(1)});

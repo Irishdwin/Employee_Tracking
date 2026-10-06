@@ -65,27 +65,17 @@ if (!function_exists('saveBase64Selfie')) {
      * Decodes Base64 camera string and saves JPEG image to server uploads
      */
     function saveBase64Selfie($base64Data, $userId, $prefix = 'clockin') {
-        if (empty($base64Data)) return null;
-
-        if (preg_match('/^data:image\/(\w+);base64,/', $base64Data)) {
-            $data = substr($base64Data, strpos($base64Data, ',') + 1);
-            $data = base64_decode($data);
-            if ($data === false) return null;
-        } else {
-            return null;
-        }
-
-        $uploadDir = __DIR__ . '/../../uploads/attendance_photos/';
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0777, true);
-        }
-
-        $filename = $prefix . '_' . $userId . '_' . time() . '_' . uniqid() . '.jpg';
-        $filePath = $uploadDir . $filename;
-
-        if (file_put_contents($filePath, $data)) {
-            return 'uploads/attendance_photos/' . $filename;
-        }
+        if (!is_string($base64Data) || strlen($base64Data)>7000000 || !preg_match('/^data:image\/(jpeg|png);base64,/', $base64Data)) return null;
+        if (!preg_match('/^[a-z_]+$/i',(string)$prefix) || (int)$userId<=0) return null;
+        $data=base64_decode(substr($base64Data,strpos($base64Data,',')+1),true);
+        if ($data===false || strlen($data)>5*1024*1024) return null;
+        $mime=(new finfo(FILEINFO_MIME_TYPE))->buffer($data);
+        $info=@getimagesizefromstring($data);
+        if (!$info || !in_array($mime,['image/jpeg','image/png'],true) || $info[0]*$info[1]>20000000) return null;
+        $uploadDir=__DIR__.'/../../uploads/attendance_photos/';
+        if (!is_dir($uploadDir) && !mkdir($uploadDir,0750,true)) return null;
+        $filename=$prefix.'_'.(int)$userId.'_'.bin2hex(random_bytes(16)).($mime==='image/png'?'.png':'.jpg');
+        if (file_put_contents($uploadDir.$filename,$data,LOCK_EX)!==false) return 'uploads/attendance_photos/'.$filename;
 
         return null;
     }

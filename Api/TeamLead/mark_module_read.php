@@ -16,7 +16,12 @@ $module = trim((string)($input['module'] ?? $input['module_id'] ?? $input['modul
 require_once __DIR__ . '/../Db_connection/db_connect.php';
 
 try {
-    if ($module !== '') {
+    if ($module === 'endorsed') {
+        $stmt = $conn->prepare("UPDATE notifications SET IsRead = 1 WHERE UserID = ? AND NotificationType = 'endorsed_applicant' AND IsRead = 0");
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        $stmt->close();
+    } elseif ($module !== '') {
         $stmt = $conn->prepare("UPDATE notifications SET IsRead = 1 WHERE UserID = ? AND (NotificationType = ? OR RelateedModule = ?)");
         if ($stmt) {
             $stmt->bind_param("iss", $userId, $module, $module);

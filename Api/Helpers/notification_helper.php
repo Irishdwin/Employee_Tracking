@@ -31,3 +31,17 @@ function createApplicationNotification($conn, $applicationId, $type, $title, $me
     $ins->close();
     return $ok;
 }
+
+/** Called inside the hiring transaction after the user row is locked by role update. */
+function createEmployeePasswordNotification(mysqli $conn, int $userId): void {
+    $state = $conn->prepare('SELECT LocalPasswordConfigured FROM users WHERE UsersID=? FOR UPDATE');
+    $state->bind_param('i', $userId);
+    $state->execute();
+    $row=$state->get_result()->fetch_assoc();
+    $state->close();
+    if (!$row || $row['LocalPasswordConfigured']===null || (int)$row['LocalPasswordConfigured']!==0) return;
+    $insert=$conn->prepare("INSERT INTO notifications (UserID,NotificationType,Title,Message,RelateedModule,RelatedRecord) SELECT ?, 'employee_password_setup', 'Set up your Employee password', 'You have been successfully hired as an Employee. Open Profile → Settings → Account Security to set up a password for email/password login. Google Sign-In remains available.', 'account_security', ? WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE UserID=? AND NotificationType='employee_password_setup')");
+    $insert->bind_param('iii',$userId,$userId,$userId);
+    $insert->execute();
+    $insert->close();
+}

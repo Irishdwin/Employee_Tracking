@@ -40,6 +40,7 @@ if ($userId > 0) {
 }
 
 $sinceCursor = isset($_GET['since_cursor']) ? (int)$_GET['since_cursor'] : 0;
+if($userId>0){$labels=jh_profile_labels($conn,$userId);$savedJobCategory=(string)($labels['category_name']??$savedJobCategory);$savedClass=(string)($labels['classification_name']??$savedClass);$savedSub=(string)($labels['sub_classification_name']??$savedSub);}
 $qKeyword = trim((string)($_GET['keyword'] ?? ''));
 $qLoc = trim((string)($_GET['location'] ?? ''));
 $qWorkType = trim((string)($_GET['work_type'] ?? ''));
@@ -66,7 +67,7 @@ $sql = "
     FROM joborder jo
     INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
     " . job_order_request_position_join_sql() . "
-    WHERE c.IsActive = 1
+    WHERE c.IsActive = 1 AND jo.Status = 'Open'
       AND " . job_order_has_open_slots_sql() . "
       AND UNIX_TIMESTAMP(jo.CreatedAt) > ?
 " . $filterParts['where'] . " ORDER BY jo.CreatedAt DESC LIMIT 20";
@@ -121,3 +122,5 @@ echo json_encode([
     ],
 ]);
 exit();
+
+

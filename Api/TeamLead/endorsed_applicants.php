@@ -17,7 +17,8 @@ if (!in_array($role, ['TeamLead', 'Team Lead'], true)) {
 }
 
 require __DIR__ . '/../Db_connection/db_connect.php';
-require __DIR__ . '/../Helpers/notification_helper.php';
+require_once __DIR__ . '/../Helpers/application_endorsement.php';
+try { ae_authorize($conn,(int)$_SESSION['user_id'],['TeamLead','Team Lead']); } catch (DomainException $e) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
 
 function json_resp($data, $status = 200) {
     http_response_code($status);
@@ -31,11 +32,14 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === 'GET') {
     $sql = "SELECT ja.ApplicationID, ja.EndorsedDate, ja.ClientApprovalStatus, ja.Remarks,
                    a.FullName AS ApplicantName, a.Email,
-                   jo.Position, c.Name AS CompanyName
+                   COALESCE(jod.position_title,jo.Position) Position, c.Name AS CompanyName, ea.AttemptID, ea.DecisionReason, ja.HiredDate, s.Name AgencyStatus
             FROM job_applications ja
             INNER JOIN applicants a ON ja.ApplicantID = a.ApplicantID
             INNER JOIN joborder jo ON ja.JobOrderID = jo.JobOrderID
             INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
+            LEFT JOIN job_order_details jod ON jod.detail_id=ja.target_detail_id AND jod.JobOrderID=ja.JobOrderID
+            LEFT JOIN status s ON s.StatusID=ja.StatusID
+            LEFT JOIN application_endorsement_attempts ea ON ea.ApplicationID=ja.ApplicationID AND ea.AttemptNumber=(SELECT MAX(h.AttemptNumber) FROM application_endorsement_attempts h WHERE h.ApplicationID=ja.ApplicationID)
             WHERE ja.EndorsedDate IS NOT NULL
               AND (
                     EXISTS (
@@ -67,7 +71,9 @@ if ($method === 'GET') {
             'company_name' => $r['CompanyName'] ?? '',
             'endorsed_date' => $r['EndorsedDate'],
             'client_status' => $r['ClientApprovalStatus'] ?? 'Pending',
-            'remarks' => $r['Remarks'] ?? '',
+            'remarks' => $r['DecisionReason'] ?? '',
+            'attempt_id'=>(int)($r['AttemptID']??0),
+            'can_decide'=>empty($r['HiredDate']) && !in_array($r['AgencyStatus'],['Rejected','Declined','Failed'],true) && $r['ClientApprovalStatus']==='Pending',
         ];
     }
     $stmt->close();
@@ -88,67 +94,10 @@ if ($method === 'POST') {
         json_resp(['success' => false, 'message' => 'Decision must be Approved or Rejected.'], 400);
     }
 
-    // Ensure this application belongs to a company supervised by current team lead.
-    $checkSql = "SELECT ja.ApplicationID
-                 FROM job_applications ja
-                 INNER JOIN joborder jo ON ja.JobOrderID = jo.JobOrderID
-                 WHERE ja.ApplicationID = ?
-                   AND (
-                        EXISTS (
-                            SELECT 1 FROM deployment d
-                            WHERE d.CompanyID = jo.CompanyID
-                              AND d.SiteSuperVisorID = ?
-                        )
-                        OR EXISTS (
-                            SELECT 1 FROM clientcompany cc
-                            WHERE cc.CompanyID = jo.CompanyID
-                              AND cc.UserID = ?
-                        )
-                   )
-                 LIMIT 1";
-    $check = $conn->prepare($checkSql);
-    if (!$check) json_resp(['success' => false, 'message' => 'Failed to validate application.'], 500);
-    $check->bind_param("iii", $appId, $userId, $userId);
-    $check->execute();
-    if ($check->get_result()->num_rows === 0) {
-        $check->close();
-        json_resp(['success' => false, 'message' => 'Application not found for your assigned sites.'], 404);
-    }
-    $check->close();
-
-    $upd = $conn->prepare("UPDATE job_applications
-                           SET ClientApprovalStatus = ?, ClientApprovalDate = NOW(),
-                               Remarks = CASE
-                                   WHEN ? = '' THEN Remarks
-                                   WHEN Remarks IS NULL OR TRIM(Remarks) = '' THEN ?
-                                   ELSE CONCAT(Remarks, '\n', ?)
-                               END
-                           WHERE ApplicationID = ?");
-    if (!$upd) json_resp(['success' => false, 'message' => 'Failed to save decision.'], 500);
-    $upd->bind_param("ssssi", $decision, $comment, $comment, $comment, $appId);
-    if (!$upd->execute()) {
-        $upd->close();
-        json_resp(['success' => false, 'message' => 'Failed to save decision.'], 500);
-    }
-    $upd->close();
-
-    if ($decision === 'Approved') {
-        createApplicationNotification(
-            $conn,
-            $appId,
-            'client_approved',
-            'Approved by Company',
-            'Your application has been approved by the client company.'
-        );
-    } elseif ($decision === 'Rejected') {
-        createApplicationNotification(
-            $conn,
-            $appId,
-            'client_rejected',
-            'Declined',
-            'Your application was not approved by the client company.'
-        );
-    }
+    try {
+        ae_decide($conn,$userId,$appId,(int)($input['attempt_id']??0),$decision,$comment);
+    } catch (DomainException $e) { json_resp(['success'=>false,'message'=>$e->getMessage()],$e->getCode()?:400); }
+    catch (Throwable $e) { error_log('Client decision: '.$e->getMessage()); json_resp(['success'=>false,'message'=>'Could not save decision. Please try again.'],500); }
 
     json_resp(['success' => true, 'message' => 'Decision saved.']);
 }

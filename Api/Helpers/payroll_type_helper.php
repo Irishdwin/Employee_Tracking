@@ -42,7 +42,7 @@ function payroll_type_normalize(?string $type): string
     return $t === 'A' ? 'A' : 'B'; // default/fallback matches the system's existing universal cutoff (Type B's arithmetic)
 }
 
-function payroll_type_label(string $type): string
+function payroll_type_label(?string $type): string
 {
     return 'Type ' . payroll_type_normalize($type);
 }

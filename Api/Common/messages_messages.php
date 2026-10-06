@@ -1,7 +1,8 @@
 <?php
-session_start();
+require_once __DIR__.'/session_init.php';
 
 header('Content-Type: application/json');
+header('Cache-Control: no-store');
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     http_response_code(401);
@@ -11,6 +12,9 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 
 require __DIR__ . '/../Helpers/chat_helper.php';
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__.'/../Helpers/messenger_rbac.php';
+try{$actor=messenger_actor($conn);}catch(Throwable $e){messenger_api_error($e);exit;}
+
 
 chat_ensure_tables($conn);
 
@@ -28,22 +32,13 @@ if ($threadId <= 0) {
     exit();
 }
 
-// Verify membership
-$memStmt = $conn->prepare("SELECT 1 FROM chat_thread_participants WHERE ThreadID = ? AND UserID = ? LIMIT 1");
-$memStmt->bind_param("ii", $threadId, $userId);
-$memStmt->execute();
-$isMember = $memStmt->get_result()->num_rows > 0;
-$memStmt->close();
-
-if (!$isMember) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Forbidden']);
-    exit();
-}
+try{$authorizedPeers=messenger_require_thread($conn,$actor,$threadId);}catch(Throwable $e){messenger_api_error($e);exit;}
 
 // Mark read
-chat_mark_thread_read($conn, $threadId, $userId);
 
+
+$senderIds=implode(',',array_merge([$userId],array_map('intval',array_column($authorizedPeers,'user_id'))));
+$before=max(0,(int)($_GET['before_message_id']??0));$older=$before>0?' AND m.MessageID<'.$before:'';
 $stmt = $conn->prepare("
     SELECT
         m.MessageID,
@@ -54,9 +49,9 @@ $stmt = $conn->prepare("
         m.CreatedAt
     FROM chat_messages m
     INNER JOIN users u ON u.UsersID = m.SenderUserID
-    WHERE m.ThreadID = ?
-    ORDER BY m.CreatedAt ASC, m.MessageID ASC
-    LIMIT 200
+    WHERE m.ThreadID = ? AND m.SenderUserID IN ($senderIds) $older
+    ORDER BY m.MessageID DESC
+    LIMIT 201
 ");
 $stmt->bind_param("i", $threadId);
 $stmt->execute();
@@ -64,6 +59,7 @@ $result = $stmt->get_result();
 
 $messages = [];
 while ($row = $result->fetch_assoc()) {
+    if((int)$row['SenderUserID']!==$userId&&!in_array((int)$row['SenderUserID'],array_map('intval',array_column($authorizedPeers,'user_id')),true))continue;
     $messages[] = [
         'message_id' => (int)$row['MessageID'],
         'sender_user_id' => (int)$row['SenderUserID'],
@@ -75,5 +71,9 @@ while ($row = $result->fetch_assoc()) {
 }
 $stmt->close();
 
-echo json_encode(['success' => true, 'messages' => $messages]);
+$hasMore=count($messages)>200;if($hasMore)array_pop($messages);
+if($messages)chat_mark_thread_read($conn,$threadId,$userId,max(array_column($messages,'message_id')));
+require_once __DIR__.'/../Helpers/messenger_unread.php';
+$unread=messenger_get_unread_counts($conn,$userId);
+echo json_encode(['read_confirmed'=>true,'unread'=>$unread,'success'=>true,'messages'=>array_reverse($messages),'has_more'=>$hasMore,'oldest_message_id'=>$messages?min(array_column($messages,'message_id')):null]);
 

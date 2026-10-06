@@ -1,6 +1,6 @@
 <?php
 /**
- * GET ?id=X — Streams the proof image for one payroll_status_history row,
+ * GET ?id=X — Streams the proof image for one payroll_group_status_history row,
  * after confirming the requester is allowed to see it:
  *   - Accounting/Admin: always allowed.
  *   - Employee: only if that history row's payroll group (Team Lead +
@@ -33,7 +33,7 @@ if ($historyId <= 0) {
 
 $stmt = $conn->prepare("
     SELECT SiteSupervisorID, CompanyID, CutoffStartDate, CutoffEndDate, ProofImagePath
-    FROM payroll_status_history
+    FROM payroll_group_status_history
     WHERE PayrollStatusHistoryID = ?
     LIMIT 1
 ");

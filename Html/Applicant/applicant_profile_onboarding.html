@@ -49,8 +49,9 @@
     </style>
     <script>window.REQUIRED_ROLE = 'Applicant';</script>
     <script src="../../Js/Shared/role_guard.js" defer></script>
+<link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
 </head>
-<body>
+<body class="applicant-blue-ui applicant-page-applicant-profile-onboarding">
 <div class="panel">
     <div class="panel-header">
         <h1><i class="bi bi-shield-check me-2"></i>Complete your profile (Eligibility Check)</h1>
@@ -111,6 +112,7 @@
             <div class="mb-3">
                 <label class="form-label fw-bold">Date of Birth *</label>
                 <input type="date" id="birthDateInput" class="form-control" required>
+                <div class="small-muted mt-1" id="birthDateHint" style="display:none; color:#b91c1c;">Please enter a valid 4-digit year.</div>
             </div>
 
             <div class="mb-3">
@@ -194,6 +196,35 @@
                     }
                 } else {
                     this.classList.remove('is-valid', 'is-invalid');
+                }
+            });
+        }
+
+        // Date of Birth: cap the year to 4 digits. Native <input type="date">
+        // lets the year sub-field accept more than 4 digits while typing
+        // (e.g. "213131") before the browser ever treats the value as
+        // invalid, since .value only reflects a fully-valid ISO date or ''.
+        // Set sensible min/max bounds (100 years ago .. today, since no one
+        // applying for a job has a birth date in the future) and clear the
+        // field outright the moment a 5th year digit is typed, instead of
+        // letting the picker keep accumulating digits.
+        const birthDateInput = document.getElementById('birthDateInput');
+        const birthDateHint = document.getElementById('birthDateHint');
+        if (birthDateInput) {
+            const today = new Date();
+            const pad2 = n => String(n).padStart(2, '0');
+            const todayIso = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+            const minIso = (today.getFullYear() - 100) + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+            birthDateInput.setAttribute('max', todayIso);
+            birthDateInput.setAttribute('min', minIso);
+
+            birthDateInput.addEventListener('input', function () {
+                const yearPart = (this.value || '').split('-')[0];
+                if (yearPart.length > 4 || (yearPart.length === 4 && parseInt(yearPart, 10) > today.getFullYear())) {
+                    this.value = '';
+                    if (birthDateHint) birthDateHint.style.display = 'block';
+                } else if (birthDateHint) {
+                    birthDateHint.style.display = 'none';
                 }
             });
         }

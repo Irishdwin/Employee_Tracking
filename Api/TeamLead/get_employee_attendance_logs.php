@@ -49,15 +49,8 @@ require_once __DIR__ . '/../Db_connection/db_connect.php'; // mysqli $conn (need
 
 // Ownership check: this employee must actually be deployed under the
 // logged-in Team Lead. Never trust employee_id alone.
-$ownershipStmt = $conn->prepare("
-    SELECT DeploymentID FROM deployment
-    WHERE EmployeeID = ? AND SiteSuperVisorID = ?
-    LIMIT 1
-");
-$ownershipStmt->bind_param('ii', $requestedEmployeeId, $teamLeadUserId);
-$ownershipStmt->execute();
-$ownershipRow = $ownershipStmt->get_result()->fetch_assoc();
-$ownershipStmt->close();
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
+$ownershipRow=site_owned_employee($conn,$teamLeadUserId,$requestedEmployeeId,(int)($_GET['site_id']??0));
 
 if (!$ownershipRow) {
     http_response_code(403);
@@ -184,7 +177,7 @@ try {
     $attendancePhotosByDate = [];
     $photoLookupStart = min($calendarRangeStart, date('Y-m-d', strtotime($today . ' -95 days')));
     $photoStmt = $conn->prepare("
-        SELECT Date, clockin_photo, clockout_photo, clockin_latitude, clockin_longitude,
+        SELECT AttendanceID, Date, clockin_photo, clockout_photo, clockin_latitude, clockin_longitude,
                clockout_latitude, clockout_longitude, distance_from_site
         FROM attendance
         WHERE EmployeeID = ? AND Date BETWEEN ? AND ?
@@ -195,8 +188,8 @@ try {
         $photoRes = $photoStmt->get_result();
         while ($photoRow = $photoRes->fetch_assoc()) {
             $attendancePhotosByDate[$photoRow['Date']] = [
-                'clockin_photo' => $photoRow['clockin_photo'],
-                'clockout_photo' => $photoRow['clockout_photo'],
+                'clockin_photo' => $photoRow['clockin_photo'] ? 'Api/Common/attendance_evidence.php?attendance_id='.(int)$photoRow['AttendanceID'].'&type=clockin' : null,
+                'clockout_photo' => $photoRow['clockout_photo'] ? 'Api/Common/attendance_evidence.php?attendance_id='.(int)$photoRow['AttendanceID'].'&type=clockout' : null,
                 'clockin_latitude' => $photoRow['clockin_latitude'],
                 'clockin_longitude' => $photoRow['clockin_longitude'],
                 'clockout_latitude' => $photoRow['clockout_latitude'],

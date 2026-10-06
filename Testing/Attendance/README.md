@@ -28,9 +28,28 @@ http://localhost/Employee_Tracking/Testing/Attendance/attendance_testing.html
 
 ## How to use
 
+### Controlled holiday suite (isolated data)
+
+Click **Run All Controlled Holiday Tests** without selecting a real employee.
+The local Admin-only POST endpoint creates a disposable database from the current
+schema, uses synthetic employees at ₱1,000/day and ₱125/hour, and exercises the
+production Attendance → Team Lead submission → Accounting verification → payroll
+finalization → employee payslip pipeline. The calendar is fixed to October 1–15,
+2026; neither the computer clock nor real holiday records are changed.
+
+The results show expected/actual gross amounts and expandable component checks.
+The database is removed after the run. Temporary fixture code/logs remain in the
+system temporary directory for diagnosis. Requires local PHP process execution
+and MySQL CREATE/DROP DATABASE privileges. Do not expose this development tool
+publicly. See `HOLIDAY_E2E_REPORT.md` and `holiday_e2e_results.json` for evidence.
+
+### Manual attendance mode (real records)
+
 1. Select a **Client Company**.
-2. Select the **Team Lead** deployed to that company.
-3. Select the **Employee** deployed under that Team Lead.
+2. Select an active **Deployment Site** in that company.
+3. Select the **Team Lead assigned to that site**, then an **Employee** with a
+   current active deployment at that site. A Team Lead can appear at several
+   sites. Sites with no employees still display their assigned Team Lead.
 4. The employee's actual duty schedule (working days, time in/out, break,
    grace period — pulled live from the `deployment` table, same as
    production) is shown for reference.
@@ -117,10 +136,43 @@ touched any of those files — this checklist is just a final sanity pass.)
 
 ## Database
 
-Uses the existing `onazul_hris_db` database exclusively:
+The manual attendance mode uses the existing `onazul_hris_db` database:
 - `attendance` (existing table — no new columns)
 - `daily_time_records` (existing table — no new columns)
 - `employee`, `deployment`, `clientcompany`, `users` (read-only, for the
-  cascading Company → Team Lead → Employee dropdowns and schedule lookup)
+  cascading Company → Site → Team Lead → Employee dropdowns and schedule lookup)
+
+The site selector uses production `deployment_sites.TeamLeadID` authority and
+the shared `site_for_lead()`, `site_owned_employee()` and
+`site_current_deployment_sql()` helpers. Selected company/site/lead/deployment
+context is validated on each attendance, OT and payroll request. This manual
+mode is for current deployments; historical deployments outside that selected
+context are rejected. Payroll Type and dated cutoffs use production helpers.
 
 **No new database tables or columns were created for this feature.**
+
+## Selected employee rate and controlled holiday mode
+
+Selecting Company → Site → Team Lead → Employee automatically loads a read-only
+payroll rate card. `get_employee_payroll_context.php` validates the deployment and
+date and reads current `employee.daily_rate`, `hourly_rate`, and `BasicSalary`.
+`payroll_employee_rates()` reuses the existing production precedence and two-decimal
+rounding. Production payroll does not currently resolve historical `salary_rates`
+effective dates; choosing an earlier test date still uses current employee fields.
+
+Choose a worked scenario and date, then **Run Selected Employee Holiday Scenario**.
+This copies only rates/schedule/context into an anonymous disposable fixture and
+calls the production Attendance, Team Lead DTR, Accounting, payroll and payslip APIs.
+It creates no holiday or attendance in the production database. The test comparison
+separates basic pay, holiday premium and holiday OT; allowances and deductions are
+excluded from this compensation comparison. Browser rate overrides are ignored.
+Rest-day scenarios require a date matching the employee's actual rest schedule.
+The selected-employee runner supports worked scenarios A–H; Custom means normal
+8-hour work. The existing manual record tools still write real attendance/OT.
+
+The separate **Run All Controlled Holiday Tests** button remains the independent
+synthetic ₱1,000/day and ₱125/hour A–K suite plus the boundary case. It does not
+depend on the selected employee or rate card. Both controlled modes clean up the
+disposable database and check production table checksums.
+
+See `EMPLOYEE_RATE_TEST_REPORT.md` for the implementation and Tests 1–12 evidence.

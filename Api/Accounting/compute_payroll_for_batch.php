@@ -102,12 +102,57 @@ try {
     $employeeCount = (int)($employeeCountStmt->get_result()->fetch_assoc()['c'] ?? 0);
     $employeeCountStmt->close();
 
-    $runCode = client_billing_run_code($cutoffStart, $cutoffEnd, $companyId);
+    $runCode = client_billing_run_code($cutoffStart, $cutoffEnd, $companyId, $tlId);
     $run = client_billing_get_run($conn, $runCode);
+
+    if (!$run) {
+        // client_billing_sync_runs() only auto-creates company+cutoff runs, so a
+        // TL-scoped run has to be created here the first time this Team Lead's
+        // batch is computed. Seed it from the company-level run for this same
+        // cutoff so CutoffLabel/Status stay consistent with the rest of the app.
+        $baseRun = client_billing_get_run($conn, client_billing_run_code($cutoffStart, $cutoffEnd, $companyId));
+        $cutoffLabel = $baseRun['CutoffLabel'] ?? (date('M j, Y', strtotime($cutoffStart)) . ' – ' . date('M j, Y', strtotime($cutoffEnd)));
+        $baseStatus = $baseRun['Status'] ?? 'Approved';
+
+        $insStmt = $conn->prepare(
+            'INSERT INTO payroll_runs
+                (RunCode, CompanyID, SiteSupervisorID, PeriodStart, PeriodEnd, CutoffLabel, Status, CurrentStatus)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE SiteSupervisorID = VALUES(SiteSupervisorID)'
+        );
+        if ($insStmt) {
+            $currentStatus = 'Computed';
+            $insStmt->bind_param(
+                'siisssss',
+                $runCode,
+                $companyId,
+                $tlId,
+                $cutoffStart,
+                $cutoffEnd,
+                $cutoffLabel,
+                $baseStatus,
+                $currentStatus
+            );
+            $insStmt->execute();
+            $insStmt->close();
+        }
+        $run = client_billing_get_run($conn, $runCode);
+    }
+
     if (!$run) {
         http_response_code(500);
         echo json_encode(['success' => false, 'message' => 'Payroll run could not be created for this batch.']);
         exit();
+    }
+
+    // Persist which Team Lead this run belongs to, so the export can scope the
+    // employee roster to that TL's deployed team even when it is called with
+    // only a run_id.
+    $tlStmt = $conn->prepare('UPDATE payroll_runs SET SiteSupervisorID = ? WHERE RunCode = ?');
+    if ($tlStmt) {
+        $tlStmt->bind_param('is', $tlId, $runCode);
+        $tlStmt->execute();
+        $tlStmt->close();
     }
 
     $userId = (int)$_SESSION['user_id'];

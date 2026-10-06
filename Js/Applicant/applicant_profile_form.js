@@ -91,15 +91,8 @@
 
     function syncBirthDateUi() {
         if (!birthDateInput || !birthDateError) return;
-        var iso = (birthDateInput.value || '').trim();
-        var age = ageFromIsoDate(iso);
-        var under = iso && age !== null && age >= 0 && age < 18;
-        birthDateError.classList.toggle('is-visible', !!under);
-        birthDateInput.classList.toggle('is-invalid', !!under);
-        if (btnSaveAndContinue) {
-            btnSaveAndContinue.disabled = !!under;
-            btnSaveAndContinue.setAttribute('aria-disabled', under ? 'true' : 'false');
-        }
+        birthDateError.classList.remove('is-visible'); // Shared field validation owns DOB feedback.
+
     }
 
     if (birthDateInput) {
@@ -217,6 +210,7 @@
         var statusSpan = card.querySelector('.apm-doc-status');
         var viewBtn = card.querySelector('.apm-view-btn');
         var uploadText = card.querySelector('.apm-upload-text');
+        var progressBar = card.querySelector('.apm-upload-progress-inner');
 
         if (docItem && docItem.DocID) {
             uploadedDocsMap[docType] = docItem.DocID;
@@ -229,6 +223,12 @@
             }
             if (uploadText) {
                 uploadText.textContent = 'Replace';
+            }
+            // Bar reflects a successfully saved document record (DocID present),
+            // not upload-in-progress — same source of truth as the status text above.
+            if (progressBar) {
+                progressBar.style.width = '100%';
+                progressBar.classList.add('apm-upload-success');
             }
         } else {
             delete uploadedDocsMap[docType];
@@ -243,6 +243,10 @@
             }
             if (uploadText) {
                 uploadText.textContent = 'Choose File';
+            }
+            if (progressBar) {
+                progressBar.style.width = '0%';
+                progressBar.classList.remove('apm-upload-success');
             }
         }
     }
@@ -298,7 +302,6 @@
             var docCategory = card.getAttribute('data-doc-category') || 'general';
             var fileInput = card.querySelector('input[type="file"]');
             var viewBtn = card.querySelector('.apm-view-btn');
-            var progressBar = card.querySelector('.apm-upload-progress-inner');
 
             if (viewBtn) {
                 viewBtn.addEventListener('click', function (e) {
@@ -318,8 +321,6 @@
                     formData.append('document_type', docType);
                     formData.append('document_category', docCategory);
 
-                    if (progressBar) progressBar.style.width = '30%';
-
                     fetch(UPLOAD_DOC_API, {
                         method: 'POST',
                         credentials: 'include',
@@ -328,20 +329,23 @@
                     })
                     .then(function (r) { return r.json().catch(function () { return null; }); })
                     .then(function (res) {
-                        if (progressBar) progressBar.style.width = '100%';
-                        setTimeout(function () { if (progressBar) progressBar.style.width = '0%'; }, 500);
-
                         if (res && res.success) {
+                            // Bar fill is set inside updateQuickDocCardUI from the
+                            // saved DocID — the single source of truth for "successfully
+                            // uploaded", not a timed animation.
                             updateQuickDocCardUI(docType, {
                                 DocID: res.doc_id || res.document_id,
                                 OriginalFileName: file.name
                             });
                         } else {
+                            // Failed attempt: leave the bar exactly as it was (filled if
+                            // this card already had a previously saved document, empty
+                            // if it didn't) — a failed Replace must not erase the
+                            // existing successful-upload state.
                             alert((res && res.message) ? res.message : 'Failed to upload document.');
                         }
                     })
                     .catch(function () {
-                        if (progressBar) progressBar.style.width = '0%';
                         alert('Network error while uploading document.');
                     });
                 });
@@ -392,28 +396,31 @@
         if (endYearSelect && p.experience_end_year) endYearSelect.value = String(p.experience_end_year);
         syncEndDateDisabled();
 
-        if (classificationSelect && p.preferred_classification) {
-            classificationSelect.value = p.preferred_classification;
-            if (window.ApplicantProfileCascades) {
-                ApplicantProfileCascades.populateSubClassificationOptions(p.preferred_classification, p.preferred_sub_classification || '');
-            }
-        } else if (subClassificationSelect && p.preferred_sub_classification) {
-            subClassificationSelect.value = p.preferred_sub_classification;
-        }
         ensureCascadesReady().then(function () {
-            if (window.ApplicantProfileCascades && p.job_category) {
-                return ApplicantProfileCascades.loadJobCategories(p.job_category);
-            }
-            if (jobCategorySelect && p.job_category) {
+            var loadCategories = (window.ApplicantProfileCascades && p.job_category)
+                ? ApplicantProfileCascades.loadJobCategories(p.job_category)
+                : Promise.resolve();
+            if (!window.ApplicantProfileCascades && jobCategorySelect && p.job_category) {
                 jobCategorySelect.value = p.job_category;
             }
-        });
-        if (p.profile_visibility) {
-            var pv = String(p.profile_visibility);
-            form.querySelectorAll('input[name="profileVisibility"]').forEach(function (r) {
-                r.checked = r.value === pv;
+            return Promise.resolve(loadCategories).then(function () {
+                // Classification depends on the job category's id, so this can
+                // only run once the category select has actually resolved above.
+                if (window.ApplicantProfileCascades && jobCategorySelect && jobCategorySelect.value) {
+                    return ApplicantProfileCascades.hydrateClassification(
+                        jobCategorySelect.value,
+                        p.preferred_classification || '',
+                        p.preferred_sub_classification || ''
+                    );
+                }
+                if (classificationSelect && p.preferred_classification) {
+                    classificationSelect.value = p.preferred_classification;
+                    if (subClassificationSelect && p.preferred_sub_classification) {
+                        subClassificationSelect.value = p.preferred_sub_classification;
+                    }
+                }
             });
-        }
+        });
 
         if (d.documents && Array.isArray(d.documents)) {
             d.documents.forEach(function (doc) {
@@ -495,21 +502,16 @@
     if (expHave) expHave.addEventListener('change', function () { setExpMode('1'); });
     if (expNew) expNew.addEventListener('change', function () { setExpMode('0'); });
 
-    if (form) {
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            hideError();
-
+    function buildProfilePayload() {
             var expMode = document.querySelector('input[name="expMode"]:checked');
             var hasRecentExperience = expMode ? expMode.value === '1' : false;
-            var visRadio = document.querySelector('input[name="profileVisibility"]:checked');
-            var profileVisibility = visRadio ? visRadio.value : '';
 
             var birthIso = birthDateInput ? birthDateInput.value.trim() : '';
             var addressValues = window.ApplicantProfileCascades
                 ? ApplicantProfileCascades.getAddressValues()
                 : {
                     street_address: streetAddressInput ? streetAddressInput.value.trim() : '',
+                    region: '',
                     city: '',
                     state_province: '',
                     barangay: '',
@@ -517,6 +519,7 @@
                     country: 'Philippines'
                 };
             var streetAddress = addressValues.street_address;
+            var region = addressValues.region;
             var city = addressValues.city;
             var stateProvince = addressValues.state_province;
             var postalCode = addressValues.postal_code;
@@ -538,6 +541,9 @@
                 suffix: suffixVal,
                 birth_date: birthIso,
                 street_address: streetAddress,
+                region: region,
+                address_psgc: addressValues.address_psgc,
+                province_required: addressValues.province_required,
                 city: city,
                 state_province: stateProvince,
                 barangay: barangay,
@@ -554,68 +560,24 @@
                 still_in_role: stillInRoleCheckbox.checked ? 1 : 0,
                 preferred_classification: classificationSelect.value,
                 preferred_sub_classification: subClassificationSelect.value,
-                job_category: jobCategoryValue,
-                profile_visibility: profileVisibility
+                job_category: jobCategoryValue
             };
+            payload.category_id = jobCategorySelect ? jobCategorySelect.value : '';
+            payload.classification_id = classificationSelect.selectedOptions[0] ? classificationSelect.selectedOptions[0].dataset.id : '';
+            payload.sub_classification_id = subClassificationSelect.selectedOptions[0] ? subClassificationSelect.selectedOptions[0].dataset.id : '';
             if (!payload.home_location && computedHomeLocation) payload.home_location = computedHomeLocation;
 
-            if (!payload.first_name || !payload.last_name) {
-                showError('Please complete the required name fields.');
-                return;
-            }
+        return payload;
+    }
+    var profileValidation = form && window.ApplicantProfileValidation.create(form, errorBox, buildProfilePayload);
 
-            var namePattern = /^[A-Za-zÑñ\s\.\'\-]+$/;
-            if (!namePattern.test(payload.first_name) || !namePattern.test(payload.last_name) || (payload.middle_name && !namePattern.test(payload.middle_name))) {
-                showError('Names can only contain letters, spaces, periods, apostrophes, and hyphens.');
-                return;
-            }
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            hideError();
 
-            if (!payload.street_address || !payload.state_province || !payload.city || !payload.barangay || !payload.postal_code) {
-                showError('Please complete your full address: province, city/municipality, barangay, street address, and postal code.');
-                return;
-            }
-            if (!birthIso || !/^\d{4}-\d{2}-\d{2}$/.test(birthIso)) {
-                showError('Please enter your date of birth.');
-                return;
-            }
-            var ageYears = ageFromIsoDate(birthIso);
-            if (ageYears === null || ageYears < 0) {
-                showError('Invalid date of birth.');
-                return;
-            }
-            if (ageYears < 18) {
-                syncBirthDateUi();
-                showError('You must be at least 18 years old to register.');
-                return;
-            }
-            if (!payload.job_category) {
-                showError('Please select a job category.');
-                return;
-            }
-            if (!payload.preferred_classification || !payload.preferred_sub_classification) {
-                showError('Please select your preferred classification and sub-classification.');
-                return;
-            }
-            if (!payload.profile_visibility) {
-                showError('Please choose a profile visibility option.');
-                return;
-            }
-            if (hasRecentExperience) {
-                if (!payload.job_title || !payload.company_name) {
-                    showError('Job title and company name are required when you have experience.');
-                    return;
-                }
-                if (!payload.experience_start_month || !payload.experience_start_year) {
-                    showError('Please select your experience start month and year.');
-                    return;
-                }
-                if (!payload.still_in_role) {
-                    if (!payload.experience_end_month || !payload.experience_end_year) {
-                        showError('Please select your experience end month and year (or mark “Still in role”).');
-                        return;
-                    }
-                }
-            }
+            var payload = buildProfilePayload();
+            if (!profileValidation.check()) return;
 
             if (btnSaveAndContinue) {
                 btnSaveAndContinue.disabled = true;
@@ -631,7 +593,8 @@
                 .then(function (res) {
                     var d = res.data;
                     if (!d || !d.success) {
-                        showError((d && d.message) ? d.message : 'Failed to save profile.');
+                        if (d && d.errors) profileValidation.apply(d.errors);
+                        else showError((d && d.message) ? d.message : 'Failed to save profile.');
                         if (btnSaveAndContinue) {
                             btnSaveAndContinue.disabled = false;
                             syncBirthDateUi();

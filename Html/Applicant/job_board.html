@@ -35,6 +35,20 @@
         }
         .user-topbar { display: flex; justify-content: flex-end; padding: 1rem 1.5rem 0; }
         .sidebar-nav { padding-bottom: 4rem; }
+        .jb-search-grid > * { min-width: 0; max-width: 100%; }
+        #wallHierarchy .row > * { min-width: 0; }
+        #wallHierarchy .form-label { color: #e2e8f0; }
+        .jb-filter-pill { max-width: 100%; }
+        .jb-filter-pill select { min-width: 0; max-width: 100%; }
+        @media (max-width: 767px) {
+            /* The fixed desktop sidebar left only 120px for the phone content. */
+            body.ow-dashboard { display: block; }
+            body.ow-dashboard > .layout-wrapper { display: block; }
+            body.ow-dashboard .sidebar { position: relative; inset: auto; width: 100%; height: auto; }
+            body.ow-dashboard .sidebar .sidebar-nav { display: flex; flex-wrap: wrap; padding-bottom: 0.5rem; }
+            body.ow-dashboard .sidebar .sidebar-footer { position: static !important; }
+            body.ow-dashboard .main-content { margin-left: 0; width: 100%; padding: 0.75rem; }
+        }
 
         /* Discovery hero */
         .jb-hero {
@@ -79,7 +93,7 @@
         }
         .jb-search-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
+            grid-template-columns: 1fr 1fr auto;
             gap: 0.65rem;
             align-items: stretch;
         }
@@ -376,8 +390,9 @@
         }
         .jb-detail-section { margin-bottom: 1.25rem; }
     </style>
+<link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
 </head>
-<body class="ow-dashboard">
+<body class="ow-dashboard applicant-blue-ui applicant-page-job-board">
 <div class="layout-wrapper">
     <aside class="sidebar">
         <div class="sidebar-header d-flex justify-content-between align-items-center">
@@ -434,17 +449,14 @@
             <div class="jb-hero-inner">
                 <div class="jb-hero-title">Find your next role</div>
                 <div class="jb-hero-sub">Search by keyword, classification, and location — matches to your profile are highlighted.</div>
-                <div class="jb-search-grid">
+                <div id="wallHierarchy" data-job-hierarchy="filter"></div>
+<div class="jb-search-grid">
                     <div class="jb-field">
                         <label for="jbWhat">What</label>
                         <input type="text" id="jbWhat" placeholder="Job title, keywords" autocomplete="off">
                         <button type="button" class="jb-btn-clear d-none" id="jbClearWhat" aria-label="Clear"><i class="bi bi-x-lg"></i></button>
                     </div>
-                    <div class="jb-field">
-                        <label for="jbClass">Classification</label>
-                        <input type="text" id="jbClass" placeholder="Any classification" list="jbClassList" autocomplete="off">
-                        <datalist id="jbClassList"></datalist>
-                    </div>
+                    
                     <div class="jb-field">
                         <label for="jbWhere">Where</label>
                         <input type="text" id="jbWhere" placeholder="City or region" autocomplete="off">
@@ -647,7 +659,7 @@
             btnMatchId: 'btnMatchProfile',
             keywordInputId: 'jbWhat',
             locationInputId: 'jbWhere',
-            classificationInputId: 'jbClass',
+            classificationInputId: null,
             workTypeInputId: 'jbWorkType',
             postedWithinInputId: 'jbListed',
             searchBtnId: 'jbBtnSearch',
@@ -664,9 +676,13 @@
     <div class="ow-msgr-chat"><div class="ow-msgr-chat-head"><div class="fw-semibold" id="owMessengerChatTitle">Messenger</div><div class="small text-muted" id="owMessengerChatSubtitle">Select a contact</div></div><div class="ow-msgr-messages" id="owMessengerMessages"><p class="ow-msgr-placeholder">Select a contact.</p></div><div class="ow-msgr-footer"><input type="text" class="form-control form-control-sm" id="owMessengerInput" disabled><button type="button" class="btn btn-primary btn-sm" id="owMessengerSend" disabled><i class="bi bi-send"></i></button></div></div>
   </div>
 </div>
-<script src="../../Js/Shared/messenger_rbac.js"></script>
-<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
+<script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
 <script src="../../Js/Shared/ow_system_events.js"></script>
 <script src="../../Js/Shared/ow_notifications.js"></script>
+<script src="../../Js/Shared/job_hierarchy_selects.js"></script>
 </body>
 </html>
+
+
+

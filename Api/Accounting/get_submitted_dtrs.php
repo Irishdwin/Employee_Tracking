@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../Common/session_init.php';
+require_once __DIR__ . '/../Helpers/dtr_classification.php';
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json; charset=utf-8');
 
@@ -47,16 +48,17 @@ try {
         $subStmt = $conn->prepare("
             SELECT ds.DTR_SubmissionID, ds.EmployeeID, ds.DeploymentID, ds.SiteSupervisorID,
                    ds.CutoffPeriod, ds.CutoffStartDate, ds.CutoffEndDate, ds.TotalHours,
-                   ds.OvertimeHours, ds.TotalOvertimeHours, ds.CreatedAt,
+                   ds.OvertimeHours, ds.TotalOvertimeHours, ds.Remarks AS classification_remarks, ds.CreatedAt,
                    CONCAT(e.FirstName, ' ', e.LastName) AS employee_name,
                    e.EmployeeNumber AS employee_number,
                    e.Position AS position,
                    tl.FullName AS tl_full_name,
-                   cc.Name AS company_name
+                   ds.SiteID AS site_id,ws.Name AS site_name,cc.Name AS company_name
             FROM dtr_submissions ds
             INNER JOIN employee e ON e.EmployeeID = ds.EmployeeID
             LEFT JOIN users tl ON tl.UsersID = ds.SiteSupervisorID
             LEFT JOIN deployment d ON d.DeploymentID = ds.DeploymentID
+            LEFT JOIN deployment_sites ws ON ws.SiteID=ds.SiteID
             LEFT JOIN clientcompany cc ON cc.CompanyID = d.CompanyID
             WHERE ds.EmployeeID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ?
             LIMIT 1
@@ -89,7 +91,7 @@ try {
         }
 
         $todayIso = date('Y-m-d');
-        $holidays = payroll_ph_holidays_for_range($cutoffStart, $cutoffEnd);
+        $holidays = payroll_ph_holidays_for_range($conn, $cutoffStart, $cutoffEnd);
         $dailyBreakdown = [];
 
         $cursor = new DateTime($cutoffStart);
@@ -166,6 +168,7 @@ try {
                 'total_hours' => $submission['TotalHours'] !== null ? (float)$submission['TotalHours'] : null,
                 'overtime_hours' => $submission['OvertimeHours'] !== null ? (float)$submission['OvertimeHours'] : null,
                 'total_overtime_hours' => $submission['TotalOvertimeHours'] !== null ? (float)$submission['TotalOvertimeHours'] : null,
+                'classification' => dtr_classification_decode($submission['classification_remarks'] ?? null),
                 'submitted_at' => $submission['CreatedAt'],
                 'status' => 'Submitted',
             ],
@@ -180,6 +183,7 @@ try {
         $cutoffStart = trim((string)$_GET['cutoff_start']);
         $cutoffEnd = trim((string)$_GET['cutoff_end']);
 
+        $siteId=(int)($_GET['site_id']??0);
         $empListStmt = $conn->prepare("
             SELECT ds.DTR_SubmissionID, ds.EmployeeID,
                    CONCAT(e.FirstName, ' ', e.LastName) AS employee_name,
@@ -189,41 +193,22 @@ try {
                    ds.ReviewedBy, ds.ReviewDate,
                    tl.FullName AS tl_full_name,
                    cc.CompanyID AS company_id,
+                   ds.SiteID AS site_id,ws.Name AS site_name,
                    cc.Name AS company_name,
                    cc.PayrollType AS payroll_type,
-                   ds.CutoffPeriod
+                   ds.CutoffPeriod, ds.TotalOvertimeHours, ds.OvertimeHours, ds.Remarks
             FROM dtr_submissions ds
             INNER JOIN employee e ON e.EmployeeID = ds.EmployeeID
             LEFT JOIN users tl ON tl.UsersID = ds.SiteSupervisorID
             LEFT JOIN deployment d ON d.DeploymentID = ds.DeploymentID
+            LEFT JOIN deployment_sites ws ON ws.SiteID=ds.SiteID
             LEFT JOIN clientcompany cc ON cc.CompanyID = d.CompanyID
-            WHERE ds.SiteSupervisorID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ?
+            WHERE ds.SiteSupervisorID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ? AND (?=0 OR ds.SiteID=?)
             ORDER BY employee_name ASC
         ");
-        $empListStmt->bind_param('iss', $tlId, $cutoffStart, $cutoffEnd);
+        $empListStmt->bind_param('issii', $tlId, $cutoffStart, $cutoffEnd,$siteId,$siteId);
         $empListStmt->execute();
         $resEmp = $empListStmt->get_result();
-
-        // Approved-overtime hours per employee for this same cutoff, so the
-        // batch employee list can show an "OT Hours" column at a glance
-        // (section 10) without a separate request per employee.
-        $approvedOtByEmployee = [];
-        $otSumStmt = $conn->prepare("
-            SELECT ot.EmployeeID, SUM(ot.OvertimeHours) AS approved_hours
-            FROM overtime ot
-            INNER JOIN status s ON s.StatusID = ot.StatusID AND s.Name = 'Approved'
-            WHERE ot.OvertimeDate BETWEEN ? AND ?
-            GROUP BY ot.EmployeeID
-        ");
-        if ($otSumStmt) {
-            $otSumStmt->bind_param('ss', $cutoffStart, $cutoffEnd);
-            $otSumStmt->execute();
-            $otSumRes = $otSumStmt->get_result();
-            while ($otSumRow = $otSumRes->fetch_assoc()) {
-                $approvedOtByEmployee[(int)$otSumRow['EmployeeID']] = round((float)$otSumRow['approved_hours'], 2);
-            }
-            $otSumStmt->close();
-        }
 
         $pdo = attendance_pdo();
         if (function_exists('attendance_ensure_table')) {
@@ -238,6 +223,7 @@ try {
                 $batchInfo = [
                     'team_lead_name' => trim((string)($row['tl_full_name'] ?? '')),
                     'company_id' => isset($row['company_id']) ? (int)$row['company_id'] : null,
+                    'site_id'=>(int)($row['site_id']??0),'site_name'=>$row['site_name']??'Legacy site',
                     'company_name' => $row['company_name'],
                     'payroll_type' => payroll_type_normalize($row['payroll_type'] ?? null),
                     'payroll_type_label' => payroll_type_label($row['payroll_type'] ?? null),
@@ -300,7 +286,8 @@ try {
                 'total_hours' => $row['TotalHours'] !== null ? (float)$row['TotalHours'] : null,
                 'late_minutes' => $totalLateMinutes,
                 'undertime_minutes' => $totalUndertimeMinutes,
-                'approved_ot_hours' => $approvedOtByEmployee[$empId] ?? 0.0,
+                'approved_ot_hours' => (float)($row['TotalOvertimeHours'] ?? $row['OvertimeHours'] ?? 0),
+                'classification' => dtr_classification_decode($row['Remarks'] ?? null),
                 'attendance_status' => $attendanceStatus,
                 'status' => 'Submitted',
                 'reviewed' => $row['ReviewedBy'] !== null,
@@ -379,14 +366,16 @@ try {
                SUM(CASE WHEN ds.ReviewedBy IS NOT NULL THEN 1 ELSE 0 END) AS reviewed_count,
                tl.FullName AS tl_full_name,
                cc.CompanyID AS company_id,
-               cc.Name AS company_name,
+               ds.SiteID AS site_id,ws.Name AS site_name,
+                   cc.Name AS company_name,
                cc.PayrollType AS payroll_type
         FROM dtr_submissions ds
         LEFT JOIN users tl ON tl.UsersID = ds.SiteSupervisorID
         LEFT JOIN deployment d ON d.DeploymentID = ds.DeploymentID
+            LEFT JOIN deployment_sites ws ON ws.SiteID=ds.SiteID
         LEFT JOIN clientcompany cc ON cc.CompanyID = d.CompanyID
         {$whereSql}
-        GROUP BY ds.SiteSupervisorID, ds.CutoffStartDate, ds.CutoffEndDate, cc.CompanyID
+        GROUP BY ds.SiteSupervisorID, ds.CutoffStartDate, ds.CutoffEndDate, cc.CompanyID,ds.SiteID
         ORDER BY submitted_at DESC
     ");
     if ($params) {
@@ -432,7 +421,8 @@ try {
             'tl_id' => (int)$row['tl_id'],
             'team_lead_name' => trim((string)($row['tl_full_name'] ?? '')),
             'company_id' => isset($row['company_id']) ? (int)$row['company_id'] : null,
-            'company_name' => $row['company_name'] ?? '—',
+            'site_id'=>(int)($row['site_id']??0),'site_name'=>$row['site_name']??'Legacy site',
+                    'company_name' => $row['company_name'] ?? '—',
             'payroll_type' => payroll_type_normalize($row['payroll_type'] ?? null),
             'payroll_type_label' => payroll_type_label($row['payroll_type'] ?? null),
             'cutoff_period' => $row['CutoffPeriod'],

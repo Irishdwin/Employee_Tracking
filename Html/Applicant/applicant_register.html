@@ -50,8 +50,9 @@
             color: white;
         }
     </style>
+<link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
 </head>
-<body>
+<body class="applicant-blue-ui applicant-page-applicant-register">
     <div class="register-card">
         <div class="register-header">
             <h3 class="mb-2"><i class="bi bi-person-plus me-2"></i>Applicant Registration</h3>
@@ -63,7 +64,8 @@
             <form id="registerForm" method="POST" action="../../Api/Applicant/applicant_register.php">
                 <div class="mb-3">
                     <label class="form-label">Full Name *</label>
-                    <input type="text" name="full_name" class="form-control" required minlength="3">
+                    <input type="text" name="full_name" id="regFullName" class="form-control" required minlength="3">
+                    <div class="text-danger small mt-1 d-none" id="regFullNameError">This field is required.</div>
                 </div>
                 
                 <div class="mb-3">
@@ -75,28 +77,33 @@
                         </button>
                     </div>
                     <small class="text-muted">This will be your login username. Verify your email with the 4-digit code.</small>
+                    <div class="text-danger small mt-1 d-none" id="emailFieldError">This field is required.</div>
                 </div>
                 
                 <div class="mb-3">
                     <label class="form-label">4-Digit Verification Code *</label>
                     <input type="text" name="otp_code" id="otpCodeField" class="form-control text-center" maxlength="4" pattern="[0-9]{4}" placeholder="0000" autocomplete="one-time-code" disabled>
                     <small class="text-muted">Enter the code sent to your email. Click "Send Code" first.</small>
+                    <div class="text-danger small mt-1 d-none" id="otpCodeFieldError">This field is required.</div>
                 </div>
                 
                 <div class="mb-3">
                     <label class="form-label">Mobile Number *</label>
-                    <input type="tel" name="mobile" class="form-control" required>
+                    <input type="tel" name="mobile" id="regMobile" class="form-control" required>
+                    <div class="text-danger small mt-1 d-none" id="regMobileError">This field is required.</div>
                 </div>
                 
                 <div class="mb-3">
                     <label class="form-label">Password *</label>
-                    <input type="password" name="password" class="form-control" required minlength="8">
+                    <input type="password" name="password" id="regPassword" class="form-control" required minlength="8">
                     <small class="text-muted">Must contain: uppercase, lowercase, number, special character</small>
+                    <div class="text-danger small mt-1 d-none" id="regPasswordError">This field is required.</div>
                 </div>
                 
                 <div class="mb-4">
                     <label class="form-label">Confirm Password *</label>
-                    <input type="password" name="confirm_password" class="form-control" required>
+                    <input type="password" name="confirm_password" id="regConfirmPassword" class="form-control" required>
+                    <div class="text-danger small mt-1 d-none" id="regConfirmPasswordError">This field is required.</div>
                 </div>
                 
                 <div class="d-grid gap-2">

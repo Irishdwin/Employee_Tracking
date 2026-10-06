@@ -86,7 +86,7 @@ function jor_fetch_details_for_request(mysqli $conn, int $requestId): array
 function jor_fetch_placements_for_job_order(mysqli $conn, int $jobOrderId): array
 {
     $stmt = $conn->prepare("
-        SELECT detail_id, position_title, deployment_site, work_schedule, required_workers, job_category
+        SELECT detail_id, position_title, deployment_site, work_schedule, required_workers, job_category,category_id,classification_id,sub_classification_id
         FROM job_order_details
         WHERE JobOrderID = ?
         ORDER BY position_title ASC, deployment_site ASC, detail_id ASC
@@ -101,6 +101,9 @@ function jor_fetch_placements_for_job_order(mysqli $conn, int $jobOrderId): arra
     while ($r = $res->fetch_assoc()) {
         $rows[] = [
             'detail_id' => (int)$r['detail_id'],
+            'category_id' => (int)$r['category_id'],
+            'classification_id' => (int)$r['classification_id'],
+            'sub_classification_id' => (int)$r['sub_classification_id'],
             'position' => (string)$r['position_title'],
             'position_title' => (string)$r['position_title'],
             'deployment_site' => (string)$r['deployment_site'],

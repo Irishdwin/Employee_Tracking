@@ -1,0 +1,66 @@
+/* Applicant surfaces use the landing page agency-blue palette. */
+body.applicant-blue-ui{background:#EAF1F9!important;--bg:#EAF1F9;--card:#F0F5FC}
+body.applicant-blue-ui .bg-white{background-color:#F0F5FC!important}
+body.applicant-page-applicant-google-callback .panel{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .topbar{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .account-dropdown{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .account-stat-box{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .seek-field{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .auth-modal{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .otp-box{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .where-dd{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .what-dd{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .jw-list-card{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .jw-detail-sticky{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-landing .jw-btn-save{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-notifications .topbar{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-notifications .account-dropdown{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-notifications .account-stat-box{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-notifications .notif-card{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .topbar{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .account-dropdown{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .account-stat-box{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .apm-tab{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .home-location-dropdown{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .exp-pill span{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .apm-doc-shell{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .apm-cat-btn{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-master .apm-icon-btn{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-profile-onboarding .panel{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-register .register-card{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-terms .terms-panel{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-terms .terms-item{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-applicant-visibility-settings .option{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-inbox .panel{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-inbox .mm-master{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-inbox .mm-detail{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-job-board .jb-field{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-job-board .jb-split{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-job-board .jb-list-item{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-job-board .jb-detail-col{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-job-board .jb-icon-btn{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-my-applications .topbar{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-my-applications .account-dropdown{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-my-applications .account-stat-box{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-my-applications .app-search{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-my-applications .app-card{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-my-applications .app-detail-sticky{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-saved-jobs .topbar{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-saved-jobs .account-dropdown{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-saved-jobs .account-stat-box{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-saved-jobs .app-search{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-saved-jobs .app-card{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-page-saved-jobs .app-detail-sticky{background-color:#F0F5FC!important;border-color:#CEDDF0}
+body.applicant-blue-ui .topbar{background:#EDF4FC!important;border-bottom-color:#CCDDF0!important}
+body.applicant-blue-ui :is(.modal-content,.notification-detail,.panel,.mm-master,.mm-detail){background-color:#F0F5FC;border-color:#CEDDF0}
+body.applicant-blue-ui :is(.modal-header,.panel-header){background-color:#E5EFFB;border-color:#CEDDF0}
+body.applicant-blue-ui .modal-footer{background-color:#EDF4FC;border-color:#CEDDF0}
+body.applicant-blue-ui :is(.form-control,.form-select,.searchable-select__trigger){background-color:#F8FBFF;border-color:#CEDDF0}
+body.applicant-blue-ui .notif-card.unread,body.applicant-blue-ui .notif-card.unread.selected{background-color:#fff0f1!important;border-left-color:#dc3545}
+body.applicant-blue-ui .notif-card.selected{outline-color:#0056B3}
+body.applicant-blue-ui :is(#applicantNavInfo,#employeeProfileSuccess){background-color:#F4F8FD}
+body.applicant-blue-ui .jw-list-card{background-color:#F3F7FD!important}
+body.applicant-blue-ui .jw-list-card:hover{background-color:#E7F0FC!important}
+body.applicant-blue-ui .jw-list-card.is-active{background-color:#DFECFC!important;border-color:#0056B3}
+body.applicant-blue-ui .notif-card.unread .notif-title{color:#a31929}
+body.applicant-blue-ui .notif-card.unread .notification-state{background:#ffe0e3;color:#a31929}

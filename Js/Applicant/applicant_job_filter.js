@@ -97,6 +97,8 @@
     if (inputs.location) params.set('location', inputs.location);
     if (inputs.work_type) params.set('work_type', inputs.work_type);
     if (inputs.since_days) params.set('since_days', inputs.since_days);
+    var hierarchy=global.JobHierarchySelectors?global.JobHierarchySelectors.values(document.getElementById('wallHierarchy')):{};
+    Object.keys(hierarchy).forEach(function(key){if(hierarchy[key])params.set(key,hierarchy[key]);});
     var cls = $(cfg.classificationInputId);
     if (cls && cls.value.trim() && filterType === 'all') {
       params.set('classification', cls.value.trim());
@@ -431,6 +433,17 @@
           loadJobs(state.keyword ? 'search' : 'all');
         }
       });
+      // IT-103: live/auto-suggest search — debounce keystrokes so the query
+      // controller (get_jobs.php) is only hit once typing pauses, and the
+      // results grid updates in place without a page reload.
+      var liveSearchTimer = null;
+      sk.addEventListener('input', function () {
+        clearTimeout(liveSearchTimer);
+        liveSearchTimer = setTimeout(function () {
+          readSearchInputs();
+          loadJobs(state.keyword ? 'search' : 'all');
+        }, 350);
+      });
     }
   }
 
@@ -439,6 +452,7 @@
       Object.keys(options).forEach(function (k) { cfg[k] = options[k]; });
     }
     bindToggleLinks();
+    document.addEventListener('job-hierarchy-change',function(e){if(e.target.id==='wallHierarchy')loadJobs(state.filter);});
     return loadJobs(state.filter);
   }
 

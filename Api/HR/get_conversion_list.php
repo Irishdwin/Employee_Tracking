@@ -19,6 +19,8 @@ if (!in_array($_SESSION['role'], $allowedRoles)) {
 require __DIR__ . '/../Db_connection/db_connect.php';
 
 header('Content-Type: application/json');
+require_once __DIR__ . '/../Helpers/contract_expiry_helper.php';
+employment_contract_open_after_six_months($conn);
 
 function parseContractRemarks($remarks) {
     $result = [

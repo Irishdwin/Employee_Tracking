@@ -39,6 +39,8 @@ if (file_exists(__DIR__ . '/../Helpers/dtr_qr_logic.php')) {
     require_once __DIR__ . '/../Helpers/dtr_qr_logic.php';
 }
 
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
+$current=site_current_deployment_sql();
 $teamLeadUserId = (int)$_SESSION['user_id'];
 $today = date('Y-m-d');
 
@@ -62,6 +64,7 @@ try {
     // the exact same way the Employee Dashboard does).
     $sql = "
         SELECT
+            d.SiteID AS site_id, s.Name AS site_name,
             e.EmployeeID AS employee_id,
             CONCAT(e.FirstName, ' ', e.LastName) AS employee_name,
             e.Email AS employee_email,
@@ -73,10 +76,12 @@ try {
             dtr.total_hours_rendered,
             dtr.updated_at
         FROM deployment d
+        INNER JOIN deployment_sites s ON s.SiteID=d.SiteID AND s.IsActive=1
+        INNER JOIN clientcompany c ON c.CompanyID=s.CompanyID AND c.IsActive=1
         INNER JOIN employee e ON e.EmployeeID = d.EmployeeID AND e.IsActive = 1
         LEFT JOIN daily_time_records dtr
             ON dtr.employee_id = e.EmployeeID AND dtr.date = :today
-        WHERE d.SiteSuperVisorID = :tl_id
+        WHERE s.TeamLeadID = :tl_id AND {$current}
           AND (d.EndDate IS NULL OR d.EndDate >= CURDATE())
         GROUP BY e.EmployeeID
         ORDER BY employee_name ASC
@@ -132,7 +137,7 @@ try {
 
         // Same schedule shape used by get_employee_attendance.php (grace_period 5,
         // working_days hardcoded 'Mon-Fri') so both dashboards compute identically.
-        $schedule = ['working_days' => 'Mon-Fri', 'time_in' => $shiftStart, 'grace_period' => 5, 'break_minutes' => $breakMinutes];
+        $schedule = payroll_resolve_deployment_schedule($conn, $employeeId, $today);
 
         // 2) Build the dtr row shape payroll_timesheet_day_status() expects.
         $dtrRow = $row['record_id'] ? [
@@ -197,6 +202,7 @@ try {
         }
 
         $roster[] = [
+            'site_id'=>(int)$row['site_id'],'site_name'=>$row['site_name'],
             'employee_id' => $employeeId,
             'employee_number' => $employeeId, // Fallback if EmployeeNumber column doesn't exist
             'employee_name' => $row['employee_name'],

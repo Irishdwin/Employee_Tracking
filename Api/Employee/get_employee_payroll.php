@@ -44,22 +44,12 @@ try {
         exit();
     }
 
-    $dailyRate = (float)($employee['daily_rate'] ?? 0);
-    $hourlyRate = (float)($employee['hourly_rate'] ?? 0);
-    $allowance = (float)($employee['allowance'] ?? 0);
-    $msc = (float)($employee['monthly_salary_credit'] ?? 0);
-
-    if ($dailyRate <= 0 && (float)($employee['BasicSalary'] ?? 0) > 0) {
-        $dailyRate = round((float)$employee['BasicSalary'] / 26, 2);
-        $hourlyRate = round($dailyRate / 8, 2);
-        $msc = round((float)$employee['BasicSalary'], 2);
-    }
-    if ($hourlyRate <= 0 && $dailyRate > 0) {
-        $hourlyRate = round($dailyRate / 8, 2);
-    }
-    if ($msc <= 0 && $dailyRate > 0) {
-        $msc = round($dailyRate * 26, 2);
-    }
+    require_once __DIR__ . '/../Helpers/employee_payroll_rates.php';
+    $resolvedRates=payroll_employee_rates($employee,true);
+    $dailyRate=$resolvedRates['daily_rate'];
+    $hourlyRate=$resolvedRates['hourly_rate'];
+    $allowance=$resolvedRates['allowance'];
+    $msc=$resolvedRates['monthly_salary_credit'];
 
     $hiredContext = employee_fetch_hired_placement_context($conn, $userId);
     $workSchedule = $hiredContext ? trim((string)($hiredContext['work_schedule'] ?? '')) : '';
@@ -68,7 +58,7 @@ try {
     $deploymentCompany = '';
     $deploymentSite = '';
     $depStmt = $conn->prepare(
-        "SELECT dep.CompanyID, dep.Location, cc.Name AS company_name
+        "SELECT dep.DeploymentID, dep.CompanyID, dep.Location, cc.Name AS company_name
          FROM deployment dep
          LEFT JOIN clientcompany cc ON cc.CompanyID = dep.CompanyID
          WHERE dep.EmployeeID = ? AND (dep.EndDate IS NULL OR dep.EndDate >= CURDATE())
@@ -108,7 +98,8 @@ try {
         $period['start'],
         $period['end'],
         $workSchedule !== '' ? $workSchedule : null,
-        $deductionFlags
+        $deductionFlags,
+        isset($depRow['DeploymentID']) ? (int)$depRow['DeploymentID'] : null
     );
 
     $tracker = [

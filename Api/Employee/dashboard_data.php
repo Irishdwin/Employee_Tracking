@@ -35,11 +35,11 @@ $profileStmt = $conn->prepare(
         dep_company.Name AS deployment_company,
         dep.CompanyID AS deployment_company_id,
         dep_company.PayrollType AS deployment_payroll_type,
-        COALESCE(dep_company.registered_latitude, dep_company.latitude) AS site_lat,
-        COALESCE(dep_company.registered_longitude, dep_company.longitude) AS site_lng,
-        COALESCE(dep_company.geofence_radius, 100) AS geofence_radius,
-        dep_company.site_registered_at AS site_registered_at,
-        dep_company.registered_by_tl_id AS registered_by_tl_id,
+        work_site.registered_latitude AS site_lat,
+        work_site.registered_longitude AS site_lng,
+        COALESCE(work_site.geofence_radius, 100) AS geofence_radius,
+        work_site.site_registered_at AS site_registered_at,
+        work_site.registered_by_tl_id AS registered_by_tl_id,
         tl.FullName AS team_lead_name,
         a.FirstName AS applicant_first_name,
         a.LastName AS applicant_last_name,
@@ -54,18 +54,16 @@ $profileStmt = $conn->prepare(
      FROM users u
      LEFT JOIN employee e ON e.Email = u.Email AND e.IsActive = 1
      LEFT JOIN (
-         SELECT d1.*
-         FROM deployment d1
-         INNER JOIN (
-             SELECT EmployeeID, MAX(StartDate) AS MaxStart
-             FROM deployment
-             WHERE EndDate IS NULL OR EndDate >= CURDATE()
-             GROUP BY EmployeeID
-         ) latest ON latest.EmployeeID = d1.EmployeeID AND latest.MaxStart = d1.StartDate
-         WHERE d1.EndDate IS NULL OR d1.EndDate >= CURDATE()
+         SELECT d1.* FROM deployment d1
+         JOIN status ds ON ds.StatusID=d1.StatusID AND ds.Name='Active'
+         WHERE d1.StartDate<=CURDATE() AND (d1.EndDate IS NULL OR d1.EndDate>=CURDATE())
+           AND NOT EXISTS (SELECT 1 FROM deployment d2 JOIN status ds2 ON ds2.StatusID=d2.StatusID AND ds2.Name='Active'
+             WHERE d2.EmployeeID=d1.EmployeeID AND d2.DeploymentID<>d1.DeploymentID
+               AND d2.StartDate<=CURDATE() AND (d2.EndDate IS NULL OR d2.EndDate>=CURDATE()))
      ) dep ON dep.EmployeeID = e.EmployeeID
      LEFT JOIN clientcompany dep_company ON dep_company.CompanyID = dep.CompanyID
-     LEFT JOIN users tl ON tl.UsersID = dep.SiteSuperVisorID
+     LEFT JOIN deployment_sites work_site ON work_site.SiteID=dep.SiteID AND work_site.IsActive=1
+     LEFT JOIN users tl ON tl.UsersID = work_site.TeamLeadID
      LEFT JOIN applicants a ON a.UserID = u.UsersID
      WHERE u.UsersID = ?
      LIMIT 1"
@@ -120,6 +118,18 @@ if ($deploymentPosition !== '' && $deploymentCompany !== '') {
 $deploymentLabel = $deploymentCompany !== '' ? $deploymentCompany : '—';
 $deploymentSiteLabel = $deploymentLocation !== '' ? $deploymentLocation : '—';
 $scheduleLabel = $workSchedule !== '' ? $workSchedule : '—';
+if (!empty($profileRow['employee_id'])) {
+    $expected = payroll_resolve_deployment_schedule($conn, (int)$profileRow['employee_id'], date('Y-m-d'));
+    if (!empty($expected['deployment_id'])) {
+        $profileRow['duty_time_in'] = $expected['time_in'];
+        $profileRow['duty_time_out'] = $expected['time_out'];
+        $profileRow['duty_break_duration'] = $expected['break_duration'];
+        $profileRow['duty_grace_period'] = $expected['grace_period'];
+        $profileRow['duty_working_days'] = $expected['working_days'];
+        $scheduleLabel = $expected['schedule_type'] . ': ' . date('g:i A', strtotime($expected['time_in']))
+            . '–' . date('g:i A', strtotime($expected['time_out'])) . ' · ' . $expected['working_days'];
+    }
+}
 
 $documents = [];
 $applicantId = null;
@@ -257,5 +267,6 @@ echo json_encode([
         ];
     })(),
     'applicant_id' => $applicantId,
+    'document_csrf_token' => ($_SESSION['employee_document_csrf'] ??= bin2hex(random_bytes(32))),
     'documents' => $documents,
 ]);

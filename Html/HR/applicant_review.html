@@ -69,6 +69,7 @@
     </style>
     <script>window.REQUIRED_ROLE = 'HR';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
+<script src="../../Js/Shared/applicant_reendorsement.js"></script>
 </head>
 <body>
 <div class="layout-wrapper">
@@ -76,6 +77,7 @@
         <div class="sidebar-header"><span>Onazul HR</span></div>
         <ul class="sidebar-nav mt-2">
             <li><a href="hr_dashboard.html" class="sidebar-link"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+            <li><a href="hr_dashboard.html#section-employee-management" class="sidebar-link"><i class="bi bi-person-vcard"></i><span>Employee Management</span></a></li>
             <li><a href="job_orders.html" class="sidebar-link"><i class="bi bi-briefcase"></i><span>Job Orders</span></a></li>
             <li><a href="applicant_review.html" class="sidebar-link active"><i class="bi bi-people"></i><span>Applicant Review</span></a></li>
             <li><a href="hr_dashboard.html#section-messages" class="sidebar-link"><i class="bi bi-chat-dots"></i><span>Messages (HR)</span></a></li>
@@ -97,6 +99,8 @@
                     <option value="Passed">Passed</option>
                     <option value="Failed">Failed</option>
                     <option value="Endorsed">Endorsed</option>
+                    <option value="Rejected by Client">Rejected by Client / For Reassignment</option>
+                    <option value="Rejected">Agency Declined</option>
                 </select>
             </div>
         </div>
@@ -187,6 +191,7 @@
                     <button class="btn btn-sm btn-primary" onclick="openReview(${app.application_id})">
                         <i class="bi bi-eye"></i> Review
                     </button>
+                    ${app.can_reendorse ? `<button class="btn btn-sm btn-outline-primary" onclick="ApplicantReendorsement.open(${app.application_id}, loadApplications)">Re-Endorse</button>` : ''}
                 </td>
             </tr>
         `).join('');
@@ -242,9 +247,7 @@
                     <button class="btn btn-success btn-sm" onclick="updateStatus(${data.application_id}, 'For Interview')">
                         Mark for Interview
                     </button>
-                    <button class="btn btn-primary btn-sm" onclick="endorseToClient(${data.application_id})">
-                        Endorse to Client
-                    </button>
+${['applied','scheduled_for_interview'].includes(data.workflow_stage) ? `<button class="btn btn-primary btn-sm" onclick="endorseToClient(${data.application_id})">Endorse to Client</button>` : ''}
                     ${data.can_hire ? `
                         <button type="button" class="btn btn-dark btn-sm btn-hire-applicant" data-app-id="${data.application_id}">
                             <i class="bi bi-person-check"></i> Hire Applicant
@@ -253,6 +256,7 @@
                 </div>
             </div>
         `;
+        if (window.ApplicantReendorsement) ApplicantReendorsement.attach(content, data, loadApplications);
     }
     
     function renderDocuments(docs) {

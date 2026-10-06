@@ -50,7 +50,9 @@
       <button data-nav="dtr" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left">
         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span class="sidebar-label">DTR Verification (Phase 4.4)</span>
+        <span id="accountingDtrBadge" class="sidebar-nav-badge badge rounded-pill bg-danger ms-auto d-none" aria-label="DTRs awaiting verification"></span>
       </button>
+      <button data-nav="addback" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left"><i class="bi bi-file-earmark-plus"></i><span>Add Back Requests</span></button>
       <button data-nav="payroll" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left">
         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
         <span class="sidebar-label">Kinsenas Payroll Run (Phase 5)</span>
@@ -109,18 +111,51 @@
       <section class="view-panel" data-view="dashboard">
         <h1 class="text-2xl font-bold text-brand-navy">Accounting Overview</h1>
         <p class="mt-1 text-sm text-slate-600">Welcome, <span data-user-field="full_name">Accounting User</span>.</p>
-        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Next Payroll Date</p><p id="acNextPayrollDate" class="mt-2 text-2xl font-bold text-slate-400">—</p></div>
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Pending DTR Submissions</p><p id="acPendingDtrCount" class="mt-2 text-2xl font-bold text-slate-400">0</p></div>
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Total Payroll Est.</p><p id="acTotalPayrollEst" class="mt-2 text-2xl font-bold tabular-nums text-slate-400">—</p></div>
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Pending Clearances</p><p id="acPendingClearances" class="mt-2 text-2xl font-bold text-slate-400">0</p></div>
+        <div class="mt-6 flex items-center gap-2" role="tablist" aria-label="Payroll Type">
+          <button type="button" id="acPayrollTypeBtnA" class="ac-payroll-type-btn rounded-lg border border-primary-subtle bg-brand-navy px-4 py-2 text-sm font-semibold text-white" onclick="acSwitchPayrollTypeView('A')">Payroll Type A</button>
+          <button type="button" id="acPayrollTypeBtnB" class="ac-payroll-type-btn rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600" onclick="acSwitchPayrollTypeView('B')">Payroll Type B</button>
         </div>
-        <div class="mt-4 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Ready for Payroll</p><p id="acReadyForPayroll" class="mt-2 text-xl font-bold text-slate-400">0</p></div>
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Payrolls Computed</p><p id="acPayrollsComputed" class="mt-2 text-xl font-bold text-slate-400">0</p></div>
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">For Review</p><p id="acPayrollsForReview" class="mt-2 text-xl font-bold text-slate-400">0</p></div>
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Approved</p><p id="acPayrollsApproved" class="mt-2 text-xl font-bold text-slate-400">0</p></div>
-          <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Exported</p><p id="acPayrollsExported" class="mt-2 text-xl font-bold text-slate-400">0</p></div>
+        <div class="mt-4">
+          <!-- PAYROLL TYPE A -->
+          <div id="acTypeASection" class="rounded-xl border border-primary-subtle bg-primary-subtle/20 p-4">
+            <div class="mb-3 flex items-center gap-2">
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Type A</span>
+              <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700">Payroll Type A</h2>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Next Payroll Date</p><p id="acA_NextPayrollDate" class="mt-2 text-2xl font-bold text-slate-400">—</p></div>
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Pending DTR Submissions</p><p id="acA_PendingDtrCount" class="mt-2 text-2xl font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Total Payroll Est.</p><p id="acA_TotalPayrollEst" class="mt-2 text-2xl font-bold tabular-nums text-slate-400">—</p></div>
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Pending Clearances</p><p id="acA_PendingClearances" class="mt-2 text-2xl font-bold text-slate-400">0</p></div>
+            </div>
+            <div class="mt-4 grid grid-cols-3 gap-3 xl:grid-cols-5">
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Ready for Payroll</p><p id="acA_ReadyForPayroll" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Payrolls Computed</p><p id="acA_PayrollsComputed" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">For Review</p><p id="acA_PayrollsForReview" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Approved</p><p id="acA_PayrollsApproved" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Exported</p><p id="acA_PayrollsExported" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+            </div>
+          </div>
+          <!-- PAYROLL TYPE B -->
+          <div id="acTypeBSection" class="rounded-xl border border-info-subtle bg-info-subtle/20 p-4" hidden>
+            <div class="mb-3 flex items-center gap-2">
+              <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">Type B</span>
+              <h2 class="text-sm font-bold uppercase tracking-wide text-slate-700">Payroll Type B</h2>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Next Payroll Date</p><p id="acB_NextPayrollDate" class="mt-2 text-2xl font-bold text-slate-400">—</p></div>
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Pending DTR Submissions</p><p id="acB_PendingDtrCount" class="mt-2 text-2xl font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Total Payroll Est.</p><p id="acB_TotalPayrollEst" class="mt-2 text-2xl font-bold tabular-nums text-slate-400">—</p></div>
+              <div class="rounded-lg bg-white p-4 shadow-card"><p class="text-xs font-semibold uppercase text-slate-500">Pending Clearances</p><p id="acB_PendingClearances" class="mt-2 text-2xl font-bold text-slate-400">0</p></div>
+            </div>
+            <div class="mt-4 grid grid-cols-3 gap-3 xl:grid-cols-5">
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Ready for Payroll</p><p id="acB_ReadyForPayroll" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Payrolls Computed</p><p id="acB_PayrollsComputed" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">For Review</p><p id="acB_PayrollsForReview" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Approved</p><p id="acB_PayrollsApproved" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+              <div class="rounded-lg bg-white p-3 shadow-card"><p class="text-[11px] font-semibold uppercase text-slate-500">Exported</p><p id="acB_PayrollsExported" class="mt-1 text-lg font-bold text-slate-400">0</p></div>
+            </div>
+          </div>
         </div>
         <div class="mt-8 grid gap-6 lg:grid-cols-5">
           <div class="rounded-lg bg-white p-4 shadow-card lg:col-span-3">
@@ -170,6 +205,7 @@
         </div>
       </section>
 
+      <section class="view-panel hidden" data-view="addback"><h2 class="text-2xl font-bold text-brand-navy">Add Back Requests</h2><p class="mt-1 text-slate-600">Verify omitted duty using recorded evidence. Original attendance and DTR remain unchanged.</p><div id="accountingAddBack" class="mt-6 rounded-xl bg-white p-5 shadow-card"></div></section>
       <section id="section-payroll" class="view-panel hidden" data-view="payroll">
         <h1 class="text-2xl font-bold text-brand-navy">Payroll Processing &amp; Client Billing</h1>
         <p class="mt-1 text-sm text-slate-600">Generate kinsenas payroll runs and export client billing spreadsheets (49-column format).</p>
@@ -414,6 +450,8 @@
       <aside class="ow-msgr-sidebar">
         <div class="ow-msgr-search-wrap">
           <input type="search" class="form-control form-control-sm" id="owMessengerSearch" placeholder="Search contacts…" autocomplete="off">
+          <label for="owMessengerRole" class="small text-muted mt-2 mb-1">Filter by role</label>
+          <select id="owMessengerRole" class="form-select form-select-sm" aria-label="Filter contacts by role"><option value="">All contacts</option></select>
         </div>
         <div class="ow-msgr-contacts" id="owMessengerContacts"><p class="ow-msgr-empty">Loading…</p></div>
       </aside>
@@ -666,6 +704,14 @@
       var navItems = document.querySelectorAll('.nav-item');
       var activeNav = 'bg-brand-accent text-white shadow-md';
       var inactiveNav = 'text-white/85 hover:bg-brand-sidebar-hover';
+      // Declared here (top of the IIFE) rather than further down, because
+      // showView('dashboard') below runs synchronously on page load and
+      // calls loadFinancialDashboardOverview() immediately — if these were
+      // declared after that call, they'd still be `undefined` (var hoisting)
+      // at the moment loadFinancialDashboardOverview() reads them, causing
+      // fetch(undefined) -> a request to a literal "undefined" URL.
+      var ACC_SUBMITTED_DTR_API = '../../Api/Accounting/get_submitted_dtrs.php';
+      var ACC_PAYROLL_RUNS_API = '../../Api/Accounting/get_payroll_runs.php';
 
       function showView(id) {
         panels.forEach(function (p) { p.classList.toggle('hidden', p.getAttribute('data-view') !== id); });
@@ -708,15 +754,21 @@
           .replace(/'/g, '&#039;');
       }
 
-      var ACC_SUBMITTED_DTR_API = '../../Api/Accounting/get_submitted_dtrs.php';
-      var ACC_PAYROLL_RUNS_API = '../../Api/Accounting/get_payroll_runs.php';
-
       function setStatCard(elId, count) {
         var el = document.getElementById(elId);
         if (!el) return;
         el.textContent = String(count);
         el.classList.toggle('text-slate-400', count === 0);
         el.classList.toggle('text-brand-navy', count > 0);
+      }
+
+      // Reads the backend-resolved payroll_type off a run/DTR-submission row
+      // (set server-side from clientcompany.PayrollType — see get_payroll_runs.php /
+      // get_submitted_dtrs.php). Defaults to 'B' only as a display fallback, matching
+      // payroll_type_normalize()'s own default in Api/Helpers/payroll_type_helper.php —
+      // this does not decide the type, it just mirrors the server's own default.
+      function payroll_type_of(row) {
+        return (row && row.payroll_type === 'A') ? 'A' : 'B';
       }
 
       function formatMoneyAcc(value) {
@@ -736,12 +788,52 @@
         return Math.round(diffHr / 24) + 'd ago';
       }
 
+      function setStatCardText(elId, text, hasValue) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        el.textContent = text;
+        el.classList.toggle('text-slate-400', !hasValue);
+        el.classList.toggle('text-brand-navy', !!hasValue);
+      }
+
+      // Renders one Payroll Type section (A or B) from runs ALREADY scoped to that
+      // type. Scoping happens upstream against runsRes.active_runs/history_runs
+      // using each run's `payroll_type`, which the backend resolves from
+      // clientcompany.PayrollType via client_billing_list_runs_split() ->
+      // client_billing_map_run_row() (Api/Helpers/client_billing_helper.php) — i.e.
+      // Type A/B is a database-verified field on every run row, not inferred here.
+      function renderPayrollTypeSection(prefix, runsForType, period) {
+        var payday = period && period.payday_display ? period.payday_display : null;
+        setStatCardText('ac' + prefix + '_NextPayrollDate', payday || '—', !!payday);
+
+        var withTotals = runsForType.filter(function (r) { return r.total_invoice != null; });
+        if (withTotals.length) {
+          var sum = withTotals.reduce(function (acc, r) { return acc + Number(r.total_invoice); }, 0);
+          setStatCardText('ac' + prefix + '_TotalPayrollEst', formatMoneyAcc(sum), true);
+        } else if (runsForType.length) {
+          setStatCardText('ac' + prefix + '_TotalPayrollEst', 'Pending Export', false);
+        } else {
+          setStatCardText('ac' + prefix + '_TotalPayrollEst', '—', false);
+        }
+
+        // Workflow status cards — bucketed from the SAME payroll_runs data
+        // (CurrentStatus / Status), already filtered to this Payroll Type.
+        var byCurrentStatus = function (label) {
+          return runsForType.filter(function (r) { return (r.current_status || '') === label; }).length;
+        };
+        setStatCard('ac' + prefix + '_ReadyForPayroll', byCurrentStatus('Pending DTR') + byCurrentStatus('Ready for Payroll'));
+        setStatCard('ac' + prefix + '_PayrollsComputed', byCurrentStatus('Computed'));
+        setStatCard('ac' + prefix + '_PayrollsForReview', byCurrentStatus('For Review'));
+        setStatCard('ac' + prefix + '_PayrollsApproved', runsForType.filter(function (r) { return r.status === 'Approved'; }).length);
+        setStatCard('ac' + prefix + '_PayrollsExported', runsForType.filter(function (r) { return r.status === 'Exported'; }).length);
+      }
+
       // Reuses the two existing Accounting endpoints (payroll runs + submitted DTRs) —
-      // no new API — to populate the previously-static Financial Dashboard cards.
+      // no new API — to populate the Type A / Type B Financial Dashboard sections.
+      // Each run/submission's `payroll_type` comes from the backend (JOIN against
+      // clientcompany.PayrollType), so bucketing here reflects the DB-configured
+      // Payroll Type, it does not derive/guess it in JavaScript.
       function loadFinancialDashboardOverview() {
-        var nextPaydayEl = document.getElementById('acNextPayrollDate');
-        var pendingDtrEl = document.getElementById('acPendingDtrCount');
-        var totalPayrollEl = document.getElementById('acTotalPayrollEst');
         var activityEl = document.getElementById('acRecentActivityLog');
 
         Promise.all([
@@ -752,48 +844,24 @@
           var dtrRes = results[1];
 
           if (runsRes && runsRes.success) {
-            if (nextPaydayEl) {
-              var payday = runsRes.current_period && runsRes.current_period.payday_display
-                ? runsRes.current_period.payday_display
-                : null;
-              nextPaydayEl.textContent = payday || '—';
-              nextPaydayEl.classList.toggle('text-slate-400', !payday);
-              nextPaydayEl.classList.toggle('text-brand-navy', !!payday);
-            }
             var runs = (runsRes.active_runs || []).concat(runsRes.history_runs || []);
-            if (totalPayrollEl) {
-              var withTotals = runs.filter(function (r) { return r.total_invoice != null; });
-              if (withTotals.length) {
-                var sum = withTotals.reduce(function (acc, r) { return acc + Number(r.total_invoice); }, 0);
-                totalPayrollEl.textContent = formatMoneyAcc(sum);
-                totalPayrollEl.classList.remove('text-slate-400');
-                totalPayrollEl.classList.add('text-brand-navy');
-              } else if (runs.length) {
-                totalPayrollEl.textContent = 'Pending Export';
-              } else {
-                totalPayrollEl.textContent = '—';
-              }
-            }
+            var runsTypeA = runs.filter(function (r) { return payroll_type_of(r) === 'A'; });
+            var runsTypeB = runs.filter(function (r) { return payroll_type_of(r) === 'B'; });
 
-            // Workflow status cards — bucketed from the SAME payroll_runs data
-            // (CurrentStatus / Status), no separate/duplicate status tracking.
-            var byCurrentStatus = function (label) {
-              return runs.filter(function (r) { return (r.current_status || '') === label; }).length;
-            };
-            setStatCard('acReadyForPayroll', byCurrentStatus('Pending DTR') + byCurrentStatus('Ready for Payroll'));
-            setStatCard('acPayrollsComputed', byCurrentStatus('Computed'));
-            setStatCard('acPayrollsForReview', byCurrentStatus('For Review'));
-            setStatCard('acPayrollsApproved', runs.filter(function (r) { return r.status === 'Approved'; }).length);
-            setStatCard('acPayrollsExported', runs.filter(function (r) { return r.status === 'Exported'; }).length);
+            renderPayrollTypeSection('A', runsTypeA, runsRes.current_period_type_a);
+            renderPayrollTypeSection('B', runsTypeB, runsRes.current_period_type_b);
+          } else {
+            renderPayrollTypeSection('A', [], null);
+            renderPayrollTypeSection('B', [], null);
           }
 
           if (dtrRes && dtrRes.success) {
             var submissions = dtrRes.submissions || [];
-            if (pendingDtrEl) {
-              pendingDtrEl.textContent = String(submissions.length);
-              pendingDtrEl.classList.toggle('text-slate-400', submissions.length === 0);
-              pendingDtrEl.classList.toggle('text-brand-navy', submissions.length > 0);
-            }
+            var subsTypeA = submissions.filter(function (s) { return payroll_type_of(s) === 'A'; });
+            var subsTypeB = submissions.filter(function (s) { return payroll_type_of(s) === 'B'; });
+            setStatCard('acA_PendingDtrCount', subsTypeA.length);
+            setStatCard('acB_PendingDtrCount', subsTypeB.length);
+
             if (activityEl) {
               if (!submissions.length) {
                 activityEl.innerHTML = 'No recent activity yet.';
@@ -809,10 +877,41 @@
                 }).join('') + '</ul>';
               }
             }
+          } else {
+            setStatCard('acA_PendingDtrCount', 0);
+            setStatCard('acB_PendingDtrCount', 0);
           }
         });
       }
       window.loadFinancialDashboardOverview = loadFinancialDashboardOverview;
+
+      // Shows only the selected Payroll Type section (full width) and hides the
+      // other one — the other type's data is not rendered on screen at all while
+      // hidden, it is only re-shown when its button is clicked. Data for both
+      // types is still fetched/kept in sync by loadFinancialDashboardOverview();
+      // this only controls which section is visible.
+      function acSwitchPayrollTypeView(type) {
+        var sectionA = document.getElementById('acTypeASection');
+        var sectionB = document.getElementById('acTypeBSection');
+        var btnA = document.getElementById('acPayrollTypeBtnA');
+        var btnB = document.getElementById('acPayrollTypeBtnB');
+        var showA = type !== 'B';
+
+        if (sectionA) sectionA.hidden = !showA;
+        if (sectionB) sectionB.hidden = showA;
+
+        [btnA, btnB].forEach(function (btn, i) {
+          if (!btn) return;
+          var isActive = (i === 0) === showA;
+          btn.classList.toggle('bg-brand-navy', isActive);
+          btn.classList.toggle('text-white', isActive);
+          btn.classList.toggle('border-primary-subtle', isActive);
+          btn.classList.toggle('bg-white', !isActive);
+          btn.classList.toggle('text-slate-600', !isActive);
+          btn.classList.toggle('border-slate-300', !isActive);
+        });
+      }
+      window.acSwitchPayrollTypeView = acSwitchPayrollTypeView;
 
       function loadVerifiedSubmittedTimesheets() {
         var tbody = document.getElementById('submitted-dtr-table-body');
@@ -839,12 +938,12 @@
               var statusCls = s.status === 'Verified' ? 'bg-success' : (s.status === 'Partially Verified' ? 'bg-warning text-dark' : 'bg-secondary');
               return '<tr class="border-b border-slate-100">' +
                 '<td class="border-r border-slate-200 px-4 py-3 font-semibold text-brand-navy">' + escapeHtmlAcc(s.team_lead_name || '—') + '</td>' +
-                '<td class="border-r border-slate-200 px-4 py-3">' + escapeHtmlAcc(s.company_name || '—') + '</td>' +
+                '<td class="border-r border-slate-200 px-4 py-3">' + escapeHtmlAcc((s.company_name || '—')+' — '+(s.site_name || 'Legacy site')) + '</td>' +
                 '<td class="border-r border-slate-200 px-4 py-3">' + escapeHtmlAcc(s.cutoff_period || (s.cutoff_start + ' – ' + s.cutoff_end)) + '</td>' +
                 '<td class="border-r border-slate-200 px-4 py-3 text-center">' + escapeHtmlAcc(String(s.employee_count || 0)) + '</td>' +
                 '<td class="border-r border-slate-200 px-4 py-3"><span class="badge ' + statusCls + '">' + escapeHtmlAcc(s.status || 'Submitted') + '</span></td>' +
                 '<td class="px-4 py-3 text-right">' +
-                '  <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" onclick="openBatchEmployeesModal(' + s.tl_id + ', \'' + s.cutoff_start + '\', \'' + s.cutoff_end + '\')">View</button>' +
+                '  <button type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50" onclick="openBatchEmployeesModal(' + s.tl_id + ', \'' + s.cutoff_start + '\', \'' + s.cutoff_end + '\', '+(s.site_id||0)+')">View</button>' +
                 '</td>' +
                 '</tr>';
             }).join('');
@@ -865,7 +964,7 @@
         return 'bg-light text-dark border';
       }
 
-      function openBatchEmployeesModal(tlId, cutoffStart, cutoffEnd) {
+      function openBatchEmployeesModal(tlId, cutoffStart, cutoffEnd, siteId) {
         var modalEl = document.getElementById('submitted-dtr-modal');
         var titleEl = document.getElementById('submitted-dtr-modal-title');
         var bodyEl = document.getElementById('submitted-dtr-modal-body');
@@ -876,7 +975,7 @@
         modalEl.classList.add('flex');
 
         var url = ACC_SUBMITTED_DTR_API + '?tl_id=' + encodeURIComponent(tlId) +
-          '&cutoff_start=' + encodeURIComponent(cutoffStart) + '&cutoff_end=' + encodeURIComponent(cutoffEnd);
+          '&cutoff_start=' + encodeURIComponent(cutoffStart) + '&cutoff_end=' + encodeURIComponent(cutoffEnd)+'&site_id='+encodeURIComponent(siteId||0);
 
         fetch(url, { credentials: 'include' })
           .then(function (r) { return r.json(); })
@@ -914,7 +1013,7 @@
             bodyEl.innerHTML =
               '<div class="mb-4 grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-3">' +
               '  <div><span class="block text-xs text-slate-500">Team Lead</span><strong>' + escapeHtmlAcc(batch.team_lead_name || '—') + '</strong></div>' +
-              '  <div><span class="block text-xs text-slate-500">Company</span><strong>' + escapeHtmlAcc(batch.company_name || '—') + '</strong></div>' +
+              '  <div><span class="block text-xs text-slate-500">Company</span><strong>' + escapeHtmlAcc((batch.company_name || '—')+' — '+(batch.site_name || 'Legacy site')) + '</strong></div>' +
               '  <div><span class="block text-xs text-slate-500">Cutoff</span><strong>' + escapeHtmlAcc(batch.cutoff_period || '—') + '</strong></div>' +
               '</div>' +
               '<div class="mb-4 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm">' +
@@ -958,7 +1057,7 @@
                   method: 'POST',
                   credentials: 'include',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd })
+                  body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd,site_id:siteId||0 })
                 })
                   .then(function (r) { return r.json(); })
                   .then(function (vres) {
@@ -968,7 +1067,8 @@
                       showAccMessage('Verification Failed', (vres && vres.message) || 'Failed to verify DTR.', true);
                       return;
                     }
-                    openBatchEmployeesModal(tlId, cutoffStart, cutoffEnd);
+                    if (window.OwNotifications) window.OwNotifications.poll();
+                    openBatchEmployeesModal(tlId, cutoffStart, cutoffEnd,siteId);
                     if (typeof loadVerifiedSubmittedTimesheets === 'function') loadVerifiedSubmittedTimesheets();
                     showAccMessage('DTR Verified', (vres.message || 'All employees in this batch are now verified.'), false);
                   })
@@ -992,7 +1092,7 @@
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd })
+                    body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd,site_id:siteId||0 })
                   })
                     .then(function (r) { return r.json(); })
                     .then(function (cres) {
@@ -1033,7 +1133,7 @@
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd })
+                    body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd,site_id:siteId||0 })
                   })
                     .then(function (r) { return r.json(); })
                     .then(function (fres) {
@@ -1067,7 +1167,7 @@
                   payrollTypeLabel: batch.payroll_type_label,
                   cutoffPeriod: batch.cutoff_period,
                   employeeCount: emps.length,
-                  onSuccess: function () { openBatchEmployeesModal(tlId, cutoffStart, cutoffEnd); }
+                  onSuccess: function () { openBatchEmployeesModal(tlId, cutoffStart, cutoffEnd,siteId); }
                 });
               });
             }
@@ -1240,10 +1340,25 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../Js/Accounting/accounting.js"></script>
-  <script src="../../Js/Shared/messenger_rbac.js"></script>
+  <script src="../../Js/Shared/add_back.js"></script>
+  <script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
   <script src="../../Js/Shared/ow_system_events.js"></script>
+  <script>
+    // Reuse the notification poll; opening the module does not clear pending work.
+    document.addEventListener('onazul:realtime-counts', function (event) {
+      var data = event.detail;
+      if (!data || !data.counts || data.counts.accounting_dtr_pending == null) return;
+      var count = Math.max(0, Number(data.counts.accounting_dtr_pending) || 0);
+      var badge = document.getElementById('accountingDtrBadge');
+      if (!badge) return;
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.classList.toggle('d-none', count === 0);
+      badge.setAttribute('aria-label', count + ' submitted DTRs awaiting verification');
+      badge.title = count + ' submitted DTRs awaiting verification';
+    });
+  </script>
   <script src="../../Js/Shared/ow_notifications.js"></script>
-  <script src="../../Js/Shared/ow_messenger.js"></script>
+  <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
   <script>
     if (window.OwNotifications && window.profileShowView) {
       OwNotifications.init({ sectionId: 'notifications', showSection: window.profileShowView });

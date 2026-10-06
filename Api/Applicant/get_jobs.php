@@ -56,6 +56,7 @@ if ($userId > 0) {
     }
 }
 
+if($userId>0){$labels=jh_profile_labels($conn,$userId);$savedJobCategory=(string)($labels['category_name']??$savedJobCategory);$savedClass=(string)($labels['classification_name']??$savedClass);$savedSub=(string)($labels['sub_classification_name']??$savedSub);}
 $qKeyword = isset($_GET['keyword']) ? trim((string)$_GET['keyword']) : '';
 $qClass = isset($_GET['classification']) ? trim((string)$_GET['classification']) : '';
 $qLoc = isset($_GET['location']) ? trim((string)$_GET['location']) : '';
@@ -117,7 +118,7 @@ $baseSql = "
     FROM joborder jo
     INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
     " . job_order_request_position_join_sql() . "
-    WHERE c.IsActive = 1
+    WHERE c.IsActive = 1 AND jo.Status = 'Open'
       AND " . job_order_has_open_slots_sql() . "
 ";
 
@@ -147,6 +148,7 @@ if ($result) {
             $jobOrderId,
             (int)($row['RequiredCount'] ?? 1)
         );
+        $deploymentSlots=jh_filter_slots($conn,$deploymentSlots,$jobOrderId,$wallMode==='profile'?$userId:0);
         $slotSummary = job_order_summarize_slots($deploymentSlots);
         if ($slotSummary['all_filled']) {
             continue;
@@ -249,3 +251,6 @@ echo json_encode([
     ],
 ]);
 exit();
+
+
+

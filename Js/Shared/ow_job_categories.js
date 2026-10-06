@@ -17,9 +17,9 @@
   }
 
   function categorySelects() {
-    return document.querySelectorAll(
+    return Array.from(document.querySelectorAll(
       'select[data-job-category-select], select[name="job_category"], #jor-category, #joJobCategory'
-    );
+    )).filter(function(sel){return !sel.dataset.hierarchySelect;});
   }
 
   function injectModal() {
@@ -230,3 +230,4 @@
     init();
   }
 })(window);
+

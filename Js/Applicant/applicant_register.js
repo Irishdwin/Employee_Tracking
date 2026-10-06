@@ -105,11 +105,36 @@
         }, 1000);
     }
 
+    // ST-104: generic inline "This field is required." check.
+    function validateRequiredField(id, errorId) {
+        const input = document.getElementById(id);
+        const errorEl = document.getElementById(errorId);
+        const isEmpty = !input || String(input.value || '').trim() === '';
+        if (errorEl) errorEl.classList.toggle('d-none', !isEmpty);
+        if (input) input.classList.toggle('is-invalid', isEmpty);
+        return !isEmpty;
+    }
+
     function handleSubmit(e) {
         e.preventDefault();
         const form = document.getElementById('registerForm');
         const alertDiv = document.getElementById('registerAlert');
         if (!form) return;
+
+        const requiredOk = [
+            validateRequiredField('regFullName', 'regFullNameError'),
+            validateRequiredField('emailField', 'emailFieldError'),
+            validateRequiredField('otpCodeField', 'otpCodeFieldError'),
+            validateRequiredField('regMobile', 'regMobileError'),
+            validateRequiredField('regPassword', 'regPasswordError'),
+            validateRequiredField('regConfirmPassword', 'regConfirmPasswordError'),
+        ].every(Boolean);
+        if (!requiredOk) {
+            alertDiv.className = 'alert alert-danger';
+            alertDiv.textContent = 'Please fill out all required fields.';
+            alertDiv.classList.remove('d-none');
+            return;
+        }
 
         const fd = new FormData(form);
         alertDiv.classList.add('d-none');
@@ -119,9 +144,19 @@
             body: fd,
             credentials: 'same-origin'
         })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                if (data.success) {
+            .then(function (r) {
+                return r.json().then(function (data) {
+                    return { status: r.status, data: data };
+                });
+            })
+            .then(function (result) {
+                const status = result.status;
+                const data = result.data;
+                // IT-101: a newly created applicant account is signalled with
+                // HTTP 201 Created (Api/Applicant/register_applicant.php); the
+                // "already logged in" short-circuit still returns HTTP 200.
+                // Both are success cases and should redirect to login.
+                if (data.success && (status === 201 || status === 200)) {
                     Swal.fire({ icon: 'success', title: 'Account Created', text: data.message || 'You can now log in.' })
                         .then(function () {
                             window.location.href = '../../index.html';

@@ -1,0 +1,9 @@
+/* Shared applicant header, matching applicant_landing.html. */
+.topbar{background:#EDF4FC!important;border-bottom:1px solid #CCDDF0!important;position:sticky;top:0}
+.topbar .brand-logo{height:34px;width:auto;object-fit:contain}
+.topbar .nav-link{font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;font-weight:600!important;color:rgba(15,23,42,.78);text-decoration:none}
+.topbar .nav-link:hover{color:#0f172a}
+.topbar a:has(>.brand-logo){font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+.topbar a:has(>.brand-logo)>span{font-family:inherit!important;color:#003366!important}
+.topbar .employer-link{color:#0056b3;font-weight:700;text-decoration:none}
+.topbar .employer-link:hover{text-decoration:underline}

@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once __DIR__ . '/../Db_connection/db_connect.php'; // mysqli $conn
 
+require_once __DIR__ . '/../Helpers/work_site_geofence.php';
 $teamLeadUserId = (int)$_SESSION['user_id'];
 
 $raw = file_get_contents('php://input');
@@ -78,17 +79,8 @@ $action = trim((string)($body['action'] ?? ''));
 /** Confirm this employee is on the logged-in TL's own deployment roster. Returns DeploymentID or null. */
 function ot_owned_deployment(mysqli $conn, int $employeeId, int $teamLeadUserId): ?int
 {
-    $stmt = $conn->prepare("
-        SELECT DeploymentID FROM deployment
-        WHERE EmployeeID = ? AND SiteSuperVisorID = ?
-          AND (EndDate IS NULL OR EndDate >= CURDATE())
-        LIMIT 1
-    ");
-    $stmt->bind_param('ii', $employeeId, $teamLeadUserId);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    return $row ? (int)$row['DeploymentID'] : null;
+    $row=site_owned_employee($conn,$teamLeadUserId,$employeeId);
+    return $row?(int)$row['DeploymentID']:null;
 }
 
 function ot_status_id(mysqli $conn, string $name): ?int

@@ -29,20 +29,31 @@
   }
 
   function notifySuccess(message) {
+    // Tells the applicant what happens next (their application now shows up
+    // in My Applications) and lets the button itself take them there,
+    // instead of just dismissing the modal.
+    var baseMessage = message || 'Application submitted successfully!';
+    var nextStepMessage = baseMessage + ' You can track its status anytime in My Applications.';
+
     if (typeof Swal !== 'undefined') {
       Swal.fire({
         icon: 'success',
         title: 'Application Submitted!',
-        text: message || 'Application submitted successfully!',
+        text: nextStepMessage,
+        confirmButtonText: 'Proceed to My Applications',
         confirmButtonColor: '#0056b3',
         customClass: {
           confirmButton: 'btn btn-primary px-4 py-2'
         }
+      }).then(function (result) {
+        if (result.isConfirmed) {
+          global.location.href = 'my_applications.html';
+        }
       });
     } else if (global.ApplicantMessageToast && typeof global.ApplicantMessageToast.show === 'function') {
-      global.ApplicantMessageToast.show(message || 'Application submitted.', 'success');
+      global.ApplicantMessageToast.show(nextStepMessage, 'success');
     } else {
-      alert(message || 'Application submitted.');
+      alert(nextStepMessage);
     }
   }
 

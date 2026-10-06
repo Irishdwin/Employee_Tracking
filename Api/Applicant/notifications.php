@@ -1,13 +1,16 @@
 <?php
-session_start();
+require_once __DIR__ . '/../Common/session_init.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'Applicant') {
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'redirect' => '../../index.html']);
+    echo json_encode(['success' => false, 'redirect' => 'applicant_landing.html']);
     exit();
 }
 
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__.'/../Helpers/messenger_rbac.php';
+try{messenger_actor($conn);}catch(Throwable $e){messenger_api_error($e);exit;}
+
 
 header('Content-Type: application/json');
 
@@ -37,7 +40,7 @@ $limit = isset($_GET['limit']) ? min(50, max(1, (int)$_GET['limit'])) : 20;
 $unreadOnly = isset($_GET['unread_only']) && $_GET['unread_only'] === '1';
 
 $sql = "
-    SELECT NotificationID, NotificationType, Title, Message, IsRead, RelatedRecord
+    SELECT NotificationID, NotificationType, Title, Message, IsRead, RelatedRecord, RelateedModule
     FROM notifications
     WHERE UserID = ?
 ";
@@ -53,13 +56,15 @@ $result = $stmt->get_result();
 $notifications = [];
 
 while ($row = $result->fetch_assoc()) {
+    $peer=messenger_notification_peer($conn,$userId,$row);if($peer===null)continue;
     $notifications[] = [
         'id' => (int)$row['NotificationID'],
+            'messenger_user_id'=>$peer,
         'type' => $row['NotificationType'],
         'title' => $row['Title'],
         'message' => $row['Message'],
         'is_read' => (bool)$row['IsRead'],
-        'application_id' => (int)($row['RelatedRecord'] ?? 0)
+        'application_id' => ($row['RelateedModule']??'')==='job_application'?(int)($row['RelatedRecord']??0):0
     ];
 }
 $stmt->close();
@@ -69,6 +74,7 @@ $countStmt->bind_param("i", $userId);
 $countStmt->execute();
 $unreadCount = (int)$countStmt->get_result()->fetch_assoc()['c'];
 $countStmt->close();
+$unreadCount=messenger_notification_unread($conn,$userId);
 
 echo json_encode([
     'success' => true,

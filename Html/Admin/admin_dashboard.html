@@ -353,6 +353,17 @@
             font-weight: 600;
             font-size: 0.82rem;
         }
+    
+        /* Spacious, scrollable applicant document inspection. */
+        #documentPreviewModal .modal-dialog { max-width: 96vw; width: 96vw; margin: 2vh auto; }
+        #documentPreviewModal .modal-content { height: 96vh; }
+        #documentPreviewModal .modal-body { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+        #documentPreviewViewport { flex: 1; min-height: 0; overflow: auto; background: #eef2f6; border: 1px solid #dbe2ea; border-radius: .5rem; padding: 12px; }
+        #documentPreviewImage { max-width: none !important; height: auto; margin-left: auto !important; margin-right: auto !important; user-select: none; -webkit-user-drag: none; }
+        #documentPreviewFrame { max-width: none; border: 0; border-radius: .25rem; }
+        #documentPreviewViewport.image-preview { cursor: grab; touch-action: none; }
+        #documentPreviewViewport.image-preview.is-dragging { cursor: grabbing; }
+        .document-preview-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
     </style>
     <script>window.REQUIRED_ROLE = 'Admin';</script>
     <script>
@@ -362,6 +373,14 @@
         window.HIRE_APPLICANT_API = '../../Api/Admin/process_hire.php';
     </script>
     <script src="../../Js/Shared/role_guard.js"></script>
+<script src="../../Js/Shared/applicant_reendorsement.js"></script>
+<style>
+#viewJorDetailsModal .jor-details-table{table-layout:fixed;width:100%}
+#viewJorDetailsModal .jor-details-table th,#viewJorDetailsModal .jor-details-table td{white-space:normal;overflow-wrap:anywhere}
+#viewJorDetailsModal [data-detail-id] .row{margin-inline:0}
+#viewJorDetailsModal [data-detail-id] .form-select{min-width:0}
+@media(max-width:575px){#viewJorDetailsModal .jor-details-table,#viewJorDetailsModal .jor-details-table tbody,#viewJorDetailsModal .jor-details-table tr,#viewJorDetailsModal .jor-details-table td{display:block;width:100%}#viewJorDetailsModal .jor-details-table thead{display:none}#viewJorDetailsModal .jor-details-table td{border:0;padding:.35rem .5rem}#viewJorDetailsModal .jor-details-table tr{border-bottom:1px solid #dee2e6}}
+</style>
 </head>
 <body class="bg-light">
 <div id="sidebar-overlay" aria-hidden="true"></div>
@@ -397,19 +416,18 @@
                 </a>
             </li>
             <li>
-                <a href="payroll_approvals.html" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" title="Payroll batches awaiting your approval">
-                    <i class="bi bi-cash-coin"></i><span class="flex-grow-1 sidebar-label">Payroll Approvals</span>
-                    <span class="sidebar-nav-badge d-none" id="adminPayrollPendingBadge" aria-label="Payroll runs pending approval">0</span>
-                </a>
-            </li>
-            <li>
                 <a href="#section-deduction-settings" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-deduction-settings" title="SSS, PhilHealth, and Pag-IBIG deduction configuration">
                     <i class="bi bi-table"></i><span class="sidebar-label">Deduction Settings</span>
                 </a>
             </li>
             <li>
-                <a href="../../Api/Admin/reports.php" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none">
-                    <i class="bi bi-graph-up"></i><span class="sidebar-label">Reports</span>
+                <a href="#section-job-categories" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-job-categories" title="Manage job categories, classifications, and sub-classifications">
+                    <i class="bi bi-tags"></i><span class="sidebar-label">Job Categories</span>
+                </a>
+            </li>
+            <li>
+                <a href="#section-holidays" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-holidays" title="Manage holidays and their payroll pay multiplier">
+                    <i class="bi bi-calendar-event"></i><span class="sidebar-label">Holidays</span>
                 </a>
             </li>
             <li>
@@ -488,7 +506,7 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
                         <li><a class="dropdown-item" href="#section-profile" id="menuProfile" data-show-section="section-profile">Profile</a></li>
-                        <li><a class="dropdown-item" href="#" id="menuSystemSettings">System Settings</a></li>
+                        <li><a class="dropdown-item" href="#section-settings" id="menuSystemSettings" data-target="section-settings">System Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
                     </ul>
@@ -558,9 +576,14 @@
                         <h1 class="topbar-title mb-1">System Audit Logs</h1>
                         <p class="topbar-subtitle mb-0">System activity trail and operation audit logs.</p>
                     </div>
-                    <button type="button" class="btn btn-outline-success" id="btnExportAuditLogs">
-                        <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
-                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline-danger me-2" id="btnExportAuditLogsPDF">
+                            <i class="bi bi-file-earmark-pdf me-1"></i> Export to PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-success" id="btnExportAuditLogs">
+                            <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="card mb-3 border-0 shadow-sm">
@@ -632,6 +655,25 @@
                     </div>
                     <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3" id="logsPagination"></div>
                 </div>
+
+                <!-- ST-402: print-only export target. Hidden on screen; shown
+                     via @media print when "Export to PDF" triggers window.print(). -->
+                <div id="printableAuditLogs" class="d-none"></div>
+                <style>
+                    @media print {
+                        body * { visibility: hidden; }
+                        #printableAuditLogs, #printableAuditLogs * { visibility: visible; }
+                        #printableAuditLogs {
+                            display: block !important;
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            width: 100%;
+                        }
+                        #printableAuditLogs table { width: 100%; border-collapse: collapse; font-size: 11px; }
+                        #printableAuditLogs th, #printableAuditLogs td { border: 1px solid #999; padding: 4px 6px; text-align: left; }
+                    }
+                </style>
             </div>
 
             <!-- Section: My Account -->
@@ -738,6 +780,17 @@
                         <i class="bi bi-plus-lg me-1"></i>Add Client
                     </button>
                 </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <div class="input-group" style="max-width: 280px;">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" id="clientsSearchInput" class="form-control" placeholder="Search name, contact, or industry">
+                    </div>
+                    <select id="clientsStatusFilter" class="form-select form-select-sm" style="max-width: 160px;">
+                        <option value="">All statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
                 <div class="card card-table">
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -758,6 +811,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div id="companiesPagination" class="px-3 py-2 border-top"></div>
                     </div>
                 </div>
             </div>
@@ -772,6 +826,17 @@
                     <button type="button" class="btn btn-primary" id="btnUploadAgreementSection">
                         <i class="bi bi-upload me-1"></i>Upload Agreement
                     </button>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <div class="input-group" style="max-width: 280px;">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" id="agreementsSearchInput" class="form-control" placeholder="Search contract no. or company">
+                    </div>
+                    <select id="agreementsStatusFilter" class="form-select form-select-sm" style="max-width: 160px;">
+                        <option value="">All statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Expired">Expired</option>
+                    </select>
                 </div>
                 <div class="card card-table">
                     <div class="card-body p-0">
@@ -792,6 +857,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div id="agreementsPagination" class="px-3 py-2 border-top"></div>
                     </div>
                 </div>
             </div>
@@ -830,16 +896,28 @@
                         </div>
                     </div>
                 </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <div class="input-group" style="max-width: 280px;">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" id="jobOrdersSearchInput" class="form-control" placeholder="Search position, company, or site">
+                    </div>
+                    <select id="jobOrdersStatusFilter" class="form-select form-select-sm" style="max-width: 160px;">
+                        <option value="">All statuses</option>
+                        <option value="Open">Still Hiring</option>
+                        <option value="Closed">Filled</option>
+                    </select>
+                </div>
                 <div class="card">
-                    <div class="card-body">
+                    <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
-                                <thead><tr><th>Client</th><th>Position</th><th>Workers</th><th>Deployment Site</th><th>Work Schedule</th><th>Request Date</th></tr></thead>
+                                <thead><tr><th>Client</th><th>Position</th><th>Workers</th><th>Deployment Site</th><th>Work Schedule</th><th>Request Date</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody id="ordersBody">
-                                    <tr><td colspan="6" class="text-center text-muted py-4">Loading…</td></tr>
+                                    <tr><td colspan="8" class="text-center text-muted py-4">Loading…</td></tr>
                                 </tbody>
                             </table>
                         </div>
+                        <div id="jobOrdersPagination" class="px-3 py-2 border-top"></div>
                     </div>
                 </div>
             </div>
@@ -859,7 +937,8 @@
                             <option value="Endorsed to Client">Endorsed to Client</option>
                             <option value="Approved by Company">Approved by Company</option>
                             <option value="Hired">Hired</option>
-                            <option value="Rejected">Declined</option>
+                            <option value="Rejected by Client">Rejected by Client / For Reassignment</option>
+                        <option value="Rejected">Agency Declined</option>
                         </select>
                     </div>
                 </div>
@@ -961,6 +1040,47 @@
                 </div>
             </div>
 
+            <!-- Section: System Settings -->
+            <div id="section-settings" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <h1 class="topbar-title mb-1">System Settings</h1>
+                        <p class="topbar-subtitle mb-0">Manage the agency contact details shown to applicants on their application details page.</p>
+                    </div>
+                </div>
+
+                <div id="agencyContactAlert" class="alert d-none" role="alert"></div>
+
+                <div class="card card-table mb-4">
+                    <div class="card-header">
+                        <h2 class="h6 mb-0"><i class="bi bi-person-badge me-2 text-primary"></i>Agency Contact</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="agencyContactForm">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="agencyContactName">Agency Contact Name</label>
+                                    <input type="text" class="form-control" id="agencyContactName" maxlength="150" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="agencyContactEmail">Email</label>
+                                    <input type="email" class="form-control" id="agencyContactEmail" maxlength="150" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="agencyContactPhone">Phone Number</label>
+                                    <input type="text" class="form-control" id="agencyContactPhone" maxlength="50" required>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary" id="btnSaveAgencyContact">
+                                    <i class="bi bi-save me-1"></i>Save Agency Contact
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
             <!-- Section: Deduction Settings -->
             <div id="section-deduction-settings" class="dashboard-section d-none">
                 <div class="d-flex justify-content-between align-items-start mb-4">
@@ -1050,6 +1170,119 @@
                                 </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-holidays" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <h1 class="topbar-title mb-1">Holidays</h1>
+                        <p class="topbar-subtitle mb-0">Manage holiday dates and their payroll pay multiplier. Attendance and payroll automatically detect duty rendered on these dates.</p>
+                    </div>
+                </div>
+
+                <div id="holidaysPageAlert" class="alert d-none" role="alert"></div>
+
+                <div class="card card-table">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <h2 class="h6 mb-0"><i class="bi bi-calendar-event me-2 text-primary"></i>Holiday Management</h2>
+                            <small class="text-muted">Pay Rate is the multiplier applied to the employee's daily rate for that day (2.00 = double pay).</small>
+                        </div>
+                        <button type="button" class="btn btn-success btn-sm" id="btnOpenAddHoliday">
+                            <i class="bi bi-plus-circle me-1"></i>Add Holiday
+                        </button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th>Holiday</th>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Pay Rate</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody id="holidaysTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">Loading holidays…</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="section-job-categories" class="dashboard-section d-none">
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        <h1 class="topbar-title mb-1">Job Categories</h1>
+                        <p class="topbar-subtitle mb-0">Manage the Job Category → Classification → Sub-classification options applicants and job orders choose from.</p>
+                    </div>
+                </div>
+
+                <div id="jobCategoriesPageAlert" class="alert d-none" role="alert"></div>
+
+                <div class="row g-3">
+                    <!-- Column 1: Categories -->
+                    <div class="col-md-4">
+                        <div class="card card-table h-100">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h2 class="h6 mb-0"><i class="bi bi-collection me-2 text-primary"></i>Categories</h2>
+                            </div>
+                            <div class="card-body">
+                                <form id="addCategoryForm" class="d-flex gap-2 mb-3">
+                                    <input type="text" class="form-control form-control-sm" id="newCategoryName" placeholder="New category name" required>
+                                    <button type="submit" class="btn btn-sm btn-primary text-nowrap">Add</button>
+                                </form>
+                                <div id="categoriesList" class="list-group list-group-flush small">
+                                    <div class="text-center text-muted py-4">Loading categories…</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Classifications for the selected category -->
+                    <div class="col-md-4">
+                        <div class="card card-table h-100">
+                            <div class="card-header">
+                                <h2 class="h6 mb-0"><i class="bi bi-diagram-2 me-2 text-primary"></i>Classifications</h2>
+                                <div class="small text-muted" id="classificationsForLabel">Select a category</div>
+                            </div>
+                            <div class="card-body">
+                                <form id="addClassificationForm" class="d-flex gap-2 mb-3 d-none">
+                                    <input type="text" class="form-control form-control-sm" id="newClassificationName" placeholder="New classification name" required>
+                                    <button type="submit" class="btn btn-sm btn-primary text-nowrap">Add</button>
+                                </form>
+                                <div id="classificationsList" class="list-group list-group-flush small">
+                                    <div class="text-center text-muted py-4">Select a category to view its classifications.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Sub-classifications for the selected classification -->
+                    <div class="col-md-4">
+                        <div class="card card-table h-100">
+                            <div class="card-header">
+                                <h2 class="h6 mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Sub-classifications</h2>
+                                <div class="small text-muted" id="subClassificationsForLabel">Select a classification</div>
+                            </div>
+                            <div class="card-body">
+                                <form id="addSubClassificationForm" class="d-flex gap-2 mb-3 d-none">
+                                    <input type="text" class="form-control form-control-sm" id="newSubClassificationName" placeholder="New sub-classification name" required>
+                                    <button type="submit" class="btn btn-sm btn-primary text-nowrap">Add</button>
+                                </form>
+                                <div id="subClassificationsList" class="list-group list-group-flush small">
+                                    <div class="text-center text-muted py-4">Select a classification to view its sub-classifications.</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1177,6 +1410,67 @@
     </div>
 </div>
 
+<!-- Add/Edit Holiday Modal (shared for both actions) -->
+<div class="modal fade" id="holidayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="holidayModalTitle">Add Holiday</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="holidayModalAlert" class="alert alert-danger d-none py-2 small" role="alert"></div>
+                <form id="holidayForm">
+                    <input type="hidden" name="id" value="">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Holiday Name</label>
+                            <input type="text" name="name" class="form-control" maxlength="100" required placeholder="e.g. Independence Day">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date</label>
+                            <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Type</label>
+                            <select name="type" class="form-select" required>
+                                <option value="" disabled selected>Select type</option>
+                                <option value="Regular Holiday">Regular Holiday (200%)</option>
+                                <option value="Special Non-working Day">Special Non-working Day (130%)</option>
+                                <option value="Special Working Day">Special Working Day</option>
+                                <option value="Local/Company Holiday">Local/Company Holiday</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Pay Rate / Multiplier</label>
+                            <input type="number" name="pay_multiplier" class="form-control" min="1" max="9.99" step="0.01" required value="2.00">
+                            <small class="text-muted">Applied to the employee's daily rate, e.g. 2.00 = double pay.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Region</label>
+                            <input type="text" name="region" class="form-control" maxlength="100" placeholder="Leave blank if nationwide">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="is_nationwide" id="holidayIsNationwide" checked>
+                                <label class="form-check-label" for="holidayIsNationwide">Nationwide</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Description <span class="text-muted">(optional)</span></label>
+                            <textarea name="description" class="form-control" rows="2" maxlength="1000"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="btnSaveHoliday">Save Holiday</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Client Modal -->
 <div class="modal fade" id="modalEditClient" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -1224,6 +1518,11 @@
                             <div class="fw-semibold mb-1">Current Team Lead</div>
                             <div id="editCurrentTeamLeadBody" class="text-muted mb-0"></div>
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="editAssignedTeamLead">Assign existing Team Lead</label>
+                        <select class="form-select" name="team_lead_id" id="editAssignedTeamLead"><option value="">Keep current / create new account below</option></select>
+                        <div class="form-text">Correct the assigned account without changing its name, email or password. Sites assigned to the previous Team Lead will follow this change.</div>
                     </div>
                     <div class="border rounded p-3 mb-3 bg-light" id="editTeamLeadCreateBlock">
                         <div class="fw-semibold mb-2" id="editTeamLeadCreateTitle">Team Lead account <span class="text-danger">*</span></div>
@@ -1636,6 +1935,55 @@
     </div>
 </div>
 
+<!-- Edit Job Order Modal -->
+<div class="modal fade" id="editJobOrderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Edit Job Order</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div id="editJOAlert" class="alert d-none"></div>
+                <form id="editJobOrderForm">
+                    <input type="hidden" name="job_order_id" id="editJoId">
+                    <div class="mb-3">
+                        <label class="form-label">Client Company</label>
+                        <input type="text" class="form-control" id="editJoCompanyDisplay" readonly disabled>
+                        <div class="form-text">The client company can't be changed here — create a new Job Order to move it to a different client.</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Position / Role *</label>
+                            <input type="text" name="position" id="editJoPosition" class="form-control" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Number of Required Workers *</label>
+                            <input type="number" name="required_count" id="editJoRequiredCount" class="form-control" min="1" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deployment Site</label>
+                        <input type="text" name="deployment_site" id="editJoDeploymentSite" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Work Schedule</label>
+                        <input type="text" name="work_schedule" id="editJoWorkSchedule" class="form-control" placeholder="e.g. Mon-Fri 8AM-5PM">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" id="editJoStatus" class="form-select" style="max-width: 240px;">
+                            <option value="Open">Still Hiring (Open)</option>
+                            <option value="Closed">Filled (Closed)</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitEditJobOrder">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- View JOR Details Modal -->
 <div class="modal fade" id="viewJorDetailsModal" tabindex="-1" aria-labelledby="viewJorDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
@@ -1665,6 +2013,10 @@
                 <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="viewJorDetailsBody">
+                <div class="alert alert-danger py-2 px-3 mb-3 d-none" id="viewJorRejectionReasonBlock">
+                    <strong><i class="bi bi-x-circle me-1"></i>Rejection reason:</strong>
+                    <span id="viewJorRejectionReasonText"></span>
+                </div>
                 <p class="text-muted small mb-3 d-none" id="viewJorMetaRemarks"></p>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0 jor-details-table">
@@ -1684,7 +2036,31 @@
                 </div>
             </div>
             <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-danger d-none" id="viewJorRejectBtn">Reject</button>
+                <button type="button" class="btn btn-success d-none" id="viewJorPostBtn">Post Job Order</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Preview</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Job Order Request Modal -->
+<div class="modal fade" id="rejectJorModal" tabindex="-1" aria-labelledby="rejectJorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectJorModalLabel">Reject Job Order Request</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="rejectJorAlert" class="alert alert-danger d-none"></div>
+                <p class="text-muted small mb-2">Let the Team Lead know why this request is being rejected. This is sent to them as a notification.</p>
+                <label class="form-label" for="rejectJorReason">Reason *</label>
+                <textarea class="form-control" id="rejectJorReason" rows="4" placeholder="e.g. Duplicate request, position already filled, missing details…" required></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="rejectJorConfirmBtn">Confirm Rejection</button>
             </div>
         </div>
     </div>
@@ -1775,6 +2151,64 @@
     </div>
 </div>
 
+<!-- Successful client endorsement -->
+<div class="modal fade" id="applicantEndorsedModal" tabindex="-1" aria-labelledby="applicantEndorsedTitle" aria-describedby="applicantEndorsedMessage" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="applicantEndorsedTitle">Applicant Endorsed to Client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-check-circle-fill text-success fs-1" aria-hidden="true"></i>
+                <p id="applicantEndorsedMessage" class="mt-3 mb-0">Applicant endorsed to client successfully!</p>
+                <p class="text-muted small mt-2 mb-0">The application is now awaiting the client’s review.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm applicant endorsement -->
+<div class="modal fade" id="endorseApplicantConfirmModal" tabindex="-1" aria-labelledby="endorseApplicantConfirmTitle" aria-describedby="endorseApplicantConfirmMessage" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="endorseApplicantConfirmTitle">Endorse Applicant?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="endorseApplicantConfirmMessage" class="mb-0">Are you sure you want to endorse this applicant to the client?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmEndorseApplicant">Yes, Endorse</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interview scheduling feedback -->
+<div class="modal fade" id="interviewResultModal" tabindex="-1" aria-labelledby="interviewResultTitle" aria-describedby="interviewResultMessage" aria-hidden="true" style="z-index:1070;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="interviewResultTitle">Interview Scheduled</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <i id="interviewResultIcon" class="bi bi-check-circle-fill text-success fs-1" aria-hidden="true"></i>
+                <p id="interviewResultMessage" class="mt-3 mb-0">Interview scheduled successfully!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Applicant Document Preview Modal (nested above review modal) -->
 <div class="modal fade" id="documentPreviewModal" tabindex="-1" aria-labelledby="documentPreviewTitle" aria-hidden="true" data-bs-backdrop="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
@@ -1784,10 +2218,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
+                <div class="document-preview-toolbar" role="group" aria-label="Document zoom controls">
+                    <button type="button" id="documentZoomOut" class="btn btn-outline-primary btn-sm" aria-label="Zoom out">− Zoom out</button>
+                    <output id="documentZoomLevel" aria-live="polite">100%</output>
+                    <button type="button" id="documentZoomIn" class="btn btn-outline-primary btn-sm" aria-label="Zoom in">+ Zoom in</button>
+                    <button type="button" id="documentZoomReset" class="btn btn-outline-secondary btn-sm">Reset</button>
+                </div>
+                <div id="documentPreviewViewport">
                 <iframe id="documentPreviewFrame" title="Document preview" style="display:none;"></iframe>
-                <img id="documentPreviewImage" alt="Document preview" style="display:none;" class="d-block mx-auto">
+                <img id="documentPreviewImage" draggable="false" alt="Document preview" style="display:none;">
                 <div id="documentPreviewEmpty" class="alert alert-info d-none mb-0">
                     Preview is not available for this file type. Use Download / Open File.
+                </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1852,6 +2294,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="../../Js/Shared/job_hierarchy_selects.js"></script>
 <script src="../../Js/Shared/ow_job_categories.js"></script>
 <script src="../../Js/Shared/common_logout_confirm.js"></script>
 <script>
@@ -1887,8 +2330,6 @@
                 alert('This feature is not available yet.');
             });
         }
-        bindComingSoon('menuSystemSettings');
-
         var logoutEl = document.getElementById('menuLogout');
         if (logoutEl) {
             logoutEl.addEventListener('click', function (e) {
@@ -1955,15 +2396,30 @@
 <script src="../../Js/Shared/ow_collapsible_sidebar.js"></script>
 <script src="../../Js/Admin/admin_sidebar_badges.js"></script>
 <script src="../../Js/Shared/hydrate_user_profile.js"></script>
+<script src="../../Js/Shared/html_escape.js"></script>
+<link rel="stylesheet" href="../../Css/password_strength.css">
+<script src="../../Js/Shared/password_strength.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (typeof attachPasswordStrengthMeterById === 'function') {
+      attachPasswordStrengthMeterById('editTlPassword');
+      attachPasswordStrengthMeterById('addTlPassword');
+    }
+  });
+</script>
 <script src="../../Js/HR/hr_dashboard.js"></script>
 <script src="../../Js/Admin/admin_unread_indicators.js"></script>
-<script src="../../Js/Shared/messenger_rbac.js"></script>
+<script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
 <script src="../../Js/Shared/ow_system_events.js"></script>
 <script src="../../Js/Shared/ow_notifications.js"></script>
-<script src="../../Js/Shared/ow_messenger.js"></script>
+<script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
 <script src="../../Js/Admin/admin_system_events.js"></script>
+<script src="../../Js/Shared/pagination_ui.js"></script>
 <script src="../../Js/Admin/admin_dashboard.js"></script>
 <script src="../../Js/Admin/admin_deductions_config.js"></script>
+<script src="../../Js/Shared/agency_contact_config.js"></script>
+<script src="../../Js/Admin/admin_job_categories.js"></script>
+<script src="../../Js/Admin/admin_holidays.js"></script>
 <script src="../../Js/Shared/profile_view_switch.js"></script>
 <!-- View Client Company Details Modal -->
 <div class="modal fade" id="viewClientModal" tabindex="-1" aria-labelledby="viewClientModalTitle" aria-hidden="true">
@@ -1987,5 +2443,7 @@
     </div>
   </div>
   
+<script src="../../Js/Admin/deployment_sites.js"></script>
+<script src="../../Js/Shared/deployment_site_select.js"></script>
 </body>
 </html>

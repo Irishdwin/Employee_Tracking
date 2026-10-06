@@ -5,6 +5,28 @@
 
 require_once __DIR__ . '/geofence_helper.php';
 
+
+/** Never choose an arbitrary site when a Lead supervises multiple companies. */
+function work_site_companies_for_team_lead(mysqli $conn, int $userId): array {
+    $rows=sites_for_lead($conn,$userId);
+    foreach($rows as &$row){$row['dep_registered_latitude']=$row['registered_latitude'];$row['dep_registered_longitude']=$row['registered_longitude'];}
+
+    return $rows;
+}
+function work_site_company_for_team_lead(mysqli $conn,int $userId,int $requestedCompany=0): int {
+    $rows=work_site_companies_for_team_lead($conn,$userId);
+    if ($requestedCompany>0) $rows=array_values(array_filter($rows,static fn($row)=>(int)$row['SiteID']===$requestedCompany));
+    if (count($rows)!==1) throw new DomainException(count($rows)>1?'Multiple work sites are assigned. Select the intended company before registering or loading its GPS.':'No active company is assigned to this Team Lead.');
+    return (int)$rows[0]['SiteID'];
+}
+
+/** Same existing safety rule as the Employee dashboard: accuracy must fit the radius. */
+function geofence_accuracy_is_acceptable($accuracy, $radius): bool {
+    return is_numeric($accuracy) && is_numeric($radius) && is_finite((float)$accuracy)
+        && is_finite((float)$radius) && (float)$accuracy >= 0 && (float)$radius > 0
+        && (float)$accuracy <= (float)$radius;
+}
+
 if (!function_exists('geofence_coords_are_valid')) {
     function geofence_coords_are_valid($lat, $lng): bool
     {
@@ -56,36 +78,42 @@ if (!function_exists('work_site_resolve_for_user')) {
      */
     function work_site_resolve_for_user(mysqli $conn, int $userId): ?array
     {
+        $count=$conn->prepare("SELECT COUNT(*) AS n FROM users u
+            JOIN employee e ON e.Email=u.Email AND e.IsActive=1
+            JOIN deployment d ON d.EmployeeID=e.EmployeeID AND d.StartDate<=CURDATE()
+              AND (d.EndDate IS NULL OR d.EndDate>=CURDATE())
+            JOIN status st ON st.StatusID=d.StatusID AND st.Name='Active'
+            WHERE u.UsersID=? AND u.IsActive=1");
+        $count->bind_param('i',$userId);$count->execute();
+        $matches=(int)$count->get_result()->fetch_assoc()['n'];$count->close();
+        if($matches>1)throw new DomainException('Multiple current deployments were found. Please contact HR to correct your deployment.',409);
         $sql = "
             SELECT
                 d.DeploymentID,
                 d.CompanyID,
-                d.SiteSuperVisorID,
-                d.Location AS deployment_location,
+                s.TeamLeadID AS SiteSuperVisorID,
+                d.SiteID,
+                s.Name AS site_name,
+                s.Address AS deployment_location,
                 dep_co.Name AS company_name,
-                dep_co.registered_latitude AS dep_registered_latitude,
-                dep_co.registered_longitude AS dep_registered_longitude,
-                dep_co.latitude AS dep_latitude,
-                dep_co.longitude AS dep_longitude,
-                dep_co.geofence_radius AS dep_geofence_radius,
-                tl_co.CompanyID AS tl_company_id,
-                tl_co.Name AS tl_company_name,
-                tl_co.registered_latitude AS tl_registered_latitude,
-                tl_co.registered_longitude AS tl_registered_longitude,
-                tl_co.latitude AS tl_latitude,
-                tl_co.longitude AS tl_longitude,
-                tl_co.geofence_radius AS tl_geofence_radius,
+                s.registered_latitude AS dep_registered_latitude,
+                s.registered_longitude AS dep_registered_longitude,
+                s.registered_latitude AS dep_latitude,
+                s.registered_longitude AS dep_longitude,
+                s.geofence_radius AS dep_geofence_radius,
                 e.EmployeeID,
                 e.EmployeeNumber,
                 tl.FullName AS team_lead_name
             FROM users u
             INNER JOIN employee e ON e.Email = u.Email AND e.IsActive = 1
             INNER JOIN deployment d ON d.EmployeeID = e.EmployeeID
-                AND (d.EndDate IS NULL OR d.EndDate >= CURDATE())
+                AND d.StartDate <= CURDATE() AND (d.EndDate IS NULL OR d.EndDate >= CURDATE())
+            INNER JOIN status ds ON ds.StatusID = d.StatusID AND ds.Name = 'Active'
             INNER JOIN clientcompany dep_co ON dep_co.CompanyID = d.CompanyID AND dep_co.IsActive = 1
-            LEFT JOIN users tl ON tl.UsersID = d.SiteSuperVisorID
-            LEFT JOIN clientcompany tl_co ON tl_co.UserID = d.SiteSuperVisorID AND tl_co.IsActive = 1
-            WHERE u.UsersID = ?
+            INNER JOIN deployment_sites s ON s.SiteID=d.SiteID AND s.CompanyID=d.CompanyID AND s.IsActive=1
+            LEFT JOIN users tl ON tl.UsersID = s.TeamLeadID
+            INNER JOIN roles r ON r.RolesID=u.RoleID
+            WHERE u.UsersID = ? AND u.IsActive=1 AND r.RoleName='Employee'
             ORDER BY d.StartDate DESC, d.DeploymentID DESC
             LIMIT 1
         ";
@@ -104,21 +132,14 @@ if (!function_exists('work_site_resolve_for_user')) {
         }
 
         $picked = geofence_pick_coordinates($row, 'dep');
-        $source = 'deployment_company';
-        if ($picked === null && !empty($row['tl_company_id'])) {
-            $picked = geofence_pick_coordinates($row, 'tl');
-            $source = 'team_lead_company';
-        }
-
         $radius = (int)($row['dep_geofence_radius'] ?? 0);
-        if ($radius <= 0 && !empty($row['tl_geofence_radius'])) {
-            $radius = (int)$row['tl_geofence_radius'];
-        }
         if ($radius <= 0) {
             $radius = 100;
         }
 
         return [
+            'site_id' => (int)$row['SiteID'],
+            'site_name' => (string)$row['site_name'],
             'deployment_id' => (int)$row['DeploymentID'],
             'employee_id' => (int)$row['EmployeeID'],
             'company_id' => (int)$row['CompanyID'],
@@ -205,4 +226,104 @@ if (!function_exists('geofence_validate_employee_position')) {
             'site' => $site,
         ];
     }
+}
+
+
+/** Site identity and current authority shared by roster, geofence, schedules and DTR. */
+function site_query(mysqli $conn,string $sql,string $types='',array $values=[]): mysqli_result {
+    $s=$conn->prepare($sql); if($types!=='')$s->bind_param($types,...$values);
+    $s->execute();$r=$s->get_result();$s->close();return $r;
+}
+function site_current_deployment_sql(string $alias='d'): string {
+    return "$alias.StartDate<=CURDATE() AND ($alias.EndDate IS NULL OR $alias.EndDate>=CURDATE())
+      AND EXISTS(SELECT 1 FROM status st WHERE st.StatusID=$alias.StatusID AND st.Name='Active')
+      AND $alias.DeploymentID=(SELECT dx.DeploymentID FROM deployment dx JOIN status sx ON sx.StatusID=dx.StatusID AND sx.Name='Active'
+        WHERE dx.EmployeeID=$alias.EmployeeID AND dx.StartDate<=CURDATE() AND (dx.EndDate IS NULL OR dx.EndDate>=CURDATE())
+        ORDER BY dx.StartDate DESC,dx.DeploymentID DESC LIMIT 1)";
+}
+function sites_for_lead(mysqli $conn,int $lead): array {
+    $current=site_current_deployment_sql();
+    return site_query($conn,"SELECT s.*,c.Name CompanyName,c.PayrollType,u.FullName TeamLeadName,
+       (SELECT COUNT(DISTINCT d.EmployeeID) FROM deployment d JOIN employee e ON e.EmployeeID=d.EmployeeID AND e.IsActive=1
+         WHERE d.SiteID=s.SiteID AND $current) EmployeeCount
+       FROM deployment_sites s JOIN clientcompany c ON c.CompanyID=s.CompanyID AND c.IsActive=1
+       JOIN users u ON u.UsersID=s.TeamLeadID AND u.IsActive=1 JOIN roles r ON r.RolesID=u.RoleID AND r.RoleName IN ('TeamLead','Team Lead')
+       WHERE s.TeamLeadID=? AND s.IsActive=1 ORDER BY c.Name,s.Name,s.SiteID",'i',[$lead])->fetch_all(MYSQLI_ASSOC);
+}
+function site_for_lead(mysqli $conn,int $lead,int $siteId): array {
+    foreach(sites_for_lead($conn,$lead) as $site)if((int)$site['SiteID']===$siteId)return $site;
+    throw new DomainException('This active deployment site is not assigned to you.',403);
+}
+function site_owned_employee(mysqli $conn,int $lead,int $employee,int $siteId=0): ?array {
+    $current=site_current_deployment_sql();
+    return site_query($conn,"SELECT d.* FROM deployment d JOIN deployment_sites s ON s.SiteID=d.SiteID AND s.IsActive=1
+      JOIN clientcompany c ON c.CompanyID=s.CompanyID AND c.IsActive=1
+      JOIN employee e ON e.EmployeeID=d.EmployeeID AND e.IsActive=1
+      JOIN users u ON u.UsersID=s.TeamLeadID AND u.IsActive=1 JOIN roles r ON r.RolesID=u.RoleID AND r.RoleName IN ('TeamLead','Team Lead')
+      WHERE e.EmployeeID=? AND s.TeamLeadID=? AND (?=0 OR s.SiteID=?) AND $current",'iiii',[$employee,$lead,$siteId,$siteId])->fetch_assoc();
+}
+/** Legacy hiring may resolve only an unambiguous site. Never guess a branch. */
+function site_resolve_legacy(mysqli $conn,int $company,string $location): array {
+    $rows=site_query($conn,'SELECT * FROM deployment_sites WHERE CompanyID=? AND IsActive=1 ORDER BY SiteID','i',[$company])->fetch_all(MYSQLI_ASSOC);
+    $matched=array_values(array_filter($rows,static fn($s)=>trim((string)$s['Address'])===trim($location)||trim($s['Name'])===trim($location)));
+    if(count($matched)===1)return $matched[0];
+    if(count($rows)===1)return $rows[0];
+    throw new DomainException('Select the correct deployment site; this company has multiple or unconfigured sites.',422);
+}
+
+/** Actual current deployments requiring DTR, excluding already submitted/verified rows. */
+function site_dtr_pending(mysqli $conn,int $lead,int $siteId,array $period): array {
+    $current=site_current_deployment_sql();
+    return site_query($conn,"SELECT d.EmployeeID,d.DeploymentID FROM deployment d
+      JOIN deployment_sites s ON s.SiteID=d.SiteID AND s.IsActive=1
+      JOIN employee e ON e.EmployeeID=d.EmployeeID AND e.IsActive=1
+      WHERE s.TeamLeadID=? AND s.SiteID=? AND COALESCE(d.AllowDTRSubmission,1)=1 AND $current
+      AND d.StartDate<=? AND (d.EndDate IS NULL OR d.EndDate>=?)
+      AND NOT EXISTS(SELECT 1 FROM dtr_submissions ds WHERE ds.EmployeeID=d.EmployeeID
+        AND ds.CutoffStartDate=? AND ds.CutoffEndDate=?)",'iissss',[$lead,$siteId,$period['end'],$period['start'],$period['start'],$period['end']])->fetch_all(MYSQLI_ASSOC);
+}
+function site_dtr_obligations(mysqli $conn,int $lead,?string $today=null): array {
+    require_once __DIR__.'/payroll_type_helper.php';
+    $today=$today??date('Y-m-d');$items=[];
+    foreach(sites_for_lead($conn,$lead) as $site){
+        $current=site_current_deployment_sql();
+        $min=site_query($conn,"SELECT MIN(d.StartDate) FirstDate FROM deployment d JOIN employee e ON e.EmployeeID=d.EmployeeID AND e.IsActive=1
+          WHERE d.SiteID=? AND COALESCE(d.AllowDTRSubmission,1)=1 AND $current",'i',[(int)$site['SiteID']])->fetch_assoc()['FirstDate'];
+        if(!$min)continue;
+        $period=payroll_type_period($site['PayrollType'],$min);
+        while($period['start']<=$today){
+            $remind=(new DateTimeImmutable($period['payday']))->modify('-5 days')->format('Y-m-d');
+            if($remind<=$today && site_dtr_pending($conn,$lead,(int)$site['SiteID'],$period)){
+                $items[]=['site_id'=>(int)$site['SiteID'],'site_name'=>$site['Name'],'company_name'=>$site['CompanyName'],
+                  'period'=>$period,'reminder_date'=>$remind];
+            }
+            $period=payroll_type_period($site['PayrollType'],(new DateTimeImmutable($period['end']))->modify('+1 day')->format('Y-m-d'));
+        }
+    }
+    return $items;
+}
+/** Lazy generation: shared notification helper, unique business key and serialized user refresh. */
+function site_dtr_sync_notifications(mysqli $conn,int $lead): array {
+    require_once __DIR__.'/../Common/NotificationHelper.php';
+    $lock='onazul:dtr:'.$lead;
+    if((int)site_query($conn,'SELECT GET_LOCK(?,5) acquired','s',[$lock])->fetch_assoc()['acquired']!==1)throw new RuntimeException('DTR reminders are busy.');
+    try {
+        $items=site_dtr_obligations($conn,$lead);$keys=[];
+        foreach($items as $item){
+            $p=$item['period'];$key=$lead.':'.$item['site_id'].':'.$p['start'].':'.$p['end'].':dtr';$keys[$key]=true;
+            if(site_query($conn,'SELECT NotificationID FROM notifications WHERE DTRReminderKey=?','s',[$key])->num_rows)continue;
+            $conn->begin_transaction();
+            try {
+                $module='dtr_cutoff:'.$p['start'];
+                $message=$item['company_name'].' — '.$item['site_name']."\nCutoff: ".$p['label']."\nPayroll release: ".$p['payday_display']."\nPlease review and submit this site's employee DTRs.";
+                if(!insert_system_notification($conn,$lead,'dtr_submission_reminder','DTR Submission Reminder',$message,$module,$item['site_id']))throw new RuntimeException('Reminder could not be saved.');
+                $id=(int)$conn->insert_id;
+                $st=$conn->prepare('UPDATE notifications SET DTRReminderKey=? WHERE NotificationID=?');$st->bind_param('si',$key,$id);$st->execute();$st->close();$conn->commit();
+            }catch(Throwable $e){$conn->rollback();throw $e;}
+        }
+        foreach(site_query($conn,'SELECT NotificationID,DTRReminderKey FROM notifications WHERE UserID=? AND DTRReminderKey IS NOT NULL AND IsRead=0','i',[$lead])->fetch_all(MYSQLI_ASSOC) as $n){
+            if(!isset($keys[$n['DTRReminderKey']])){$st=$conn->prepare('UPDATE notifications SET IsRead=1 WHERE NotificationID=?');$st->bind_param('i',$n['NotificationID']);$st->execute();$st->close();}
+        }
+        return $items;
+    }finally{site_query($conn,'SELECT RELEASE_LOCK(?)','s',[$lock]);}
 }
