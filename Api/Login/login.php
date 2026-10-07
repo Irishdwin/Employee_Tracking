@@ -33,15 +33,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     };
     
-    // 1. CAPTCHA CHECK (math-based, e.g. "42 + 87 = ?"). Both numerator and
-    // denominator are random 1-100 (Api/Login/captcha_gen.php); the expected
-    // sum is what's actually stored server-side and validated.
-    $user_captcha = isset($_POST['captcha_input']) ? trim($_POST['captcha_input']) : '';
-    $system_captcha = isset($_SESSION['captcha_code']) ? (int)$_SESSION['captcha_code'] : null;
-
-    if (!ctype_digit($user_captcha) || (int)$user_captcha !== $system_captcha) {
-        $json_fail("Invalid Security Code!", 400);
-    }
+    // Validate and consume this page's server-held challenge before authentication.
+    require_once __DIR__.'/captcha_helper.php';
+    $captcha=login_captcha_validate($_POST['captcha_challenge_id'] ?? null,$_POST['captcha_input'] ?? null,true);
+    if(!$captcha['valid'])$json_fail($captcha['message'],400);
 
     // 2. AUTHENTICATION
     // Accept email or employee number from the shared login field.
@@ -99,6 +94,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         if ($passwordValid) {
+            session_regenerate_id(true); // Preserve fixation protection after credential verification.
             $configured = $conn->prepare('UPDATE users SET LocalPasswordConfigured=1 WHERE UsersID=?');
             $configured->bind_param('i', $row['user_id']);
             $configured->execute();

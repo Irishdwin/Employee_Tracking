@@ -129,6 +129,9 @@ function renderDetails(n) {
       <div class="mt-3 msg">${esc(n.message || '')}</div>
       <div class="mt-3 muted-small">Related: ${related}</div>
     `;
+    if (n.type === 'payroll_status_updated' || n.type === 'leave_pay_policy') {
+        const button = document.createElement('a'); button.className = 'btn btn-primary mt-3'; button.textContent = 'View Payroll'; button.href = '../../Html/Employee/employee_dashboard.html#section-emp-payroll'; details.appendChild(button);
+    }
 }
 
 async function fetchNotifications() {

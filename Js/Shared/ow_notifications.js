@@ -180,6 +180,18 @@
       '<div class="border rounded p-3 bg-light" style="white-space:pre-wrap;">' + esc(n.message || '') + '</div>' +
       '<p class="small text-muted mt-3 mb-0">Related: ' + related + '</p>';
     if(n.messenger_user_id && global.OwMessenger){var chatButton=document.createElement('button');chatButton.type='button';chatButton.className='btn btn-primary mt-3';chatButton.textContent='Open Conversation';chatButton.onclick=function(){global.OwMessenger.openContact(n.messenger_user_id);};el.appendChild(chatButton);}
+    if (n.type === 'payroll_billing_updated' || n.type === 'payroll_status_updated' || n.type === 'leave_pay_policy') {
+      var payrollButton = document.createElement('a'); payrollButton.className = 'btn btn-primary mt-3'; payrollButton.textContent = 'View Payroll'; payrollButton.href = '../../Html/Employee/employee_dashboard.html#section-emp-payroll';
+      if (n.type === 'payroll_billing_updated') payrollButton.href = '../../Html/Employee/employee_dashboard.html#section-emp-payroll-history';
+      if (global.showEmpTab) payrollButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (n.type === 'payroll_billing_updated') {
+          global.showEmpTab('section-emp-payroll-history');
+          if (global.EmployeePayrollHistory && Number(n.related_record)>0) global.EmployeePayrollHistory.open(Number(n.related_record));
+        } else global.showEmpTab('section-emp-payroll');
+      });
+      el.appendChild(payrollButton);
+    }
     if (n.type === 'employee_password_setup' && global.EmployeeSecurity) {
       var settingsButton = document.createElement('button');
       settingsButton.type = 'button';
@@ -334,7 +346,7 @@
     if (btnRefresh) btnRefresh.addEventListener('click', loadNotifications);
     if (btnMarkAll) {
       btnMarkAll.addEventListener('click', function () {
-        var confirmEl = document.getElementById('hrMarkAllNotificationsModal') || document.getElementById('tlMarkAllNotificationsModal');
+        var confirmEl = document.getElementById('hrMarkAllNotificationsModal') || document.getElementById('tlMarkAllNotificationsModal') || document.getElementById('employeeMarkAllNotificationsModal');
         if (confirmEl && global.bootstrap) {
           var modal = global.bootstrap.Modal.getOrCreateInstance(confirmEl);
           var confirmButton = confirmEl.querySelector('[data-confirm-mark-all]') || document.getElementById('tlConfirmMarkAllNotifications');

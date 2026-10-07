@@ -1,0 +1,5578 @@
+{
+  "schema": {
+    "add_back_evidence": {
+      "columns": {
+        "EvidenceID": "int(11) NOT NULL auto_increment",
+        "RequestID": "int(11) NOT NULL ",
+        "EvidenceType": "varchar(20) NOT NULL ",
+        "StorageName": "varchar(100) NOT NULL ",
+        "MimeType": "varchar(50) NOT NULL ",
+        "ByteSize": "int(11) NOT NULL ",
+        "Sha256": "char(64) NOT NULL ",
+        "CapturedAt": "datetime NULL ",
+        "CreatedAt": "datetime NOT NULL "
+      },
+      "pk": [
+        "EvidenceID"
+      ],
+      "fk": [
+        [
+          [
+            "RequestID"
+          ],
+          "add_back_requests",
+          [
+            "RequestID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "RequestID",
+          "EvidenceType"
+        ]
+      ],
+      "sources": [
+        "sql\\add_back_workflow.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "add_back_requests": {
+      "columns": {
+        "RequestID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "SubmittedBy": "int(11) NOT NULL ",
+        "DeploymentID": "int(11) NOT NULL ",
+        "CompanyID": "int(11) NOT NULL ",
+        "AttendanceID": "int(11) NULL ",
+        "WorkDate": "date NOT NULL ",
+        "DutyStart": "datetime NOT NULL ",
+        "DutyEnd": "datetime NOT NULL ",
+        "RequestedHours": "decimal(6,2) NOT NULL ",
+        "OriginalHours": "decimal(6,2) NOT NULL ",
+        "Reason": "text NOT NULL ",
+        "SourceSnapshot": "longtext NOT NULL ",
+        "RateSnapshot": "longtext NULL ",
+        "StatusID": "int(11) NOT NULL ",
+        "SubmittedAt": "datetime NOT NULL ",
+        "ReviewedBy": "int(11) NULL ",
+        "ReviewedAt": "datetime NULL ",
+        "ReviewRemarks": "text NULL ",
+        "ApprovedHours": "decimal(6,2) NULL ",
+        "ApprovedAmount": "decimal(12,2) NULL ",
+        "CalculationSnapshot": "longtext NULL ",
+        "TargetStart": "date NULL ",
+        "TargetEnd": "date NULL ",
+        "Payroll_ID": "int(11) NULL "
+      },
+      "pk": [
+        "RequestID"
+      ],
+      "fk": [
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "SubmittedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "DeploymentID"
+          ],
+          "deployment",
+          [
+            "DeploymentID"
+          ]
+        ],
+        [
+          [
+            "CompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "AttendanceID"
+          ],
+          "attendance",
+          [
+            "AttendanceID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ],
+        [
+          [
+            "ReviewedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "sql\\add_back_workflow.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "address_barangay_lookup": {
+      "columns": {
+        "BarangayID": "int(11) NOT NULL auto_increment",
+        "CityID": "int(11) NOT NULL ",
+        "Name": "varchar(120) NOT NULL ",
+        "PSGCCode": "varchar(20) NULL "
+      },
+      "pk": [
+        "BarangayID"
+      ],
+      "fk": [
+        [
+          [
+            "CityID"
+          ],
+          "address_city_lookup",
+          [
+            "CityID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "CityID",
+          "Name"
+        ],
+        [
+          "PSGCCode"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\psgc_address_hierarchy_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "address_city_lookup": {
+      "columns": {
+        "CityID": "int(11) NOT NULL auto_increment",
+        "ProvinceID": "int(11) NOT NULL ",
+        "Name": "varchar(120) NOT NULL ",
+        "PSGCCode": "varchar(20) NULL "
+      },
+      "pk": [
+        "CityID"
+      ],
+      "fk": [
+        [
+          [
+            "ProvinceID"
+          ],
+          "address_province_lookup",
+          [
+            "ProvinceID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "ProvinceID",
+          "Name"
+        ],
+        [
+          "PSGCCode"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\psgc_address_hierarchy_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "address_country_lookup": {
+      "columns": {
+        "CountryID": "int(11) NOT NULL auto_increment",
+        "Name": "varchar(120) NOT NULL "
+      },
+      "pk": [
+        "CountryID"
+      ],
+      "fk": [],
+      "unique": [
+        [
+          "Name"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "address_province_lookup": {
+      "columns": {
+        "ProvinceID": "int(11) NOT NULL auto_increment",
+        "RegionID": "int(11) NULL ",
+        "CountryID": "int(11) NOT NULL ",
+        "Name": "varchar(120) NOT NULL ",
+        "PSGCCode": "varchar(20) NULL "
+      },
+      "pk": [
+        "ProvinceID"
+      ],
+      "fk": [
+        [
+          [
+            "CountryID"
+          ],
+          "address_country_lookup",
+          [
+            "CountryID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "CountryID",
+          "Name"
+        ],
+        [
+          "PSGCCode"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\psgc_address_hierarchy_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "address_region_lookup": {
+      "columns": {
+        "RegionID": "int(11) NOT NULL auto_increment",
+        "PSGCCode": "varchar(20) NULL ",
+        "Name": "varchar(150) NOT NULL "
+      },
+      "pk": [
+        "RegionID"
+      ],
+      "fk": [],
+      "unique": [
+        [
+          "PSGCCode"
+        ]
+      ],
+      "sources": [
+        "sql\\psgc_address_hierarchy_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "applicant_profiles": {
+      "columns": {
+        "UserID": "int(11) NOT NULL ",
+        "FirstName": "varchar(50) NULL ",
+        "LastName": "varchar(50) NULL ",
+        "BirthDate": "date NULL ",
+        "HomeLocation": "varchar(150) NULL ",
+        "PreferredClassification": "varchar(100) NULL ",
+        "PreferredSubClassification": "varchar(100) NULL ",
+        "ProfileDetailsCompleted": "tinyint(1) NULL ",
+        "UpdatedAt": "timestamp NOT NULL on update current_timestamp()",
+        "preferred_category": "varchar(100) NULL ",
+        "MiddleName": "varchar(50) NULL ",
+        "Suffix": "varchar(20) NULL "
+      },
+      "pk": [
+        "UserID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\applicant_job_board_filter.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "applicant_uploaded_docs": {
+      "columns": {
+        "DocID": "int(11) NOT NULL auto_increment",
+        "ApplicationID": "int(11) NULL ",
+        "ApplicantID": "int(11) NOT NULL ",
+        "DocType": "varchar(100) NOT NULL ",
+        "DocCategory": "varchar(32) NOT NULL ",
+        "FilePath": "varchar(255) NOT NULL ",
+        "OriginalFileName": "varchar(255) NULL ",
+        "FileSize": "int(11) NULL ",
+        "IsVerified": "tinyint(1) NULL ",
+        "VerifiedBy": "int(11) NULL ",
+        "VerifiedDate": "datetime NULL ",
+        "UploadedAt": "datetime NULL "
+      },
+      "pk": [
+        "DocID"
+      ],
+      "fk": [
+        [
+          [
+            "ApplicantID"
+          ],
+          "applicants",
+          [
+            "ApplicantID"
+          ]
+        ],
+        [
+          [
+            "ApplicationID"
+          ],
+          "job_applications",
+          [
+            "ApplicationID"
+          ]
+        ],
+        [
+          [
+            "VerifiedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "applicantdocuments": {
+      "columns": {
+        "DocumentID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "DocumentationType": "varchar(100) NULL ",
+        "DocumentPath": "varchar(255) NULL ",
+        "UploadedDate": "datetime NULL ",
+        "VerifiedBy": "int(11) NULL ",
+        "VerifiedDate": "datetime NULL ",
+        "IsVerified": "tinyint(1) NULL ",
+        "ExpirationDate": "date NULL ",
+        "StatusID": "int(11) NULL ",
+        "Notes": "text NULL "
+      },
+      "pk": [
+        "DocumentID"
+      ],
+      "fk": [
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ],
+        [
+          [
+            "VerifiedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "applicants": {
+      "columns": {
+        "ApplicantID": "int(11) NOT NULL auto_increment",
+        "UserID": "int(11) NOT NULL ",
+        "FullName": "varchar(100) NOT NULL ",
+        "Email": "varchar(100) NOT NULL ",
+        "MobileNumber": "varchar(20) NULL ",
+        "Address": "text NULL ",
+        "BirthDate": "date NULL ",
+        "Gender": "varchar(20) NULL ",
+        "ProfilePhotoPath": "varchar(255) NULL ",
+        "ProfileCompleted": "tinyint(1) NULL ",
+        "CreatedAt": "datetime NULL ",
+        "FirstName": "varchar(50) NULL ",
+        "LastName": "varchar(50) NULL ",
+        "HomeLocation": "varchar(150) NULL ",
+        "HasRecentExperience": "tinyint(1) NULL ",
+        "JobTitle": "varchar(150) NULL ",
+        "CompanyName": "varchar(150) NULL ",
+        "ExperienceStartMonth": "int(11) NULL ",
+        "ExperienceStartYear": "int(11) NULL ",
+        "ExperienceEndMonth": "int(11) NULL ",
+        "ExperienceEndYear": "int(11) NULL ",
+        "StillInRole": "tinyint(1) NULL ",
+        "PreferredClassification": "varchar(100) NULL ",
+        "PreferredSubClassification": "varchar(100) NULL ",
+        "ProfileVisibility": "varchar(20) NULL ",
+        "ProfileDetailsCompleted": "tinyint(1) NULL ",
+        "ProfileVisibilityCompleted": "tinyint(1) NULL ",
+        "RegistrationTermsAccepted": "tinyint(1) NULL ",
+        "RegistrationTermsAcceptedAt": "datetime NULL ",
+        "ProfileStatus": "tinyint(4) NOT NULL ",
+        "JobCategory": "varchar(255) NULL ",
+        "StreetAddress": "varchar(255) NULL ",
+        "City": "varchar(120) NULL ",
+        "StateProvince": "varchar(120) NULL ",
+        "PostalCode": "varchar(40) NULL ",
+        "Country": "varchar(120) NULL ",
+        "Barangay": "varchar(120) NULL ",
+        "MiddleName": "varchar(50) NULL ",
+        "Suffix": "varchar(20) NULL ",
+        "Region": "varchar(120) NULL ",
+        "category_id": "int(10) unsigned NULL ",
+        "classification_id": "int(10) unsigned NULL ",
+        "sub_classification_id": "int(10) unsigned NULL ",
+        "AddressPSGC": "text NULL "
+      },
+      "pk": [
+        "ApplicantID"
+      ],
+      "fk": [
+        [
+          [
+            "category_id"
+          ],
+          "job_categories",
+          [
+            "id"
+          ]
+        ],
+        [
+          [
+            "classification_id"
+          ],
+          "job_classifications",
+          [
+            "id"
+          ]
+        ],
+        [
+          [
+            "sub_classification_id"
+          ],
+          "job_sub_classifications",
+          [
+            "id"
+          ]
+        ],
+        [
+          [
+            "UserID"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\add_applicant_status_column.sql",
+        "sql\\applicant_address_psgc.sql",
+        "sql\\applicant_profile_status_otp.sql",
+        "sql\\job_hierarchy_assignment_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "application_endorsement_attempts": {
+      "columns": {
+        "AttemptID": "int(11) NOT NULL auto_increment",
+        "ApplicationID": "int(11) NOT NULL ",
+        "AttemptNumber": "int(11) NOT NULL ",
+        "JobOrderID": "int(11) NOT NULL ",
+        "CompanyID": "int(11) NOT NULL ",
+        "TargetDetailID": "int(11) NULL ",
+        "CompanyName": "varchar(150) NOT NULL ",
+        "PositionTitle": "varchar(255) NOT NULL ",
+        "DeploymentSite": "varchar(255) NULL ",
+        "EndorsedBy": "int(11) NULL ",
+        "EndorsedAt": "datetime NOT NULL ",
+        "Decision": "enum('Pending','Approved','Rejected') NOT NULL ",
+        "DecidedBy": "int(11) NULL ",
+        "DecidedAt": "datetime NULL ",
+        "DecisionReason": "text NULL ",
+        "ReendorsementReason": "text NULL ",
+        "LegacySnapshot": "tinyint(4) NOT NULL ",
+        "PendingApplicationID": "int(11) NULL STORED GENERATED"
+      },
+      "pk": [
+        "AttemptID"
+      ],
+      "fk": [
+        [
+          [
+            "ApplicationID"
+          ],
+          "job_applications",
+          [
+            "ApplicationID"
+          ]
+        ],
+        [
+          [
+            "CompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "JobOrderID"
+          ],
+          "joborder",
+          [
+            "JobOrderID"
+          ]
+        ],
+        [
+          [
+            "DecidedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EndorsedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "ApplicationID",
+          "AttemptNumber"
+        ],
+        [
+          "PendingApplicationID"
+        ]
+      ],
+      "sources": [
+        "sql\\application_endorsement_attempts.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "attendance": {
+      "columns": {
+        "AttendanceID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "Date": "date NOT NULL ",
+        "TimeIn": "datetime NULL ",
+        "TimeOut": "datetime NULL ",
+        "clockin_latitude": "decimal(10,8) NULL ",
+        "clockin_longitude": "decimal(11,8) NULL ",
+        "clockout_latitude": "decimal(10,8) NULL ",
+        "clockout_longitude": "decimal(10,8) NULL ",
+        "gps_accuracy": "decimal(8,2) NULL ",
+        "distance_from_site": "decimal(8,2) NULL ",
+        "clockin_photo": "varchar(255) NULL ",
+        "clockout_photo": "varchar(255) NULL ",
+        "browser_name": "varchar(100) NULL ",
+        "operating_system": "varchar(100) NULL ",
+        "device_type": "varchar(50) NULL ",
+        "user_agent": "text NULL ",
+        "geofence_status": "varchar(50) NULL ",
+        "StatusID": "int(11) NULL ",
+        "TotalHours": "decimal(5,2) NULL ",
+        "DTRSubmissionID": "int(11) NULL ",
+        "BreakStart": "datetime NULL ",
+        "BreakEnd": "datetime NULL ",
+        "LateMinutes": "int(11) NULL ",
+        "UndertimeMinutes": "int(11) NULL ",
+        "IsRestDay": "tinyint(1) NULL ",
+        "HolidayID": "int(11) NULL ",
+        "IsHolidayWork": "tinyint(1) NULL ",
+        "HolidayPayRate": "decimal(4,2) NULL ",
+        "OvertimeHours": "decimal(5,2) NULL ",
+        "OvertimePayRate": "decimal(4,2) NULL ",
+        "ApprovedDate": "datetime NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "Remarks": "text NULL ",
+        "attendance_status": "varchar(50) NULL ",
+        "scheduled_time_in": "time NULL ",
+        "scheduled_time_out": "time NULL ",
+        "minutes_late": "int(11) NULL ",
+        "server_timestamp": "datetime NULL ",
+        "EvidenceDeploymentID": "int(11) NULL "
+      },
+      "pk": [
+        "AttendanceID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "DTRSubmissionID"
+          ],
+          "dtr_submissions",
+          [
+            "DTR_SubmissionID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "HolidayID"
+          ],
+          "holidays",
+          [
+            "HolidayID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\add_back_workflow.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "bonus": {
+      "columns": {
+        "BonusID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "Payroll_ID": "int(11) NULL ",
+        "BonusType": "varchar(50) NULL ",
+        "Amount": "decimal(12,2) NULL ",
+        "StatusID": "int(11) NULL ",
+        "Description": "text NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "CreatedDate": "datetime NULL "
+      },
+      "pk": [
+        "BonusID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "CreatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "cashadvance": {
+      "columns": {
+        "CashAdvanceID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "RequestDate": "date NULL ",
+        "Amount": "decimal(10,2) NULL ",
+        "Purpose": "text NULL ",
+        "Approval": "varchar(50) NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "ApprovedDate": "datetime NULL ",
+        "TotalAmount": "decimal(10,2) NULL ",
+        "RemainingBalance": "decimal(10,2) NULL ",
+        "InstallmentAmount": "decimal(10,2) NULL ",
+        "InstallmentCount": "int(11) NULL ",
+        "PaidInstallments": "int(11) NULL ",
+        "StartDeductionDate": "date NULL ",
+        "Payment": "varchar(50) NULL ",
+        "Notes": "text NULL ",
+        "CreatedDate": "datetime NULL ",
+        "Payroll_ID": "int(11) NULL "
+      },
+      "pk": [
+        "CashAdvanceID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "cashadvancededuction": {
+      "columns": {
+        "DeductionID": "int(11) NOT NULL auto_increment",
+        "CashAdvanceID": "int(11) NOT NULL ",
+        "Payroll_ID": "int(11) NOT NULL ",
+        "DeductionAmount": "decimal(10,2) NULL ",
+        "DeductionDate": "date NULL ",
+        "RemainingBalanceAfter": "decimal(10,2) NULL ",
+        "PayrollPeriod": "varchar(50) NULL ",
+        "CreatedDate": "datetime NULL "
+      },
+      "pk": [
+        "DeductionID"
+      ],
+      "fk": [
+        [
+          [
+            "CashAdvanceID"
+          ],
+          "cashadvance",
+          [
+            "CashAdvanceID"
+          ]
+        ],
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "chat_messages": {
+      "columns": {
+        "MessageID": "int(11) NOT NULL auto_increment",
+        "ThreadID": "int(11) NOT NULL ",
+        "SenderUserID": "int(11) NOT NULL ",
+        "MessageText": "text NOT NULL ",
+        "IsSystemMessage": "tinyint(1) NULL ",
+        "CreatedAt": "datetime NOT NULL "
+      },
+      "pk": [
+        "MessageID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "chat_thread_participants": {
+      "columns": {
+        "ThreadID": "int(11) NOT NULL ",
+        "UserID": "int(11) NOT NULL "
+      },
+      "pk": [
+        "ThreadID",
+        "UserID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "chat_thread_reads": {
+      "columns": {
+        "ThreadID": "int(11) NOT NULL ",
+        "UserID": "int(11) NOT NULL ",
+        "LastReadAt": "datetime NULL ",
+        "LastReadMessageID": "int(11) NOT NULL "
+      },
+      "pk": [
+        "ThreadID",
+        "UserID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\messenger_read_cursor.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "chat_threads": {
+      "columns": {
+        "ThreadID": "int(11) NOT NULL auto_increment",
+        "ThreadType": "varchar(30) NOT NULL ",
+        "RelatedModule": "varchar(100) NULL ",
+        "RelatedRecord": "int(11) NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "CreatedAt": "datetime NOT NULL ",
+        "UpdatedAt": "datetime NULL "
+      },
+      "pk": [
+        "ThreadID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "clearance_items": {
+      "columns": {
+        "ClearanceItemID": "int(11) NOT NULL auto_increment",
+        "ResignationID": "int(11) NOT NULL ",
+        "ItemName": "varchar(150) NOT NULL ",
+        "IsCleared": "tinyint(1) NULL ",
+        "ClearedDate": "datetime NULL ",
+        "ClearedBy": "int(11) NULL ",
+        "Remarks": "text NULL "
+      },
+      "pk": [
+        "ClearanceItemID"
+      ],
+      "fk": [
+        [
+          [
+            "ClearedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "ResignationID"
+          ],
+          "resignationrequest",
+          [
+            "ResignationID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "clientcompany": {
+      "columns": {
+        "CompanyID": "int(11) NOT NULL auto_increment",
+        "CompanyTypeID": "int(11) NULL ",
+        "Name": "varchar(150) NOT NULL ",
+        "Address": "text NULL ",
+        "registered_latitude": "decimal(10,8) NULL ",
+        "registered_longitude": "decimal(11,8) NULL ",
+        "geofence_radius": "int(11) NULL ",
+        "site_registered_at": "datetime NULL ",
+        "registered_by_tl_id": "int(11) NULL ",
+        "ContactPerson": "varchar(100) NULL ",
+        "ContactNumber": "varchar(20) NULL ",
+        "Industry": "varchar(100) NULL ",
+        "IsActive": "tinyint(1) NULL ",
+        "UserID": "int(11) NULL ",
+        "latitude": "decimal(10,8) NULL ",
+        "longitude": "decimal(11,8) NULL ",
+        "PayrollType": "enum('A','B') NOT NULL "
+      },
+      "pk": [
+        "CompanyID"
+      ],
+      "fk": [
+        [
+          [
+            "UserID"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "daily_time_records": {
+      "columns": {
+        "id": "int(10) unsigned NOT NULL auto_increment",
+        "employee_id": "int(11) NOT NULL ",
+        "team_lead_user_id": "int(11) NULL ",
+        "date": "date NOT NULL ",
+        "time_in": "datetime NULL ",
+        "break_time": "datetime NULL ",
+        "time_out": "datetime NULL ",
+        "total_hours_rendered": "decimal(6,2) NULL ",
+        "status": "enum('Absent','Clocked In','On Break','Clocked Out','Late','Present') NOT NULL ",
+        "qr_scan_count": "smallint(5) unsigned NOT NULL ",
+        "created_at": "datetime NOT NULL ",
+        "updated_at": "datetime NOT NULL on update current_timestamp()"
+      },
+      "pk": [
+        "id"
+      ],
+      "fk": [],
+      "unique": [
+        [
+          "employee_id",
+          "date"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\daily_time_records.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "deductions": {
+      "columns": {
+        "DeductionsID": "int(11) NOT NULL auto_increment",
+        "Payroll_ID": "int(11) NOT NULL ",
+        "EmployeeID": "int(11) NOT NULL ",
+        "DeductionType": "varchar(100) NULL ",
+        "DeductionCategory": "varchar(100) NULL ",
+        "Amount": "decimal(10,2) NULL ",
+        "DeductionDate": "date NULL ",
+        "Remarks": "text NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "PeriodStart": "date NULL ",
+        "PeriodEnd": "date NULL "
+      },
+      "pk": [
+        "DeductionsID"
+      ],
+      "fk": [
+        [
+          [
+            "CreatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "department": {
+      "columns": {
+        "DepartmentID": "int(11) NOT NULL auto_increment",
+        "ManagerID": "int(11) NULL ",
+        "Budget": "decimal(15,2) NULL ",
+        "Location": "varchar(150) NULL ",
+        "Description": "text NULL "
+      },
+      "pk": [
+        "DepartmentID"
+      ],
+      "fk": [
+        [
+          [
+            "ManagerID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "deployment": {
+      "columns": {
+        "DeploymentID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "CompanyID": "int(11) NOT NULL ",
+        "Position": "varchar(100) NULL ",
+        "StartDate": "date NULL ",
+        "EndDate": "date NULL ",
+        "Location": "varchar(150) NULL ",
+        "StatusID": "int(11) NULL ",
+        "DeploymentNotes": "text NULL ",
+        "AllowDTRSubmission": "tinyint(1) NULL ",
+        "RequiresApproval": "tinyint(1) NULL ",
+        "SiteSuperVisorID": "int(11) NULL ",
+        "ServiceAgreementID": "int(11) NULL ",
+        "TimeIn": "time NULL ",
+        "TimeOut": "time NULL ",
+        "BreakDuration": "int(10) unsigned NULL ",
+        "GracePeriod": "int(10) unsigned NULL ",
+        "WorkingDays": "varchar(100) NULL ",
+        "ShiftName": "varchar(100) NULL ",
+        "SiteID": "int(11) NULL "
+      },
+      "pk": [
+        "DeploymentID"
+      ],
+      "fk": [
+        [
+          [
+            "CompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "ServiceAgreementID"
+          ],
+          "serviceagreement",
+          [
+            "ServiceAgreementID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ],
+        [
+          [
+            "SiteSuperVisorID"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\deployment_sites_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "deployment_sites": {
+      "columns": {
+        "SiteID": "int(11) NOT NULL auto_increment",
+        "CompanyID": "int(11) NOT NULL ",
+        "Name": "varchar(150) NOT NULL ",
+        "Address": "text NULL ",
+        "TeamLeadID": "int(11) NULL ",
+        "IsActive": "tinyint(1) NOT NULL ",
+        "LegacyDefault": "tinyint(1) NULL ",
+        "registered_latitude": "decimal(10,8) NULL ",
+        "registered_longitude": "decimal(11,8) NULL ",
+        "geofence_radius": "int(11) NOT NULL ",
+        "site_registered_at": "datetime NULL ",
+        "registered_by_tl_id": "int(11) NULL "
+      },
+      "pk": [
+        "SiteID"
+      ],
+      "fk": [
+        [
+          [
+            "CompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "TeamLeadID"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "CompanyID",
+          "LegacyDefault"
+        ]
+      ],
+      "sources": [
+        "sql\\deployment_sites_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "dtr_submissions": {
+      "columns": {
+        "DTR_SubmissionID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "DeploymentID": "int(11) NULL ",
+        "SiteSupervisorID": "int(11) NULL ",
+        "CutoffPeriod": "varchar(50) NULL ",
+        "CutoffStartDate": "date NULL ",
+        "CutoffEndDate": "date NULL ",
+        "TotalHours": "decimal(7,2) NULL ",
+        "OvertimeHours": "decimal(7,2) NULL ",
+        "TotalOvertimeHours": "decimal(7,2) NULL ",
+        "SubmittedBy": "int(11) NULL ",
+        "ReviewedBy": "int(11) NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "ApprovalDate": "datetime NULL ",
+        "ReviewDate": "datetime NULL ",
+        "Remarks": "text NULL ",
+        "CreatedAt": "datetime NULL ",
+        "StatusID": "int(11) NULL ",
+        "SiteID": "int(11) NULL "
+      },
+      "pk": [
+        "DTR_SubmissionID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "DeploymentID"
+          ],
+          "deployment",
+          [
+            "DeploymentID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "ReviewedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ],
+        [
+          [
+            "SubmittedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "SiteSupervisorID"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\deployment_sites_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "employee": {
+      "columns": {
+        "EmployeeID": "int(11) NOT NULL auto_increment",
+        "StatusID": "int(11) NULL ",
+        "DepartmentID": "int(11) NULL ",
+        "EmployeeNumber": "varchar(20) NULL ",
+        "FirstName": "varchar(50) NOT NULL ",
+        "LastName": "varchar(50) NOT NULL ",
+        "Email": "varchar(100) NULL ",
+        "Position": "varchar(100) NULL ",
+        "EmployeeType": "varchar(50) NULL ",
+        "HiredDate": "date NULL ",
+        "BasicSalary": "decimal(10,2) NULL ",
+        "daily_rate": "decimal(10,2) NULL ",
+        "hourly_rate": "decimal(10,2) NULL ",
+        "allowance": "decimal(10,2) NOT NULL ",
+        "monthly_salary_credit": "decimal(10,2) NULL ",
+        "IsActive": "tinyint(1) NULL ",
+        "PayrollType": "varchar(50) NULL ",
+        "BankName": "varchar(100) NULL ",
+        "SSSNumber": "varchar(20) NULL ",
+        "PhilHealthNumber": "varchar(20) NULL ",
+        "PagIBIGNumber": "varchar(20) NULL ",
+        "TINNumber": "varchar(20) NULL "
+      },
+      "pk": [
+        "EmployeeID"
+      ],
+      "fk": [
+        [
+          [
+            "DepartmentID"
+          ],
+          "department",
+          [
+            "DepartmentID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "Email"
+        ],
+        [
+          "EmployeeNumber"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\employee_salary_config_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "employmentcontract": {
+      "columns": {
+        "EmploymentContractID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "ContractNumber": "varchar(50) NULL ",
+        "ContractType": "varchar(50) NULL ",
+        "ContractStartDate": "date NULL ",
+        "ContractEndDate": "date NULL ",
+        "SignedDocumentPath": "varchar(255) NULL ",
+        "Position": "varchar(100) NULL ",
+        "BasicSalary": "decimal(10,2) NULL ",
+        "SalaryType": "varchar(50) NULL ",
+        "WorkSchedule": "text NULL ",
+        "DeploymentTerms": "text NULL ",
+        "BenefitsClause": "text NULL ",
+        "ResponsibilitiesClause": "text NULL ",
+        "TerminationClause": "text NULL ",
+        "SignedDate": "date NULL ",
+        "WitnessName": "varchar(100) NULL ",
+        "WitnessSignature": "varchar(255) NULL ",
+        "StatusID": "int(11) NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "CreatedDate": "datetime NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "ApprovedDate": "datetime NULL "
+      },
+      "pk": [
+        "EmploymentContractID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "CreatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "gov_percentage_rates": {
+      "columns": {
+        "id": "tinyint(3) unsigned NOT NULL ",
+        "philhealth_ee_pct": "decimal(6,4) NOT NULL ",
+        "philhealth_er_pct": "decimal(6,4) NOT NULL ",
+        "pagibig_ee_fixed": "decimal(10,2) NOT NULL ",
+        "pagibig_er_fixed": "decimal(10,2) NOT NULL ",
+        "updated_at": "timestamp NOT NULL on update current_timestamp()"
+      },
+      "pk": [
+        "id"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\deduction_rates_config_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "gu_tags": {
+      "columns": {
+        "GUTagID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "DeploymentID": "int(11) NOT NULL ",
+        "TagType": "enum('Time-In','Time-Out','Overtime-Out') NOT NULL ",
+        "TagDateTime": "datetime NOT NULL ",
+        "PhotoPath": "varchar(255) NULL ",
+        "Latitude": "decimal(10,7) NULL ",
+        "Longitude": "decimal(10,7) NULL ",
+        "LocationAddress": "varchar(255) NULL ",
+        "DeviceInfo": "varchar(255) NULL ",
+        "IsVerified": "tinyint(1) NULL ",
+        "VerifiedBy": "int(11) NULL ",
+        "VerifiedDate": "datetime NULL ",
+        "AttendanceID": "int(11) NULL ",
+        "Remarks": "text NULL ",
+        "CreatedAt": "datetime NULL "
+      },
+      "pk": [
+        "GUTagID"
+      ],
+      "fk": [
+        [
+          [
+            "AttendanceID"
+          ],
+          "attendance",
+          [
+            "AttendanceID"
+          ]
+        ],
+        [
+          [
+            "DeploymentID"
+          ],
+          "deployment",
+          [
+            "DeploymentID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "VerifiedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "holidays": {
+      "columns": {
+        "HolidayID": "int(11) NOT NULL auto_increment",
+        "HolidayName": "varchar(100) NOT NULL ",
+        "HolidayDate": "date NOT NULL ",
+        "HolidayType": "varchar(50) NULL ",
+        "PayMultiplier": "decimal(4,2) NULL ",
+        "IsNationwide": "tinyint(1) NULL ",
+        "Region": "varchar(100) NULL ",
+        "Year": "int(11) NULL ",
+        "Description": "text NULL ",
+        "CreatedAt": "datetime NULL ",
+        "UpdatedAt": "datetime NULL on update current_timestamp()"
+      },
+      "pk": [
+        "HolidayID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "industry_lookup": {
+      "columns": {
+        "IndustryID": "int(11) NOT NULL auto_increment",
+        "Name": "varchar(100) NOT NULL ",
+        "CreatedAt": "timestamp NOT NULL "
+      },
+      "pk": [
+        "IndustryID"
+      ],
+      "fk": [],
+      "unique": [
+        [
+          "Name"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "job_applications": {
+      "columns": {
+        "ApplicationID": "int(11) NOT NULL auto_increment",
+        "ApplicantID": "int(11) NOT NULL ",
+        "JobOrderID": "int(11) NOT NULL ",
+        "target_detail_id": "int(11) NULL ",
+        "ApplicationDate": "datetime NULL ",
+        "StatusID": "int(11) NULL ",
+        "InterviewDate": "datetime NULL ",
+        "InterviewNotes": "text NULL ",
+        "EndorsedDate": "datetime NULL ",
+        "EndorsedBy": "int(11) NULL ",
+        "ClientApprovalDate": "datetime NULL ",
+        "ClientApprovalStatus": "enum('Pending','Approved','Rejected') NULL ",
+        "HiredDate": "datetime NULL ",
+        "HiredBy": "int(11) NULL ",
+        "Remarks": "text NULL ",
+        "CreatedAt": "datetime NULL "
+      },
+      "pk": [
+        "ApplicationID"
+      ],
+      "fk": [
+        [
+          [
+            "target_detail_id"
+          ],
+          "job_order_details",
+          [
+            "detail_id"
+          ]
+        ],
+        [
+          [
+            "ApplicantID"
+          ],
+          "applicants",
+          [
+            "ApplicantID"
+          ]
+        ],
+        [
+          [
+            "EndorsedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "HiredBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "JobOrderID"
+          ],
+          "joborder",
+          [
+            "JobOrderID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\applications_target_detail_migration.sql",
+        "sql\\multi_position_jor_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "job_categories": {
+      "columns": {
+        "id": "int(10) unsigned NOT NULL auto_increment",
+        "category_name": "varchar(100) NOT NULL ",
+        "created_at": "datetime NOT NULL ",
+        "is_active": "tinyint(1) NOT NULL "
+      },
+      "pk": [
+        "id"
+      ],
+      "fk": [],
+      "unique": [
+        [
+          "category_name"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\job_categories_migration.sql",
+        "sql\\job_classification_hierarchy_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "job_classifications": {
+      "columns": {
+        "id": "int(10) unsigned NOT NULL auto_increment",
+        "category_id": "int(10) unsigned NOT NULL ",
+        "classification_name": "varchar(100) NOT NULL ",
+        "is_default": "tinyint(1) NOT NULL ",
+        "is_active": "tinyint(1) NOT NULL ",
+        "created_at": "datetime NOT NULL "
+      },
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        [
+          [
+            "category_id"
+          ],
+          "job_categories",
+          [
+            "id"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "category_id",
+          "classification_name"
+        ]
+      ],
+      "sources": [
+        "sql\\job_classification_hierarchy_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "job_order_details": {
+      "columns": {
+        "detail_id": "int(11) NOT NULL auto_increment",
+        "RequestID": "int(11) NOT NULL ",
+        "position_title": "varchar(255) NOT NULL ",
+        "category_id": "int(10) unsigned NULL ",
+        "job_category": "varchar(255) NULL ",
+        "required_workers": "int(11) NOT NULL ",
+        "deployment_site": "varchar(255) NOT NULL ",
+        "work_schedule": "varchar(150) NOT NULL ",
+        "JobOrderID": "int(11) NULL ",
+        "CreatedAt": "datetime NOT NULL ",
+        "classification_id": "int(10) unsigned NULL ",
+        "sub_classification_id": "int(10) unsigned NULL "
+      },
+      "pk": [
+        "detail_id"
+      ],
+      "fk": [
+        [
+          [
+            "classification_id"
+          ],
+          "job_classifications",
+          [
+            "id"
+          ]
+        ],
+        [
+          [
+            "RequestID"
+          ],
+          "job_order_requests",
+          [
+            "RequestID"
+          ]
+        ],
+        [
+          [
+            "sub_classification_id"
+          ],
+          "job_sub_classifications",
+          [
+            "id"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\multi_position_jor_migration.sql",
+        "sql\\job_hierarchy_assignment_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "job_order_requests": {
+      "columns": {
+        "RequestID": "int(11) NOT NULL auto_increment",
+        "RequestedBy": "int(11) NOT NULL ",
+        "CompanyID": "int(11) NOT NULL ",
+        "Position": "varchar(100) NOT NULL ",
+        "RequiredCount": "int(11) NOT NULL ",
+        "Location": "varchar(150) NULL ",
+        "WorkSchedule": "varchar(100) NULL ",
+        "Remarks": "text NULL ",
+        "RejectionReason": "text NULL ",
+        "IsConsolidated": "tinyint(1) NOT NULL ",
+        "Status": "enum('Pending','Approved','Rejected') NOT NULL ",
+        "ProcessedBy": "int(11) NULL ",
+        "ProcessedAt": "datetime NULL ",
+        "JobOrderID": "int(11) NULL ",
+        "CreatedAt": "datetime NOT NULL ",
+        "JobCategory": "varchar(255) NULL ",
+        "category_id": "int(10) unsigned NULL "
+      },
+      "pk": [
+        "RequestID"
+      ],
+      "fk": [
+        [
+          [
+            "CompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "ProcessedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "RequestedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\job_categories_migration.sql",
+        "sql\\multi_position_jor_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "job_sub_classifications": {
+      "columns": {
+        "id": "int(10) unsigned NOT NULL auto_increment",
+        "classification_id": "int(10) unsigned NOT NULL ",
+        "sub_classification_name": "varchar(100) NOT NULL ",
+        "is_active": "tinyint(1) NOT NULL ",
+        "created_at": "datetime NOT NULL "
+      },
+      "pk": [
+        "id"
+      ],
+      "fk": [
+        [
+          [
+            "classification_id"
+          ],
+          "job_classifications",
+          [
+            "id"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "classification_id",
+          "sub_classification_name"
+        ]
+      ],
+      "sources": [
+        "sql\\job_classification_hierarchy_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "joborder": {
+      "columns": {
+        "JobOrderID": "int(11) NOT NULL auto_increment",
+        "CompanyID": "int(11) NOT NULL ",
+        "Position": "varchar(100) NULL ",
+        "RequiredSkills": "text NULL ",
+        "Qualifications": "text NULL ",
+        "ID": "int(11) NULL ",
+        "CreatedAt": "datetime NULL ",
+        "ServiceAgreementID": "int(11) NULL ",
+        "RequiredCount": "int(11) NULL ",
+        "Location": "varchar(150) NULL ",
+        "WorkSchedule": "text NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "RequestDate": "date NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "PublishedDate": "date NULL ",
+        "JobCategory": "varchar(255) NULL ",
+        "Status": "enum('Open','Closed') NOT NULL ",
+        "category_id": "int(10) unsigned NULL ",
+        "TimeIn": "time NULL ",
+        "TimeOut": "time NULL ",
+        "BreakDuration": "int(10) unsigned NULL ",
+        "GracePeriod": "int(10) unsigned NULL ",
+        "WorkingDays": "varchar(100) NULL ",
+        "ShiftName": "varchar(100) NULL ",
+        "classification_id": "int(10) unsigned NULL ",
+        "sub_classification_id": "int(10) unsigned NULL "
+      },
+      "pk": [
+        "JobOrderID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "classification_id"
+          ],
+          "job_classifications",
+          [
+            "id"
+          ]
+        ],
+        [
+          [
+            "CompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "CreatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "ServiceAgreementID"
+          ],
+          "serviceagreement",
+          [
+            "ServiceAgreementID"
+          ]
+        ],
+        [
+          [
+            "sub_classification_id"
+          ],
+          "job_sub_classifications",
+          [
+            "id"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\applicant_job_board_filter.sql",
+        "sql\\client_partnership_migration.sql",
+        "sql\\job_categories_migration.sql",
+        "sql\\job_hierarchy_assignment_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "joborderpositions": {
+      "columns": {
+        "JobOrderPositionID": "int(11) NOT NULL auto_increment",
+        "JobOrderID": "int(11) NOT NULL ",
+        "Position": "varchar(100) NULL ",
+        "RequiredCount": "int(11) NULL ",
+        "FilledCount": "int(11) NULL ",
+        "RemainingCount": "int(11) NULL ",
+        "QualificationRequirements": "text NULL ",
+        "SalaryRates": "decimal(10,2) NULL "
+      },
+      "pk": [
+        "JobOrderPositionID"
+      ],
+      "fk": [
+        [
+          [
+            "JobOrderID"
+          ],
+          "joborder",
+          [
+            "JobOrderID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "jobrequirements": {
+      "columns": {
+        "JobRequirementsID": "int(11) NOT NULL auto_increment",
+        "JobOrderID": "int(11) NOT NULL ",
+        "RequirementType": "varchar(100) NULL ",
+        "IsMandatory": "tinyint(1) NULL ",
+        "CreatedAt": "datetime NULL "
+      },
+      "pk": [
+        "JobRequirementsID"
+      ],
+      "fk": [
+        [
+          [
+            "JobOrderID"
+          ],
+          "joborder",
+          [
+            "JobOrderID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "leaves": {
+      "columns": {
+        "LeaveID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "LeaveType": "varchar(50) NULL ",
+        "StartDate": "date NULL ",
+        "EndDate": "date NULL ",
+        "TotalDays": "decimal(4,1) NULL ",
+        "Reason": "text NULL ",
+        "SupportingDocuments": "varchar(255) NULL ",
+        "FiledDate": "date NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "ApprovalDate": "datetime NULL ",
+        "StatusID": "int(11) NULL ",
+        "RejectionReason": "text NULL ",
+        "AffectsPayroll": "tinyint(1) NULL ",
+        "CreatedAt": "datetime NULL ",
+        "UpdatedAt": "datetime NULL on update current_timestamp()"
+      },
+      "pk": [
+        "LeaveID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "notifications": {
+      "columns": {
+        "NotificationID": "int(11) NOT NULL auto_increment",
+        "UserID": "int(11) NOT NULL ",
+        "NotificationType": "varchar(50) NULL ",
+        "Title": "varchar(200) NULL ",
+        "Message": "text NULL ",
+        "RelateedModule": "varchar(100) NULL ",
+        "RelatedRecord": "int(11) NULL ",
+        "IsRead": "tinyint(1) NULL ",
+        "Priority": "varchar(20) NULL ",
+        "DTRReminderKey": "varchar(100) NULL "
+      },
+      "pk": [
+        "NotificationID"
+      ],
+      "fk": [
+        [
+          [
+            "UserID"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "DTRReminderKey"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\deployment_sites_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "overtime": {
+      "columns": {
+        "OvertimeID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "AttendanceID": "int(11) NULL ",
+        "DeploymentID": "int(11) NULL ",
+        "OvertimeDate": "date NULL ",
+        "OTStartTime": "time NULL ",
+        "OTEndTime": "time NULL ",
+        "RegularHours": "decimal(5,2) NULL ",
+        "OvertimeHours": "decimal(5,2) NULL ",
+        "NightDiffHours": "decimal(5,2) NULL ",
+        "OvertimeType": "varchar(50) NULL ",
+        "OvertimeRate": "decimal(5,2) NULL ",
+        "TotalOvertimePay": "decimal(10,2) NULL ",
+        "RequestedBy": "int(11) NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "ApprovalDate": "datetime NULL ",
+        "StatusID": "int(11) NULL ",
+        "Remarks": "text NULL ",
+        "CreatedAt": "datetime NULL ",
+        "UpdatedAt": "datetime NULL on update current_timestamp()"
+      },
+      "pk": [
+        "OvertimeID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "AttendanceID"
+          ],
+          "attendance",
+          [
+            "AttendanceID"
+          ]
+        ],
+        [
+          [
+            "DeploymentID"
+          ],
+          "deployment",
+          [
+            "DeploymentID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "RequestedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "EmployeeID",
+          "OvertimeDate",
+          "OTStartTime",
+          "OTEndTime"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payroll": {
+      "columns": {
+        "Payroll_ID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "PayPeriodStart": "date NULL ",
+        "PayPeriodEnd": "date NULL ",
+        "TotalDaysWorked": "decimal(5,2) NULL ",
+        "TotalHoursWorked": "decimal(7,2) NULL ",
+        "RegularHours": "decimal(7,2) NULL ",
+        "OvertimeHours": "decimal(7,2) NULL ",
+        "BasicSalary": "decimal(12,2) NULL ",
+        "OvertimePay": "decimal(12,2) NULL ",
+        "NightDifferentialPay": "decimal(12,2) NULL ",
+        "HolidayPay": "decimal(12,2) NULL ",
+        "Allowances": "decimal(12,2) NULL ",
+        "GrossPay": "decimal(12,2) NULL ",
+        "SSSDeduction": "decimal(10,2) NULL ",
+        "PhilHealthDeduction": "decimal(10,2) NULL ",
+        "PagIBIGDeduction": "decimal(10,2) NULL ",
+        "TaxDeduction": "decimal(10,2) NULL ",
+        "LoanDeduction": "decimal(10,2) NULL ",
+        "TotalDeductions": "decimal(12,2) NULL ",
+        "NetPay": "decimal(12,2) NULL ",
+        "PaymentDate": "date NULL ",
+        "Payment": "varchar(50) NULL ",
+        "ProcessedBy": "int(11) NULL ",
+        "ProcessedDate": "datetime NULL ",
+        "PayslipGenerated": "tinyint(1) NULL ",
+        "PayslipSent": "tinyint(1) NULL ",
+        "Remarks": "text NULL ",
+        "CreatedAt": "datetime NULL ",
+        "HolidayID": "int(11) NULL ",
+        "SalaryRatesID": "int(11) NULL ",
+        "DTR_SubmissionID": "int(11) NULL ",
+        "StatusID": "int(11) NULL "
+      },
+      "pk": [
+        "Payroll_ID"
+      ],
+      "fk": [
+        [
+          [
+            "DTR_SubmissionID"
+          ],
+          "dtr_submissions",
+          [
+            "DTR_SubmissionID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "HolidayID"
+          ],
+          "holidays",
+          [
+            "HolidayID"
+          ]
+        ],
+        [
+          [
+            "ProcessedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "SalaryRatesID"
+          ],
+          "salary_rates",
+          [
+            "SalaryRatesID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\phase5_payroll_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payroll_adjustments": {
+      "columns": {
+        "AdjustmentID": "int(11) NOT NULL auto_increment",
+        "Payroll_ID": "int(11) NULL ",
+        "EmployeeID": "int(11) NOT NULL ",
+        "AdjustmentType": "varchar(50) NULL ",
+        "Amount": "decimal(10,2) NULL ",
+        "IsAddition": "tinyint(1) NULL ",
+        "Reason": "text NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "CreatedAt": "datetime NULL ",
+        "AddBackRequestID": "int(11) NULL "
+      },
+      "pk": [
+        "AdjustmentID"
+      ],
+      "fk": [
+        [
+          [
+            "AddBackRequestID"
+          ],
+          "add_back_requests",
+          [
+            "RequestID"
+          ]
+        ],
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "CreatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "AddBackRequestID"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\add_back_workflow.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payroll_audit_log": {
+      "columns": {
+        "LogID": "int(11) NOT NULL auto_increment",
+        "Payroll_ID": "int(11) NOT NULL ",
+        "Action": "varchar(100) NULL ",
+        "PerformedBy": "int(11) NULL ",
+        "ActionDate": "datetime NULL ",
+        "OldValue": "text NULL ",
+        "NewValue": "text NULL ",
+        "IPAddress": "varchar(45) NULL "
+      },
+      "pk": [
+        "LogID"
+      ],
+      "fk": [
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ],
+        [
+          [
+            "PerformedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payroll_group_status_history": {
+      "columns": {
+        "PayrollStatusHistoryID": "int(10) unsigned NOT NULL auto_increment",
+        "SiteSupervisorID": "int(11) NOT NULL ",
+        "CompanyID": "int(11) NOT NULL ",
+        "CutoffStartDate": "date NOT NULL ",
+        "CutoffEndDate": "date NOT NULL ",
+        "Status": "varchar(50) NOT NULL ",
+        "Remarks": "text NULL ",
+        "ProofImagePath": "varchar(255) NULL ",
+        "UpdatedBy": "int(11) NOT NULL ",
+        "CreatedAt": "datetime NOT NULL "
+      },
+      "pk": [
+        "PayrollStatusHistoryID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "Api\\Helpers\\payroll_status_helper.php",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payroll_run_status_history": {
+      "columns": {
+        "HistoryID": "int(10) unsigned NOT NULL auto_increment",
+        "PayrollRunID": "int(10) unsigned NOT NULL ",
+        "Status": "varchar(64) NOT NULL ",
+        "Remarks": "text NULL ",
+        "AttachmentPath": "varchar(255) NULL ",
+        "UpdatedBy": "int(11) NOT NULL ",
+        "UpdatedAt": "datetime NOT NULL "
+      },
+      "pk": [
+        "HistoryID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payroll_runs": {
+      "columns": {
+        "PayrollRunID": "int(10) unsigned NOT NULL auto_increment",
+        "RunCode": "varchar(32) NOT NULL ",
+        "CompanyID": "int(11) NOT NULL ",
+        "PeriodStart": "date NOT NULL ",
+        "PeriodEnd": "date NOT NULL ",
+        "CutoffLabel": "varchar(120) NULL ",
+        "Status": "varchar(32) NOT NULL ",
+        "AdminOverheadPct": "decimal(5,2) NOT NULL ",
+        "VatPct": "decimal(5,2) NOT NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "CreatedAt": "datetime NOT NULL ",
+        "ApprovedAt": "datetime NULL ",
+        "BillingRefNo": "varchar(32) NULL ",
+        "DeploymentSite": "varchar(255) NULL ",
+        "TotalInvoice": "decimal(14,2) NULL ",
+        "CurrentStatus": "varchar(64) NOT NULL ",
+        "SiteSupervisorID": "int(11) NULL "
+      },
+      "pk": [
+        "PayrollRunID"
+      ],
+      "fk": [],
+      "unique": [
+        [
+          "RunCode"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\payroll_runs_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payroll_status_history": {
+      "columns": {
+        "HistoryID": "int(10) unsigned NOT NULL auto_increment",
+        "PayrollRunID": "int(10) unsigned NOT NULL ",
+        "Status": "varchar(64) NOT NULL ",
+        "Remarks": "text NULL ",
+        "AttachmentPath": "varchar(255) NULL ",
+        "UpdatedBy": "int(11) NOT NULL ",
+        "UpdatedAt": "datetime NOT NULL "
+      },
+      "pk": [
+        "HistoryID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "payslip": {
+      "columns": {
+        "PayslipID": "int(11) NOT NULL auto_increment",
+        "Payroll_ID": "int(11) NOT NULL ",
+        "EmployeeID": "int(11) NOT NULL ",
+        "PayslipNumber": "varchar(50) NULL ",
+        "GeneratedDate": "datetime NULL ",
+        "SentDate": "datetime NULL ",
+        "ViewedByEmployee": "tinyint(1) NULL ",
+        "ViewDate": "datetime NULL ",
+        "DownloadCount": "int(11) NULL ",
+        "LastDownloadDate": "datetime NULL ",
+        "PDFFilePath": "varchar(255) NULL ",
+        "DeliveryMethod": "varchar(50) NULL ",
+        "EmailSent": "tinyint(1) NULL ",
+        "CreatedAt": "datetime NULL ",
+        "UpdatedAt": "datetime NULL on update current_timestamp()"
+      },
+      "pk": [
+        "PayslipID"
+      ],
+      "fk": [
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "Payroll_ID"
+          ],
+          "payroll",
+          [
+            "Payroll_ID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "Payroll_ID"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "performance": {
+      "columns": {
+        "PerformanceID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "ReviewerID": "int(11) NULL ",
+        "ReviewerPeriod": "varchar(50) NULL ",
+        "OverallScore": "decimal(5,2) NULL ",
+        "Rating": "varchar(20) NULL ",
+        "Goals": "text NULL ",
+        "Achievements": "text NULL "
+      },
+      "pk": [
+        "PerformanceID"
+      ],
+      "fk": [
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "ReviewerID"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "psgc_locations": {
+      "columns": {
+        "PSGCCode": "char(10) NOT NULL ",
+        "Name": "varchar(200) NOT NULL ",
+        "GeographicLevel": "varchar(8) NOT NULL ",
+        "ParentPSGCCode": "char(10) NULL ",
+        "RegionCode": "char(10) NOT NULL ",
+        "ProvinceCode": "char(10) NULL ",
+        "CityMunicipalityCode": "char(10) NULL ",
+        "CorrespondenceCode": "char(9) NULL ",
+        "CityClass": "varchar(8) NULL ",
+        "OldNames": "text NULL ",
+        "Status": "varchar(150) NULL ",
+        "SourceSHA256": "char(64) NOT NULL ",
+        "SourceVersion": "varchar(100) NOT NULL "
+      },
+      "pk": [
+        "PSGCCode"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "sql\\psgc_official_locations.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "resignationrequest": {
+      "columns": {
+        "ResignationID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "SubmissionDate": "date NULL ",
+        "EffectiveDate": "date NULL ",
+        "ResignationType": "varchar(50) NULL ",
+        "Reason": "text NULL ",
+        "ClearanceFormPath": "varchar(255) NULL ",
+        "ClearanceApprovedDate": "date NULL ",
+        "QuitclaimDocumentPath": "varchar(255) NULL ",
+        "QuitclaimSignedDate": "date NULL ",
+        "FinalPayAmount": "decimal(12,2) NULL ",
+        "FinalPayComputationDetails": "text NULL ",
+        "FinalPay": "decimal(12,2) NULL ",
+        "FinalPayDate": "date NULL ",
+        "ProcessedBy": "int(11) NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "CompletedDate": "date NULL ",
+        "Notes": "text NULL ",
+        "StatusID": "int(11) NULL "
+      },
+      "pk": [
+        "ResignationID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ],
+        [
+          [
+            "ProcessedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "StatusID"
+          ],
+          "status",
+          [
+            "StatusID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\phase6_resignation_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "roles": {
+      "columns": {
+        "RolesID": "int(11) NOT NULL auto_increment",
+        "RoleName": "varchar(50) NOT NULL ",
+        "Description": "text NULL ",
+        "CreatedAt": "datetime NULL ",
+        "ModifiedAt": "datetime NULL on update current_timestamp()"
+      },
+      "pk": [
+        "RolesID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "salary_rates": {
+      "columns": {
+        "SalaryRatesID": "int(11) NOT NULL auto_increment",
+        "EmployeeID": "int(11) NOT NULL ",
+        "DeploymentID": "int(11) NULL ",
+        "CompanyID": "int(11) NULL ",
+        "RateType": "varchar(50) NULL ",
+        "BasicRate": "decimal(10,2) NULL ",
+        "OvertimeRate": "decimal(10,2) NULL ",
+        "NightDiffRate": "decimal(10,2) NULL ",
+        "HolidayRate": "decimal(10,2) NULL ",
+        "EffectiveDate": "date NULL ",
+        "EndDate": "date NULL ",
+        "IsActive": "tinyint(1) NULL ",
+        "CreatedAt": "datetime NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "DailyRate": "decimal(10,2) NULL ",
+        "HourlyRate": "decimal(10,2) NULL "
+      },
+      "pk": [
+        "SalaryRatesID"
+      ],
+      "fk": [
+        [
+          [
+            "CompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "CreatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "DeploymentID"
+          ],
+          "deployment",
+          [
+            "DeploymentID"
+          ]
+        ],
+        [
+          [
+            "EmployeeID"
+          ],
+          "employee",
+          [
+            "EmployeeID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\add_back_workflow.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "serviceagreement": {
+      "columns": {
+        "ServiceAgreementID": "int(11) NOT NULL auto_increment",
+        "ClientCompanyID": "int(11) NOT NULL ",
+        "ContractNumber": "varchar(50) NULL ",
+        "ContractStartDate": "date NULL ",
+        "ContractEndDate": "date NULL ",
+        "Contract": "text NULL ",
+        "SignedDocumentPath": "varchar(255) NULL ",
+        "BillingTerms": "text NULL ",
+        "PaymentTerms": "text NULL ",
+        "AgencyFeePercentage": "decimal(5,2) NULL ",
+        "CreatedBy": "int(11) NULL ",
+        "CreatedDate": "datetime NULL ",
+        "ApprovedBy": "int(11) NULL ",
+        "ApprovedDate": "datetime NULL ",
+        "Notes": "text NULL ",
+        "Status": "enum('Active','Expired') NULL ",
+        "ContractType": "enum('Open','Expiring') NOT NULL "
+      },
+      "pk": [
+        "ServiceAgreementID"
+      ],
+      "fk": [
+        [
+          [
+            "ApprovedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ],
+        [
+          [
+            "ClientCompanyID"
+          ],
+          "clientcompany",
+          [
+            "CompanyID"
+          ]
+        ],
+        [
+          [
+            "CreatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\client_partnership_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "sss_rates_config": {
+      "columns": {
+        "id": "int(10) unsigned NOT NULL auto_increment",
+        "salary_min": "decimal(12,2) NOT NULL ",
+        "salary_max": "decimal(12,2) NULL ",
+        "monthly_salary_credit": "decimal(12,2) NOT NULL ",
+        "regular_ss_er": "decimal(10,2) NOT NULL ",
+        "regular_ss_ee": "decimal(10,2) NOT NULL ",
+        "mpf_er": "decimal(10,2) NOT NULL ",
+        "mpf_ee": "decimal(10,2) NOT NULL ",
+        "ec_er": "decimal(10,2) NOT NULL ",
+        "effective_year": "smallint(5) unsigned NOT NULL ",
+        "is_active": "tinyint(1) NOT NULL ",
+        "created_at": "timestamp NOT NULL ",
+        "updated_at": "timestamp NOT NULL on update current_timestamp()"
+      },
+      "pk": [
+        "id"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\deduction_rates_config_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "status": {
+      "columns": {
+        "StatusID": "int(11) NOT NULL auto_increment",
+        "Name": "varchar(50) NOT NULL "
+      },
+      "pk": [
+        "StatusID"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "system_logs": {
+      "columns": {
+        "log_id": "bigint(20) unsigned NOT NULL auto_increment",
+        "user_id": "int(10) unsigned NULL ",
+        "username": "varchar(100) NOT NULL ",
+        "role": "varchar(50) NOT NULL ",
+        "module": "varchar(50) NOT NULL ",
+        "action": "varchar(50) NOT NULL ",
+        "description": "text NOT NULL ",
+        "reference_id": "varchar(100) NULL ",
+        "ip_address": "varchar(45) NOT NULL ",
+        "browser": "varchar(100) NULL ",
+        "operating_system": "varchar(100) NULL ",
+        "device": "varchar(50) NULL ",
+        "created_at": "timestamp NOT NULL "
+      },
+      "pk": [
+        "log_id"
+      ],
+      "fk": [],
+      "unique": [],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "systemsettings": {
+      "columns": {
+        "SettingID": "int(11) NOT NULL auto_increment",
+        "SettingKey": "varchar(100) NOT NULL ",
+        "SettingValue": "text NULL ",
+        "SettingType": "varchar(50) NULL ",
+        "Description": "text NULL ",
+        "Category": "varchar(50) NULL ",
+        "IsEditable": "tinyint(1) NULL ",
+        "UpdatedBy": "int(11) NULL ",
+        "CreatedAt": "datetime NULL ",
+        "UpdatedAt": "datetime NULL on update current_timestamp()"
+      },
+      "pk": [
+        "SettingID"
+      ],
+      "fk": [
+        [
+          [
+            "UpdatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "SettingKey"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "team_schedule_entries": {
+      "columns": {
+        "ScheduleID": "int(11) NOT NULL auto_increment",
+        "DeploymentID": "int(11) NOT NULL ",
+        "EntryKind": "enum('Dated','FixedHistory') NOT NULL ",
+        "ScheduleDate": "date NOT NULL ",
+        "ValidUntil": "date NULL ",
+        "ScheduleType": "enum('Fixed','Rotating','Flexible') NOT NULL ",
+        "TimeIn": "time NOT NULL ",
+        "TimeOut": "time NOT NULL ",
+        "BreakDuration": "int(10) unsigned NOT NULL ",
+        "GracePeriod": "int(10) unsigned NOT NULL ",
+        "WorkingDays": "varchar(100) NOT NULL ",
+        "ShiftName": "varchar(100) NOT NULL ",
+        "UpdatedBy": "int(11) NOT NULL ",
+        "UpdatedAt": "datetime NOT NULL on update current_timestamp()"
+      },
+      "pk": [
+        "ScheduleID"
+      ],
+      "fk": [
+        [
+          [
+            "DeploymentID"
+          ],
+          "deployment",
+          [
+            "DeploymentID"
+          ]
+        ],
+        [
+          [
+            "UpdatedBy"
+          ],
+          "users",
+          [
+            "UsersID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "DeploymentID",
+          "ScheduleDate",
+          "EntryKind"
+        ]
+      ],
+      "sources": [
+        "sql\\team_schedule_migration.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "users": {
+      "columns": {
+        "UsersID": "int(11) NOT NULL auto_increment",
+        "RoleID": "int(11) NOT NULL ",
+        "FullName": "varchar(100) NOT NULL ",
+        "Email": "varchar(100) NOT NULL ",
+        "Password": "varchar(255) NOT NULL ",
+        "LocalPasswordConfigured": "tinyint(1) NULL ",
+        "IsActive": "tinyint(1) NULL ",
+        "LastLogin": "datetime NULL ",
+        "CreatedAt": "datetime NULL ",
+        "MessengerLastActivity": "bigint(20) unsigned NULL "
+      },
+      "pk": [
+        "UsersID"
+      ],
+      "fk": [
+        [
+          [
+            "RoleID"
+          ],
+          "roles",
+          [
+            "RolesID"
+          ]
+        ]
+      ],
+      "unique": [
+        [
+          "Email"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "sql\\employee_password_setup.sql",
+        "sql\\messenger_presence.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    },
+    "work_schedule_lookup": {
+      "columns": {
+        "WorkScheduleID": "int(11) NOT NULL auto_increment",
+        "Name": "varchar(100) NOT NULL ",
+        "SortOrder": "int(11) NOT NULL ",
+        "IsActive": "tinyint(1) NOT NULL ",
+        "CreatedAt": "timestamp NOT NULL "
+      },
+      "pk": [
+        "WorkScheduleID"
+      ],
+      "fk": [],
+      "unique": [
+        [
+          "Name"
+        ]
+      ],
+      "sources": [
+        "onazul_hris_db.sql",
+        "live information_schema (2026-10-07)"
+      ]
+    }
+  },
+  "changes": {
+    "add_back_evidence": {
+      "added": [
+        "EvidenceID",
+        "RequestID",
+        "EvidenceType",
+        "StorageName",
+        "MimeType",
+        "ByteSize",
+        "Sha256",
+        "CapturedAt",
+        "CreatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "add_back_requests": {
+      "added": [
+        "RequestID",
+        "EmployeeID",
+        "SubmittedBy",
+        "DeploymentID",
+        "CompanyID",
+        "AttendanceID",
+        "WorkDate",
+        "DutyStart",
+        "DutyEnd",
+        "RequestedHours",
+        "OriginalHours",
+        "Reason",
+        "SourceSnapshot",
+        "RateSnapshot",
+        "StatusID",
+        "SubmittedAt",
+        "ReviewedBy",
+        "ReviewedAt",
+        "ReviewRemarks",
+        "ApprovedHours",
+        "ApprovedAmount",
+        "CalculationSnapshot",
+        "TargetStart",
+        "TargetEnd",
+        "Payroll_ID"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "address_barangay_lookup": {
+      "added": [
+        "BarangayID",
+        "CityID",
+        "Name",
+        "PSGCCode"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "address_city_lookup": {
+      "added": [
+        "CityID",
+        "ProvinceID",
+        "Name",
+        "PSGCCode"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "address_country_lookup": {
+      "added": [
+        "CountryID",
+        "Name"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "address_province_lookup": {
+      "added": [
+        "ProvinceID",
+        "RegionID",
+        "CountryID",
+        "Name",
+        "PSGCCode"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "address_region_lookup": {
+      "added": [
+        "RegionID",
+        "PSGCCode",
+        "Name"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "applicant_profiles": {
+      "added": [
+        "UserID",
+        "FirstName",
+        "LastName",
+        "BirthDate",
+        "HomeLocation",
+        "PreferredClassification",
+        "PreferredSubClassification",
+        "ProfileDetailsCompleted",
+        "UpdatedAt",
+        "preferred_category",
+        "MiddleName",
+        "Suffix"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "applicant_uploaded_docs": {
+      "added": [
+        "DocID",
+        "ApplicationID",
+        "ApplicantID",
+        "DocType",
+        "DocCategory",
+        "FilePath",
+        "OriginalFileName",
+        "FileSize",
+        "IsVerified",
+        "VerifiedBy",
+        "VerifiedDate",
+        "UploadedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "applicantdocuments": {
+      "added": [
+        "DocumentationType"
+      ],
+      "removed": [
+        "DocumentationType (Resume / Biodata)"
+      ],
+      "corrected": [
+        "DocumentPath"
+      ],
+      "new": false
+    },
+    "applicants": {
+      "added": [
+        "ApplicantID",
+        "UserID",
+        "FullName",
+        "Email",
+        "MobileNumber",
+        "Address",
+        "BirthDate",
+        "Gender",
+        "ProfilePhotoPath",
+        "ProfileCompleted",
+        "CreatedAt",
+        "FirstName",
+        "LastName",
+        "HomeLocation",
+        "HasRecentExperience",
+        "JobTitle",
+        "CompanyName",
+        "ExperienceStartMonth",
+        "ExperienceStartYear",
+        "ExperienceEndMonth",
+        "ExperienceEndYear",
+        "StillInRole",
+        "PreferredClassification",
+        "PreferredSubClassification",
+        "ProfileVisibility",
+        "ProfileDetailsCompleted",
+        "ProfileVisibilityCompleted",
+        "RegistrationTermsAccepted",
+        "RegistrationTermsAcceptedAt",
+        "ProfileStatus",
+        "JobCategory",
+        "StreetAddress",
+        "City",
+        "StateProvince",
+        "PostalCode",
+        "Country",
+        "Barangay",
+        "MiddleName",
+        "Suffix",
+        "Region",
+        "category_id",
+        "classification_id",
+        "sub_classification_id",
+        "AddressPSGC"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "application_endorsement_attempts": {
+      "added": [
+        "AttemptID",
+        "ApplicationID",
+        "AttemptNumber",
+        "JobOrderID",
+        "CompanyID",
+        "TargetDetailID",
+        "CompanyName",
+        "PositionTitle",
+        "DeploymentSite",
+        "EndorsedBy",
+        "EndorsedAt",
+        "Decision",
+        "DecidedBy",
+        "DecidedAt",
+        "DecisionReason",
+        "ReendorsementReason",
+        "LegacySnapshot",
+        "PendingApplicationID"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "attendance": {
+      "added": [
+        "clockin_latitude",
+        "clockin_longitude",
+        "clockout_latitude",
+        "clockout_longitude",
+        "gps_accuracy",
+        "distance_from_site",
+        "clockin_photo",
+        "clockout_photo",
+        "browser_name",
+        "operating_system",
+        "device_type",
+        "user_agent",
+        "geofence_status",
+        "attendance_status",
+        "scheduled_time_in",
+        "scheduled_time_out",
+        "minutes_late",
+        "server_timestamp",
+        "EvidenceDeploymentID"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "bonus": {
+      "added": [
+        "BonusType",
+        "ApprovedBy",
+        "CreatedBy"
+      ],
+      "removed": [
+        "BonusType (13th Month / Holiday)",
+        "ApprovedBy (Users)",
+        "CreatedBy (Users)"
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "cashadvance": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "cashadvancededuction": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "chat_messages": {
+      "added": [
+        "MessageID",
+        "ThreadID",
+        "SenderUserID",
+        "MessageText",
+        "IsSystemMessage",
+        "CreatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "chat_thread_participants": {
+      "added": [
+        "ThreadID",
+        "UserID"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "chat_thread_reads": {
+      "added": [
+        "ThreadID",
+        "UserID",
+        "LastReadAt",
+        "LastReadMessageID"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "chat_threads": {
+      "added": [
+        "ThreadID",
+        "ThreadType",
+        "RelatedModule",
+        "RelatedRecord",
+        "CreatedBy",
+        "CreatedAt",
+        "UpdatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "clearance_items": {
+      "added": [
+        "ItemName",
+        "IsCleared",
+        "ClearedDate",
+        "ClearedBy"
+      ],
+      "removed": [
+        "ItemCategory (ID/Uniform)",
+        "ItemDescription",
+        "IsReturned",
+        "ReturnedDate",
+        "Condition",
+        "ChargeAmount",
+        "CreatedDate",
+        "ReceivedBy"
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "clientcompany": {
+      "added": [
+        "registered_latitude",
+        "registered_longitude",
+        "geofence_radius",
+        "site_registered_at",
+        "registered_by_tl_id",
+        "latitude",
+        "longitude",
+        "PayrollType"
+      ],
+      "removed": [],
+      "corrected": [
+        "CompanyTypeID"
+      ],
+      "new": false
+    },
+    "daily_time_records": {
+      "added": [
+        "id",
+        "employee_id",
+        "team_lead_user_id",
+        "date",
+        "time_in",
+        "break_time",
+        "time_out",
+        "total_hours_rendered",
+        "status",
+        "qr_scan_count",
+        "created_at",
+        "updated_at"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "deductions": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "department": {
+      "added": [
+        "ManagerID"
+      ],
+      "removed": [
+        "EmployeeID",
+        ""
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "deployment": {
+      "added": [
+        "SiteSuperVisorID",
+        "TimeIn",
+        "TimeOut",
+        "BreakDuration",
+        "GracePeriod",
+        "WorkingDays",
+        "ShiftName",
+        "SiteID"
+      ],
+      "removed": [
+        "SiteSuperVisorID (Users)"
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "deployment_sites": {
+      "added": [
+        "SiteID",
+        "CompanyID",
+        "Name",
+        "Address",
+        "TeamLeadID",
+        "IsActive",
+        "LegacyDefault",
+        "registered_latitude",
+        "registered_longitude",
+        "geofence_radius",
+        "site_registered_at",
+        "registered_by_tl_id"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "dtr_submissions": {
+      "added": [
+        "SubmittedBy",
+        "ReviewedBy",
+        "ApprovedBy",
+        "StatusID",
+        "SiteID"
+      ],
+      "removed": [
+        "SubmittedBy (Users)",
+        "ReviewedBy (Users)",
+        "ApprovedBy (Users)",
+        "StatudID"
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "employee": {
+      "added": [
+        "daily_rate",
+        "hourly_rate",
+        "allowance",
+        "monthly_salary_credit"
+      ],
+      "removed": [],
+      "corrected": [
+        "BasicSalary"
+      ],
+      "new": false
+    },
+    "employmentcontract": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "gov_percentage_rates": {
+      "added": [
+        "id",
+        "philhealth_ee_pct",
+        "philhealth_er_pct",
+        "pagibig_ee_fixed",
+        "pagibig_er_fixed",
+        "updated_at"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "gu_tags": {
+      "added": [
+        "GUTagID",
+        "EmployeeID",
+        "DeploymentID",
+        "TagType",
+        "TagDateTime",
+        "PhotoPath",
+        "Latitude",
+        "Longitude",
+        "LocationAddress",
+        "DeviceInfo",
+        "IsVerified",
+        "VerifiedBy",
+        "VerifiedDate",
+        "AttendanceID",
+        "Remarks",
+        "CreatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "holidays": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "industry_lookup": {
+      "added": [
+        "IndustryID",
+        "Name",
+        "CreatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "job_applications": {
+      "added": [
+        "ApplicationID",
+        "ApplicantID",
+        "JobOrderID",
+        "target_detail_id",
+        "ApplicationDate",
+        "StatusID",
+        "InterviewDate",
+        "InterviewNotes",
+        "EndorsedDate",
+        "EndorsedBy",
+        "ClientApprovalDate",
+        "ClientApprovalStatus",
+        "HiredDate",
+        "HiredBy",
+        "Remarks",
+        "CreatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "job_categories": {
+      "added": [
+        "id",
+        "category_name",
+        "created_at",
+        "is_active"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "job_classifications": {
+      "added": [
+        "id",
+        "category_id",
+        "classification_name",
+        "is_default",
+        "is_active",
+        "created_at"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "job_order_details": {
+      "added": [
+        "detail_id",
+        "RequestID",
+        "position_title",
+        "category_id",
+        "job_category",
+        "required_workers",
+        "deployment_site",
+        "work_schedule",
+        "JobOrderID",
+        "CreatedAt",
+        "classification_id",
+        "sub_classification_id"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "job_order_requests": {
+      "added": [
+        "RequestID",
+        "RequestedBy",
+        "CompanyID",
+        "Position",
+        "RequiredCount",
+        "Location",
+        "WorkSchedule",
+        "Remarks",
+        "RejectionReason",
+        "IsConsolidated",
+        "Status",
+        "ProcessedBy",
+        "ProcessedAt",
+        "JobOrderID",
+        "CreatedAt",
+        "JobCategory",
+        "category_id"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "job_sub_classifications": {
+      "added": [
+        "id",
+        "classification_id",
+        "sub_classification_name",
+        "is_active",
+        "created_at"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "joborder": {
+      "added": [
+        "WorkSchedule",
+        "JobCategory",
+        "Status",
+        "category_id",
+        "TimeIn",
+        "TimeOut",
+        "BreakDuration",
+        "GracePeriod",
+        "WorkingDays",
+        "ShiftName",
+        "classification_id",
+        "sub_classification_id"
+      ],
+      "removed": [],
+      "corrected": [
+        "ID"
+      ],
+      "new": false
+    },
+    "joborderpositions": {
+      "added": [],
+      "removed": [
+        ""
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "jobrequirements": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "leaves": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "notifications": {
+      "added": [
+        "DTRReminderKey"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "overtime": {
+      "added": [
+        "OTStartTime",
+        "OTEndTime"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "payroll": {
+      "added": [
+        "ProcessedBy"
+      ],
+      "removed": [
+        "ProcessedBy (Users)"
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "payroll_adjustments": {
+      "added": [
+        "AddBackRequestID"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "payroll_audit_log": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "payroll_group_status_history": {
+      "added": [
+        "PayrollStatusHistoryID",
+        "SiteSupervisorID",
+        "CompanyID",
+        "CutoffStartDate",
+        "CutoffEndDate",
+        "Status",
+        "Remarks",
+        "ProofImagePath",
+        "UpdatedBy",
+        "CreatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "payroll_run_status_history": {
+      "added": [
+        "HistoryID",
+        "PayrollRunID",
+        "Status",
+        "Remarks",
+        "AttachmentPath",
+        "UpdatedBy",
+        "UpdatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "payroll_runs": {
+      "added": [
+        "PayrollRunID",
+        "RunCode",
+        "CompanyID",
+        "PeriodStart",
+        "PeriodEnd",
+        "CutoffLabel",
+        "Status",
+        "AdminOverheadPct",
+        "VatPct",
+        "CreatedBy",
+        "CreatedAt",
+        "ApprovedAt",
+        "BillingRefNo",
+        "DeploymentSite",
+        "TotalInvoice",
+        "CurrentStatus",
+        "SiteSupervisorID"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "payroll_status_history": {
+      "added": [
+        "HistoryID",
+        "PayrollRunID",
+        "Status",
+        "Remarks",
+        "AttachmentPath",
+        "UpdatedBy",
+        "UpdatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "payslip": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "performance": {
+      "added": [
+        "ReviewerID"
+      ],
+      "removed": [
+        "ReviewerID (Users)"
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "psgc_locations": {
+      "added": [
+        "PSGCCode",
+        "Name",
+        "GeographicLevel",
+        "ParentPSGCCode",
+        "RegionCode",
+        "ProvinceCode",
+        "CityMunicipalityCode",
+        "CorrespondenceCode",
+        "CityClass",
+        "OldNames",
+        "Status",
+        "SourceSHA256",
+        "SourceVersion"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "resignationrequest": {
+      "added": [],
+      "removed": [],
+      "corrected": [
+        "ClearanceApprovedDate",
+        "QuitclaimSignedDate"
+      ],
+      "new": false
+    },
+    "roles": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "salary_rates": {
+      "added": [
+        "DailyRate",
+        "HourlyRate"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "serviceagreement": {
+      "added": [
+        "Status",
+        "ContractType"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "sss_rates_config": {
+      "added": [
+        "id",
+        "salary_min",
+        "salary_max",
+        "monthly_salary_credit",
+        "regular_ss_er",
+        "regular_ss_ee",
+        "mpf_er",
+        "mpf_ee",
+        "ec_er",
+        "effective_year",
+        "is_active",
+        "created_at",
+        "updated_at"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "status": {
+      "added": [],
+      "removed": [
+        ""
+      ],
+      "corrected": [],
+      "new": false
+    },
+    "system_logs": {
+      "added": [
+        "log_id",
+        "user_id",
+        "username",
+        "role",
+        "module",
+        "action",
+        "description",
+        "reference_id",
+        "ip_address",
+        "browser",
+        "operating_system",
+        "device",
+        "created_at"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "systemsettings": {
+      "added": [],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "team_schedule_entries": {
+      "added": [
+        "ScheduleID",
+        "DeploymentID",
+        "EntryKind",
+        "ScheduleDate",
+        "ValidUntil",
+        "ScheduleType",
+        "TimeIn",
+        "TimeOut",
+        "BreakDuration",
+        "GracePeriod",
+        "WorkingDays",
+        "ShiftName",
+        "UpdatedBy",
+        "UpdatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    },
+    "users": {
+      "added": [
+        "LocalPasswordConfigured",
+        "MessengerLastActivity"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": false
+    },
+    "work_schedule_lookup": {
+      "added": [
+        "WorkScheduleID",
+        "Name",
+        "SortOrder",
+        "IsActive",
+        "CreatedAt"
+      ],
+      "removed": [],
+      "corrected": [],
+      "new": true
+    }
+  },
+  "validation": {
+    "database_table_count": 67,
+    "erd_table_count": 67,
+    "matched_tables": 67,
+    "missing_tables": [],
+    "extra_tables": [],
+    "missing_attributes": [],
+    "pk_mismatches": [],
+    "fk_mismatches": [],
+    "missing_relationships": [],
+    "duplicate_relationships": 0,
+    "unresolved_schema_items": []
+  },
+  "original_geometry": {
+    "users": {
+      "height": "270",
+      "width": "180",
+      "x": "-630",
+      "y": "-420",
+      "as": "geometry"
+    },
+    "roles": {
+      "height": "180",
+      "width": "180",
+      "x": "-960",
+      "y": "-720",
+      "as": "geometry"
+    },
+    "status": {
+      "height": "120",
+      "width": "180",
+      "x": "-130",
+      "y": "200",
+      "as": "geometry"
+    },
+    "department": {
+      "height": "200",
+      "width": "180",
+      "x": "660",
+      "y": "570",
+      "as": "geometry"
+    },
+    "joborder": {
+      "height": "440",
+      "width": "180",
+      "x": "-60",
+      "y": "-1105",
+      "as": "geometry"
+    },
+    "clientcompany": {
+      "height": "310",
+      "width": "180",
+      "x": "-570",
+      "y": "-1420",
+      "as": "geometry"
+    },
+    "employee": {
+      "height": "450",
+      "width": "250",
+      "x": "260",
+      "y": "-330",
+      "as": "geometry"
+    },
+    "attendance": {
+      "height": "660",
+      "width": "180",
+      "x": "990",
+      "y": "-150",
+      "as": "geometry"
+    },
+    "payroll": {
+      "height": "790.0000000000009",
+      "width": "180",
+      "x": "700",
+      "y": "-260",
+      "as": "geometry"
+    },
+    "deployment": {
+      "height": "408",
+      "width": "240",
+      "x": "820",
+      "y": "-1228",
+      "as": "geometry"
+    },
+    "performance": {
+      "height": "250",
+      "width": "180",
+      "x": "1040",
+      "y": "-460",
+      "as": "geometry"
+    },
+    "dtr_submissions": {
+      "height": "568",
+      "width": "250",
+      "x": "420",
+      "y": "-908",
+      "as": "geometry"
+    },
+    "salary_rates": {
+      "height": "430",
+      "width": "180",
+      "x": "230",
+      "y": "-1670",
+      "as": "geometry"
+    },
+    "deductions": {
+      "height": "300",
+      "width": "180",
+      "x": "980",
+      "y": "610",
+      "as": "geometry"
+    },
+    "payroll_adjustments": {
+      "height": "280",
+      "width": "180",
+      "x": "680",
+      "y": "980",
+      "as": "geometry"
+    },
+    "payroll_audit_log": {
+      "height": "240",
+      "width": "180",
+      "x": "1260",
+      "y": "620",
+      "as": "geometry"
+    },
+    "holidays": {
+      "height": "360",
+      "width": "240",
+      "x": "1390",
+      "y": "-530",
+      "as": "geometry"
+    },
+    "leaves": {
+      "height": "510",
+      "width": "240",
+      "x": "265",
+      "y": "450",
+      "as": "geometry"
+    },
+    "systemsettings": {
+      "height": "330",
+      "width": "210",
+      "x": "-910",
+      "y": "460",
+      "as": "geometry"
+    },
+    "payslip": {
+      "height": "480",
+      "width": "240",
+      "x": "1510",
+      "y": "100",
+      "as": "geometry"
+    },
+    "overtime": {
+      "height": "570",
+      "width": "220",
+      "x": "-150",
+      "y": "980",
+      "as": "geometry"
+    },
+    "jobrequirements": {
+      "height": "170",
+      "width": "180",
+      "x": "-200",
+      "y": "-1355",
+      "as": "geometry"
+    },
+    "serviceagreement": {
+      "height": "530",
+      "width": "250",
+      "x": "-970",
+      "y": "-1270",
+      "as": "geometry"
+    },
+    "employmentcontract": {
+      "height": "850",
+      "width": "260",
+      "x": "-600",
+      "y": "-80",
+      "as": "geometry"
+    },
+    "cashadvance": {
+      "height": "590",
+      "width": "240",
+      "x": "-1000",
+      "y": "-200",
+      "as": "geometry"
+    },
+    "cashadvancededuction": {
+      "height": "270",
+      "width": "240",
+      "x": "-580",
+      "y": "840",
+      "as": "geometry"
+    },
+    "resignationrequest": {
+      "height": "600",
+      "width": "240",
+      "x": "-130",
+      "y": "350",
+      "as": "geometry"
+    },
+    "joborderpositions": {
+      "height": "300",
+      "width": "210",
+      "x": "-530",
+      "y": "-1080",
+      "as": "geometry"
+    },
+    "clearance_items": {
+      "height": "340",
+      "width": "220",
+      "x": "-570",
+      "y": "1150",
+      "as": "geometry"
+    },
+    "applicantdocuments": {
+      "height": "360",
+      "width": "260",
+      "x": "-160",
+      "y": "-260",
+      "as": "geometry"
+    },
+    "bonus": {
+      "height": "285",
+      "width": "240",
+      "x": "-545",
+      "y": "-760",
+      "as": "geometry"
+    },
+    "notifications": {
+      "height": "310",
+      "width": "180",
+      "x": "-970",
+      "y": "-530",
+      "as": "geometry"
+    }
+  },
+  "moved": {
+    "joborderpositions": [
+      -1080.0,
+      -850.0
+    ],
+    "bonus": [
+      -760.0,
+      -550.0
+    ],
+    "roles": [
+      -720.0,
+      -700.0
+    ],
+    "notifications": [
+      -530.0,
+      -490.0
+    ],
+    "users": [
+      -420.0,
+      -190.0
+    ],
+    "employee": [
+      -330.0,
+      -278.0
+    ],
+    "cashadvance": [
+      -200.0,
+      -100.0
+    ],
+    "employmentcontract": [
+      -80.0,
+      170.0
+    ],
+    "systemsettings": [
+      460.0,
+      500.0
+    ],
+    "department": [
+      570.0,
+      790.0
+    ],
+    "deductions": [
+      610.0,
+      1110.0
+    ],
+    "cashadvancededuction": [
+      840.0,
+      920.0
+    ],
+    "payroll_adjustments": [
+      980.0,
+      1000.0
+    ],
+    "clearance_items": [
+      1150.0,
+      1220.0
+    ]
+  },
+  "relationships": [
+    [
+      "add_back_evidence",
+      "RequestID",
+      "add_back_requests",
+      "RequestID"
+    ],
+    [
+      "add_back_requests",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "add_back_requests",
+      "SubmittedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "add_back_requests",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "add_back_requests",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "add_back_requests",
+      "AttendanceID",
+      "attendance",
+      "AttendanceID"
+    ],
+    [
+      "add_back_requests",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "add_back_requests",
+      "ReviewedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "add_back_requests",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "address_barangay_lookup",
+      "CityID",
+      "address_city_lookup",
+      "CityID"
+    ],
+    [
+      "address_city_lookup",
+      "ProvinceID",
+      "address_province_lookup",
+      "ProvinceID"
+    ],
+    [
+      "address_province_lookup",
+      "CountryID",
+      "address_country_lookup",
+      "CountryID"
+    ],
+    [
+      "applicant_uploaded_docs",
+      "ApplicantID",
+      "applicants",
+      "ApplicantID"
+    ],
+    [
+      "applicant_uploaded_docs",
+      "ApplicationID",
+      "job_applications",
+      "ApplicationID"
+    ],
+    [
+      "applicant_uploaded_docs",
+      "VerifiedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "applicantdocuments",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "applicantdocuments",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "applicantdocuments",
+      "VerifiedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "applicants",
+      "category_id",
+      "job_categories",
+      "id"
+    ],
+    [
+      "applicants",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "applicants",
+      "sub_classification_id",
+      "job_sub_classifications",
+      "id"
+    ],
+    [
+      "applicants",
+      "UserID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "ApplicationID",
+      "job_applications",
+      "ApplicationID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "JobOrderID",
+      "joborder",
+      "JobOrderID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "DecidedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "EndorsedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "attendance",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "attendance",
+      "DTRSubmissionID",
+      "dtr_submissions",
+      "DTR_SubmissionID"
+    ],
+    [
+      "attendance",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "attendance",
+      "HolidayID",
+      "holidays",
+      "HolidayID"
+    ],
+    [
+      "attendance",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "bonus",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "bonus",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "bonus",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "bonus",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "bonus",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "cashadvance",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "cashadvance",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "cashadvance",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "cashadvancededuction",
+      "CashAdvanceID",
+      "cashadvance",
+      "CashAdvanceID"
+    ],
+    [
+      "cashadvancededuction",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "clearance_items",
+      "ClearedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "clearance_items",
+      "ResignationID",
+      "resignationrequest",
+      "ResignationID"
+    ],
+    [
+      "clientcompany",
+      "UserID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "deductions",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "deductions",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "deductions",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "department",
+      "ManagerID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "deployment",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "deployment",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "deployment",
+      "ServiceAgreementID",
+      "serviceagreement",
+      "ServiceAgreementID"
+    ],
+    [
+      "deployment",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "deployment",
+      "SiteSuperVisorID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "deployment_sites",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "deployment_sites",
+      "TeamLeadID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "dtr_submissions",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "dtr_submissions",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "dtr_submissions",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "dtr_submissions",
+      "ReviewedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "dtr_submissions",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "dtr_submissions",
+      "SubmittedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "dtr_submissions",
+      "SiteSupervisorID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "employee",
+      "DepartmentID",
+      "department",
+      "DepartmentID"
+    ],
+    [
+      "employee",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "employmentcontract",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "employmentcontract",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "employmentcontract",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "employmentcontract",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "gu_tags",
+      "AttendanceID",
+      "attendance",
+      "AttendanceID"
+    ],
+    [
+      "gu_tags",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "gu_tags",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "gu_tags",
+      "VerifiedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_applications",
+      "target_detail_id",
+      "job_order_details",
+      "detail_id"
+    ],
+    [
+      "job_applications",
+      "ApplicantID",
+      "applicants",
+      "ApplicantID"
+    ],
+    [
+      "job_applications",
+      "EndorsedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_applications",
+      "HiredBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_applications",
+      "JobOrderID",
+      "joborder",
+      "JobOrderID"
+    ],
+    [
+      "job_applications",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "job_classifications",
+      "category_id",
+      "job_categories",
+      "id"
+    ],
+    [
+      "job_order_details",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "job_order_details",
+      "RequestID",
+      "job_order_requests",
+      "RequestID"
+    ],
+    [
+      "job_order_details",
+      "sub_classification_id",
+      "job_sub_classifications",
+      "id"
+    ],
+    [
+      "job_order_requests",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "job_order_requests",
+      "ProcessedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_order_requests",
+      "RequestedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_sub_classifications",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "joborder",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "joborder",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "joborder",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "joborder",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "joborder",
+      "ServiceAgreementID",
+      "serviceagreement",
+      "ServiceAgreementID"
+    ],
+    [
+      "joborder",
+      "sub_classification_id",
+      "job_sub_classifications",
+      "id"
+    ],
+    [
+      "joborderpositions",
+      "JobOrderID",
+      "joborder",
+      "JobOrderID"
+    ],
+    [
+      "jobrequirements",
+      "JobOrderID",
+      "joborder",
+      "JobOrderID"
+    ],
+    [
+      "leaves",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "leaves",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "leaves",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "notifications",
+      "UserID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "overtime",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "overtime",
+      "AttendanceID",
+      "attendance",
+      "AttendanceID"
+    ],
+    [
+      "overtime",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "overtime",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "overtime",
+      "RequestedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "overtime",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "payroll",
+      "DTR_SubmissionID",
+      "dtr_submissions",
+      "DTR_SubmissionID"
+    ],
+    [
+      "payroll",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "payroll",
+      "HolidayID",
+      "holidays",
+      "HolidayID"
+    ],
+    [
+      "payroll",
+      "ProcessedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "payroll",
+      "SalaryRatesID",
+      "salary_rates",
+      "SalaryRatesID"
+    ],
+    [
+      "payroll",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "payroll_adjustments",
+      "AddBackRequestID",
+      "add_back_requests",
+      "RequestID"
+    ],
+    [
+      "payroll_adjustments",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "payroll_adjustments",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "payroll_adjustments",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "payroll_adjustments",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "payroll_audit_log",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "payroll_audit_log",
+      "PerformedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "payslip",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "payslip",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "performance",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "performance",
+      "ReviewerID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "resignationrequest",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "resignationrequest",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "resignationrequest",
+      "ProcessedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "resignationrequest",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "salary_rates",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "salary_rates",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "salary_rates",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "salary_rates",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "serviceagreement",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "serviceagreement",
+      "ClientCompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "serviceagreement",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "systemsettings",
+      "UpdatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "team_schedule_entries",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "team_schedule_entries",
+      "UpdatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "users",
+      "RoleID",
+      "roles",
+      "RolesID"
+    ]
+  ],
+  "added_relationships": [
+    [
+      "add_back_evidence",
+      "RequestID",
+      "add_back_requests",
+      "RequestID"
+    ],
+    [
+      "add_back_requests",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "add_back_requests",
+      "SubmittedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "add_back_requests",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "add_back_requests",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "add_back_requests",
+      "AttendanceID",
+      "attendance",
+      "AttendanceID"
+    ],
+    [
+      "add_back_requests",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "add_back_requests",
+      "ReviewedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "add_back_requests",
+      "Payroll_ID",
+      "payroll",
+      "Payroll_ID"
+    ],
+    [
+      "address_barangay_lookup",
+      "CityID",
+      "address_city_lookup",
+      "CityID"
+    ],
+    [
+      "address_city_lookup",
+      "ProvinceID",
+      "address_province_lookup",
+      "ProvinceID"
+    ],
+    [
+      "address_province_lookup",
+      "CountryID",
+      "address_country_lookup",
+      "CountryID"
+    ],
+    [
+      "applicant_uploaded_docs",
+      "ApplicantID",
+      "applicants",
+      "ApplicantID"
+    ],
+    [
+      "applicant_uploaded_docs",
+      "ApplicationID",
+      "job_applications",
+      "ApplicationID"
+    ],
+    [
+      "applicant_uploaded_docs",
+      "VerifiedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "applicants",
+      "category_id",
+      "job_categories",
+      "id"
+    ],
+    [
+      "applicants",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "applicants",
+      "sub_classification_id",
+      "job_sub_classifications",
+      "id"
+    ],
+    [
+      "applicants",
+      "UserID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "ApplicationID",
+      "job_applications",
+      "ApplicationID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "JobOrderID",
+      "joborder",
+      "JobOrderID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "DecidedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "application_endorsement_attempts",
+      "EndorsedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "bonus",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "bonus",
+      "CreatedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "clearance_items",
+      "ClearedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "department",
+      "ManagerID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "deployment",
+      "SiteSuperVisorID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "deployment_sites",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "deployment_sites",
+      "TeamLeadID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "dtr_submissions",
+      "ApprovedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "dtr_submissions",
+      "ReviewedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "dtr_submissions",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "dtr_submissions",
+      "SubmittedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "gu_tags",
+      "AttendanceID",
+      "attendance",
+      "AttendanceID"
+    ],
+    [
+      "gu_tags",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "gu_tags",
+      "EmployeeID",
+      "employee",
+      "EmployeeID"
+    ],
+    [
+      "gu_tags",
+      "VerifiedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_applications",
+      "target_detail_id",
+      "job_order_details",
+      "detail_id"
+    ],
+    [
+      "job_applications",
+      "ApplicantID",
+      "applicants",
+      "ApplicantID"
+    ],
+    [
+      "job_applications",
+      "EndorsedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_applications",
+      "HiredBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_applications",
+      "JobOrderID",
+      "joborder",
+      "JobOrderID"
+    ],
+    [
+      "job_applications",
+      "StatusID",
+      "status",
+      "StatusID"
+    ],
+    [
+      "job_classifications",
+      "category_id",
+      "job_categories",
+      "id"
+    ],
+    [
+      "job_order_details",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "job_order_details",
+      "RequestID",
+      "job_order_requests",
+      "RequestID"
+    ],
+    [
+      "job_order_details",
+      "sub_classification_id",
+      "job_sub_classifications",
+      "id"
+    ],
+    [
+      "job_order_requests",
+      "CompanyID",
+      "clientcompany",
+      "CompanyID"
+    ],
+    [
+      "job_order_requests",
+      "ProcessedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_order_requests",
+      "RequestedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "job_sub_classifications",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "joborder",
+      "classification_id",
+      "job_classifications",
+      "id"
+    ],
+    [
+      "joborder",
+      "sub_classification_id",
+      "job_sub_classifications",
+      "id"
+    ],
+    [
+      "payroll",
+      "ProcessedBy",
+      "users",
+      "UsersID"
+    ],
+    [
+      "payroll_adjustments",
+      "AddBackRequestID",
+      "add_back_requests",
+      "RequestID"
+    ],
+    [
+      "performance",
+      "ReviewerID",
+      "users",
+      "UsersID"
+    ],
+    [
+      "team_schedule_entries",
+      "DeploymentID",
+      "deployment",
+      "DeploymentID"
+    ],
+    [
+      "team_schedule_entries",
+      "UpdatedBy",
+      "users",
+      "UsersID"
+    ]
+  ],
+  "removed_original_connectors": [
+    "7p6OV4WAljhD_BjKHWMX-198",
+    "_Naqur3EfO8H7a7_6qhU-141",
+    "_Naqur3EfO8H7a7_6qhU-142",
+    "_Naqur3EfO8H7a7_6qhU-225",
+    "ejzV3lprskFuJxwNQ57e-9",
+    "AMxTOPo14WneBzRVyJbJ-131",
+    "AMxTOPo14WneBzRVyJbJ-133",
+    "AMxTOPo14WneBzRVyJbJ-150",
+    "AMxTOPo14WneBzRVyJbJ-194",
+    "AMxTOPo14WneBzRVyJbJ-277",
+    "AMxTOPo14WneBzRVyJbJ-278",
+    "XyF5TbecwddKr7crKpES-2"
+  ]
+}

@@ -10,6 +10,7 @@ require_once __DIR__ . '/../Helpers/employee_salary_helper.php';
 require_once __DIR__ . '/../Helpers/attendance_pdo.php';
 require_once __DIR__ . '/../Helpers/client_billing_helper.php';
 require_once __DIR__ . '/../Helpers/payroll_type_helper.php';
+require_once __DIR__.'/../Helpers/leave_pay_notice.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -44,6 +45,7 @@ try {
         exit();
     }
 
+    employee_leave_pay_notice($conn,$userId);
     require_once __DIR__ . '/../Helpers/employee_payroll_rates.php';
     $resolvedRates=payroll_employee_rates($employee,true);
     $dailyRate=$resolvedRates['daily_rate'];
@@ -109,20 +111,36 @@ try {
         'attachment_path' => '',
         'history' => []
     ];
-    if ($deploymentCompanyId > 0) {
-        $runCode = client_billing_run_code($period['start'], $period['end'], $deploymentCompanyId);
-        $run = client_billing_get_run($conn, $runCode);
-        if ($run) {
-            $tracker['current_status'] = $run['CurrentStatus'] ?? 'Payroll Computed';
-            $history = client_billing_get_status_history($conn, (int)$run['PayrollRunID']);
-            if (!empty($history)) {
-                $latest = $history[0];
-                $tracker['remarks'] = $latest['Remarks'] ?? '';
-                $tracker['updated_at'] = $latest['UpdatedAt'] ?? '';
-                $tracker['attachment_path'] = $latest['AttachmentPath'] ?? '';
-            }
-            $tracker['history'] = $history;
+    $ownDtr=payroll_query($conn,'SELECT DTR_SubmissionID FROM dtr_submissions WHERE EmployeeID=? AND DeploymentID=? AND CutoffStartDate=? AND CutoffEndDate=? ORDER BY DTR_SubmissionID DESC LIMIT 1','iiss',[$empId,(int)($depRow['DeploymentID'] ?? 0),$period['start'],$period['end']])->get_result()->fetch_assoc();
+    if($ownDtr) {
+        $resolved=payroll_status_for_dtr($conn,(int)$ownDtr['DTR_SubmissionID']);
+        if($resolved['current']) {
+            $latest=$resolved['current'];
+            $tracker['current_status']=$latest['status'];$tracker['remarks']=$latest['remarks'];$tracker['updated_at']=$latest['created_at'];
+            $tracker['proof_url']=$latest['proof_url'];$tracker['history']=$resolved['history'];
         }
+    }
+    $stored=payroll_query($conn,"SELECT p.* FROM payroll p JOIN status s ON s.StatusID=p.StatusID WHERE p.EmployeeID=? AND p.PayPeriodStart=? AND p.PayPeriodEnd=? AND s.Name='Finalized' ORDER BY p.Payroll_ID DESC LIMIT 1",'iss',[$empId,$period['start'],$period['end']])->get_result()->fetch_assoc();
+    if($stored) {
+        $payroll['earnings']['basic_pay']=(float)$stored['BasicSalary'];$payroll['earnings']['allowance']=(float)$stored['Allowances'];
+        $payroll['earnings']['regular_overtime']=(float)$stored['OvertimePay'];$payroll['earnings']['sunday_overtime']=0.0;$payroll['earnings']['approved_overtime']=0.0;$payroll['earnings']['holiday_ot_pay']=0.0;
+        $payroll['earnings']['holiday_pay']=(float)$stored['HolidayPay'];$payroll['earnings']['sil_accrual']=null;
+        $payroll['gross_pay']=(float)$stored['GrossPay'];$payroll['total_deductions']=(float)$stored['TotalDeductions'];$payroll['net_pay']=(float)$stored['NetPay'];
+        $payroll['deductions']['sss_ee']=(float)$stored['SSSDeduction'];$payroll['deductions']['philhealth_ee']=(float)$stored['PhilHealthDeduction'];$payroll['deductions']['pagibig_ee']=(float)$stored['PagIBIGDeduction'];
+        $payroll['deductions']['other']=round((float)$stored['TotalDeductions']-(float)$stored['SSSDeduction']-(float)$stored['PhilHealthDeduction']-(float)$stored['PagIBIGDeduction'],2);
+        $payroll['days_worked']=(float)$stored['TotalDaysWorked'];
+        $detail=payroll_query($conn,'SELECT SnapshotJson FROM payroll_run_members WHERE Payroll_ID=? ORDER BY PayrollRunID DESC LIMIT 1','i',[(int)$stored['Payroll_ID']])->get_result()->fetch_assoc();
+        $detail=$detail ? json_decode($detail['SnapshotJson'],true) : null;
+        $payroll['daily_rate']=$detail['daily_rate'] ?? ((float)$stored['TotalDaysWorked']>0 ? round((float)$stored['BasicSalary']/(float)$stored['TotalDaysWorked'],2) : null);
+        if($detail) {
+            $payroll['earnings']['add_back']=(float)($detail['addback']??0);
+            $payroll['earnings']['sil_accrual']=(float)($detail['sil_accrual']??0);
+            $payroll['earnings']['regular_overtime']=(float)($detail['regular_ot_amount']??0);
+            $payroll['earnings']['sunday_overtime']=(float)($detail['sunday_ot_amount']??0);
+            $payroll['earnings']['holiday_ot_pay']=(float)($detail['holiday_ot_amount']??0)+(float)($detail['special_holiday_ot_amount']??0);
+            $payroll['earnings']['approved_overtime']=round((float)$stored['OvertimePay']-$payroll['earnings']['regular_overtime']-$payroll['earnings']['sunday_overtime']-$payroll['earnings']['holiday_ot_pay'],2);
+        }
+        $payroll['late_undertime']=['late_minutes'=>$detail['lates_minutes']??null,'undertime_minutes'=>null,'amount'=>$detail['lates_undertime'] ?? null];
     }
 
     // Employee-facing status label + whether this run's computed figures are locked-in
@@ -132,6 +150,7 @@ try {
     $statusMeta = payroll_status_label($tracker['current_status']);
     $tracker['status_label'] = $statusMeta['label'];
     $tracker['status_badge'] = $statusMeta['badge'];
+    $statusMeta['finalized'] = (bool)$stored;
     $tracker['is_finalized'] = $statusMeta['finalized'];
 
     $fullName = trim($employee['FirstName'] . ' ' . $employee['LastName']);
@@ -151,6 +170,11 @@ try {
         'is_finalized' => $statusMeta['finalized'],
         'status_label' => $statusMeta['label'],
     ];
+    if(!empty($tracker['history'])) {
+        $last=$tracker['history'][count($tracker['history'])-1];
+        $payslip['payroll_status']=['status'=>$last['status'],'remarks'=>$last['remarks'],'updated_at'=>$last['created_at'],'has_proof'=>$last['has_proof'],'proof_url'=>$last['proof_url'],'proof_history_id'=>$last['id']];
+        $payslip['payroll_status_history']=$tracker['history'];
+    }
     if ($statusMeta['finalized']) {
         $payslip['days_worked'] = $payroll['days_worked'];
         $payslip['daily_rate'] = $payroll['daily_rate'];
@@ -190,7 +214,8 @@ try {
         // 'period', 'tracker' status fields, and 'attendance_summary' — never these money
         // fields directly — until 'payroll_tracker.is_finalized' is true. The finalized
         // amounts belong on the payslip only (see 'payslip' below).
-        'payroll' => $payroll,
+        'payroll' => $stored ? $payroll : ['days_worked'=>$payroll['days_worked'],'attendance_summary'=>$payroll['attendance_summary']],
+        'leave_pay_notice' => 'Your leave pay will be paid together with your 13th-month pay.',
         'payroll_tracker' => $tracker,
         'payslip' => $payslip,
     ]);

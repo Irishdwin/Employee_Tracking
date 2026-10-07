@@ -260,6 +260,12 @@ if (strcasecmp($role, 'TeamLead') === 0) {
     }
 }
 
+// Personal Team Lead details override only personal fields.
+if(in_array($role,['TeamLead','Team Lead'],true) && table_exists($conn,'teamlead_personal_profiles')) {
+ $pStmt=$conn->prepare('SELECT ProfileJSON FROM teamlead_personal_profiles WHERE UserID=?');$pStmt->bind_param('i',$userId);$pStmt->execute();$personal=$pStmt->get_result()->fetch_assoc();$pStmt->close();
+ if($personal){$p=json_decode($personal['ProfileJSON'],true)?:[];foreach(['mobile'=>'MobileNumber','address'=>'Address','birth_date'=>'BirthDate','home_location'=>'HomeLocation'] as $key=>$field)$user[$key]=(string)($p[$field]??'');}
+}
+
 // HR / Admin / Accounting subtitle polish.
 if (in_array($role, ['Admin', 'HR', 'Accounting'], true)) {
     if ($user['position_title'] !== '' && $user['client_name'] !== '') {

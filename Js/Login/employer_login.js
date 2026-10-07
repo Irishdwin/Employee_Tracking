@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = fpEmail ? fpEmail.value.trim() : '';
             const code = fpCode ? fpCode.value.trim() : '';
             if (!email || !code) {
-                showFpAlert('Please enter your email and the 4-digit code.', 'warning');
+                showFpAlert('Please enter your email and the 6-digit code.', 'warning');
                 return;
             }
             if (!/^\d{4}$/.test(code)) {
@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newPassword = fpNewPassword ? fpNewPassword.value : '';
             const confirmPassword = fpConfirmPassword ? fpConfirmPassword.value : '';
             if (!fpCodeVerified) {
-                showFpAlert('Please verify the 4-digit code first.', 'warning');
+                showFpAlert('Please verify the 6-digit code first.', 'warning');
                 return;
             }
             if (!validateStrongPassword(newPassword)) {
@@ -292,80 +292,77 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
   
-    // Every call generates a brand-new server-side challenge (Api/Login/captcha_gen.php
-    // stores the expected answer in $_SESSION['captcha_code']) and overwrites/invalidates
-    // whatever challenge was stored before it — called on page load AND on refresh click.
-    const loadCaptcha = () => {
+    const captchaChallenge = document.getElementById('captchaChallengeId');
+    let challengeGeneration = 0, validationGeneration = 0, validationTimer;
+    let captchaLoading = false, loginPending = false;
+    const syncCaptchaControls = () => {
+        if (refreshBtn) refreshBtn.disabled = captchaLoading || loginPending;
+        if (captchaInput) captchaInput.disabled = captchaLoading || loginPending;
+        const submit = document.getElementById('btnLogin');
+        if (submit) submit.disabled = captchaLoading || loginPending || !captchaChallenge || !captchaChallenge.value;
+    };
+    const loadCaptcha = async () => {
+        const generation = ++challengeGeneration;
+        ++validationGeneration; clearTimeout(validationTimer);
+        const previous = captchaChallenge ? captchaChallenge.value : '';
+        if (captchaChallenge) captchaChallenge.value = '';
         clearCaptchaState();
         if (captchaInput) captchaInput.value = '';
-  
-        fetch(`Api/Login/captcha_gen.php?ts=${Date.now()}`)
-            .then(response => response.json())
-            .then(data => {
-                if (captchaNumerator) captchaNumerator.value = data.numerator;
-                if (captchaDenominator) captchaDenominator.value = data.denominator;
-            })
-            .catch(() => {
-                if (captchaMessage) {
-                    captchaMessage.textContent = 'Unable to load security check.';
-                    captchaMessage.classList.add('text-danger');
-                }
+        if (captchaNumerator) captchaNumerator.value = '';
+        if (captchaDenominator) captchaDenominator.value = '';
+        captchaLoading = true; syncCaptchaControls();
+        try {
+            const response = await fetch('Api/Login/captcha_gen.php', {
+                method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ replace_challenge_id: previous }).toString()
             });
-    };
-  
-    const sanitizeCaptchaAnswer = () => {
-        if (!captchaInput) return;
-        // Max possible sum is 100 + 100 = 200, so 3 digits is the hard ceiling.
-        // maxlength="3" already stops normal typing; this also strips any
-        // non-digit characters and trims pasted input down to 3 digits.
-        const digitsOnly = captchaInput.value.replace(/\D/g, '').slice(0, 3);
-        if (digitsOnly !== captchaInput.value) {
-            captchaInput.value = digitsOnly;
+            const data = await response.json();
+            if (generation !== challengeGeneration) return;
+            if (!response.ok || !/^[a-f0-9]{64}$/.test(data.challenge_id)) throw new Error('Invalid challenge');
+            captchaChallenge.value = data.challenge_id;
+            captchaNumerator.value = data.numerator; captchaDenominator.value = data.denominator;
+        } catch (error) {
+            if (generation !== challengeGeneration) return;
+            if (captchaMessage) {
+                captchaMessage.textContent = 'Unable to load security check. Please refresh and try again.';
+                captchaMessage.classList.add('text-danger');
+            }
+        } finally {
+            if (generation === challengeGeneration) { captchaLoading = false; syncCaptchaControls(); }
         }
+    };
+    const validateCaptcha = () => {
+        const generation = ++validationGeneration;
+        clearTimeout(validationTimer); clearCaptchaState();
+        if (!captchaInput || !captchaChallenge || !captchaChallenge.value || loginPending) return;
+        const value = captchaInput.value.trim(), challenge = captchaChallenge.value;
+        if (!value) return;
+        validationTimer = setTimeout(async () => {
+            try {
+                const response = await fetch('Api/Login/check_captcha.php', {
+                    method: 'POST', credentials: 'same-origin', cache: 'no-store',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ answer: value, challenge_id: challenge }).toString()
+                });
+                const data = await response.json();
+                if (generation !== validationGeneration || challenge !== captchaChallenge.value || value !== captchaInput.value.trim() || loginPending) return;
+                if (!response.ok) throw new Error('Validation unavailable');
+                captchaInput.classList.add(data.valid ? 'is-valid' : 'is-invalid');
+                captchaMessage.textContent = data.valid ? '' : data.message;
+                captchaMessage.classList.add(data.valid ? 'text-success' : 'text-danger');
+            } catch (error) {
+                if (generation === validationGeneration) clearCaptchaState();
+            }
+        }, 180);
     };
 
-    const validateCaptcha = () => {
-        if (!captchaInput) return;
-        sanitizeCaptchaAnswer();
-        const value = captchaInput.value.trim();
-        if (!value) {
-            clearCaptchaState();
-            return;
-        }
-  
-        const params = new URLSearchParams();
-        params.append('answer', value);
-  
-        fetch('Api/Login/check_captcha.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        })
-            .then(response => response.json())
-            .then(data => {
-                captchaInput.classList.remove('is-valid', 'is-invalid');
-                captchaMessage.classList.remove('text-success', 'text-danger');
-  
-                if (data.valid) {
-                    captchaInput.classList.add('is-valid');
-                    captchaMessage.textContent = '';
-                    captchaMessage.classList.add('text-success');
-                } else {
-                    captchaInput.classList.add('is-invalid');
-                    captchaMessage.textContent = 'Please fill correct value';
-                    captchaMessage.classList.add('text-danger');
-                }
-            })
-            .catch(() => {
-                clearCaptchaState();
-            });
-    };
-  
     if (refreshBtn) refreshBtn.addEventListener('click', loadCaptcha);
     if (captchaInput) captchaInput.addEventListener('input', validateCaptcha);
   
     // Initial CAPTCHA Load
     loadCaptcha();
+    window.addEventListener('pageshow', (event) => { if (event.persisted) loadCaptcha(); });
   
     // --- 4. AJAX Login Form Submission ---
     const loginForm = document.getElementById('loginForm');
@@ -374,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
   
+            if (loginPending || captchaLoading || !captchaChallenge || !captchaChallenge.value) return;
             const captchaVal = (captchaInput && captchaInput.value) ? captchaInput.value.trim() : '';
             if (!captchaVal) {
                 if (captchaMessage) {
@@ -384,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
   
             const fd = new FormData(loginForm);
+            loginPending = true; ++validationGeneration; clearTimeout(validationTimer); syncCaptchaControls();
             if (btnLogin) {
                 btnLogin.disabled = true;
                 btnLogin.textContent = 'LOGGING IN...';
@@ -431,8 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 loadCaptcha();
             } finally {
+                loginPending = false; syncCaptchaControls();
                 if (btnLogin) {
-                    btnLogin.disabled = false;
                     btnLogin.textContent = 'LOGIN TO DASHBOARD';
                 }
             }

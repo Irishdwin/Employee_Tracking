@@ -9,6 +9,7 @@ require_once __DIR__ . '/employee_salary_helper.php';
 require_once __DIR__ . '/attendance_pdo.php';
 require_once __DIR__ . '/deduction_rates_helper.php';
 require_once __DIR__ . '/payroll_type_helper.php';
+require_once __DIR__ . '/payroll_status_service.php';
 
 function client_billing_ensure_schema(mysqli $conn): void
 {
@@ -56,6 +57,9 @@ function client_billing_ensure_schema(mysqli $conn): void
     client_billing_ensure_column($conn, 'payroll_runs', 'DeploymentSite', 'DeploymentSite VARCHAR(255) DEFAULT NULL');
     client_billing_ensure_column($conn, 'payroll_runs', 'TotalInvoice', 'TotalInvoice DECIMAL(14,2) DEFAULT NULL');
     client_billing_ensure_column($conn, 'payroll_runs', 'CurrentStatus', "CurrentStatus VARCHAR(64) NOT NULL DEFAULT 'Pending DTR'");
+    client_billing_ensure_column($conn, 'payroll_runs', 'SiteID', 'SiteID INT DEFAULT NULL');
+    client_billing_ensure_column($conn, 'payroll_runs', 'PayrollTypeSnapshot', 'PayrollTypeSnapshot VARCHAR(1) DEFAULT NULL');
+    client_billing_ensure_column($conn, 'payroll_runs', 'SiteSupervisorID', 'SiteSupervisorID INT DEFAULT NULL');
 }
 
 function client_billing_ensure_column(mysqli $conn, string $table, string $column, string $definition): void
@@ -133,7 +137,7 @@ function client_billing_refresh_run_metadata(mysqli $conn, string $runCode): voi
     );
 
     $stmt = $conn->prepare(
-        'UPDATE payroll_runs SET BillingRefNo = ?, DeploymentSite = ? WHERE RunCode = ?'
+        "UPDATE payroll_runs SET BillingRefNo = ?, DeploymentSite = ? WHERE RunCode = ? AND TotalInvoice IS NULL AND Status IN ('Draft','Pending')"
     );
     if (!$stmt) {
         return;
@@ -173,6 +177,10 @@ function client_billing_map_run_row(mysqli $conn, array $row): array
     if ($currentStatus === '') {
         $currentStatus = 'Pending DTR';
     }
+    if(!empty($row['SiteSupervisorID']) && !empty($row['SiteID'])) {
+        $dtr=payroll_query($conn,'SELECT ds.DTR_SubmissionID FROM dtr_submissions ds JOIN deployment d ON d.DeploymentID=ds.DeploymentID AND d.EmployeeID=ds.EmployeeID WHERE d.CompanyID=? AND ds.SiteSupervisorID=? AND ds.SiteID=? AND ds.CutoffStartDate=? AND ds.CutoffEndDate=? LIMIT 1','iiiss',[(int)$row['CompanyID'],(int)$row['SiteSupervisorID'],(int)$row['SiteID'],$row['PeriodStart'],$row['PeriodEnd']])->get_result()->fetch_assoc();
+        if($dtr)$currentStatus=payroll_status_for_dtr($conn,(int)$dtr['DTR_SubmissionID'])['current']['status'] ?? $currentStatus;
+    }
 
     return [
         'payroll_run_id' => (int)$row['PayrollRunID'],
@@ -182,6 +190,8 @@ function client_billing_map_run_row(mysqli $conn, array $row): array
         'client' => (string)$row['client_name'],
         'deployment_site' => $deploymentSite !== '' ? $deploymentSite : '—',
         'company_id' => (int)$row['CompanyID'],
+        'site_id' => (int)($row['SiteID'] ?? 0),
+        'site_supervisor_id' => (int)($row['SiteSupervisorID'] ?? 0),
         'period_start' => (string)$row['PeriodStart'],
         'period_end' => (string)$row['PeriodEnd'],
         'cutoff_period' => (string)($row['CutoffLabel'] ?? ''),
@@ -189,6 +199,7 @@ function client_billing_map_run_row(mysqli $conn, array $row): array
         'status' => (string)$row['Status'],
         'current_status' => $currentStatus,
         'employee_count' => (int)$row['employee_count'],
+        'exportable' => (int)($row['site_count'] ?? 1)<=1,
         'total_invoice' => $totalInvoice,
         'admin_overhead_pct' => (float)$row['AdminOverheadPct'],
         'vat_pct' => (float)$row['VatPct'],
@@ -198,7 +209,7 @@ function client_billing_map_run_row(mysqli $conn, array $row): array
     ];
 }
 
-function client_billing_run_code(string $periodStart, string $periodEnd, int $companyId): string
+function client_billing_run_code(string $periodStart, string $periodEnd, int $companyId, int $leadId = 0, int $siteId = 0): string
 {
     // Was: year+month+coarse "day<=10 vs >10" half-of-month bucket. This project's actual
     // kinsenas boundaries are 11th-25th / 26th-10th, so nearly every period END date falls
@@ -209,7 +220,8 @@ function client_billing_run_code(string $periodStart, string $periodEnd, int $co
     // dates guarantees each distinct cutoff range for a company gets its own row.
     $start = new DateTime($periodStart);
     $end = new DateTime($periodEnd);
-    return sprintf('PR-%s-%s-C%d', $start->format('Ymd'), $end->format('Ymd'), $companyId);
+    return sprintf('PR-%s-%s-C%d', $start->format('Ymd'), $end->format('Ymd'), $companyId)
+        . ($leadId > 0 ? '-T'.$leadId : '') . ($siteId > 0 ? '-S'.$siteId : '');
 }
 
 function client_billing_sync_runs(mysqli $conn): void
@@ -266,7 +278,7 @@ function client_billing_sync_runs(mysqli $conn): void
             (RunCode, CompanyID, PeriodStart, PeriodEnd, CutoffLabel, Status, CurrentStatus)
          VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE 
-            CutoffLabel = VALUES(CutoffLabel)'
+            RunCode = VALUES(RunCode)'
     );
 
     foreach ($cutoffPairs as $item) {
@@ -281,8 +293,8 @@ function client_billing_sync_runs(mysqli $conn): void
             continue;
         }
 
-        $status = 'Approved'; 
-        $currentStatus = 'Ready for Salary Release';
+        $status = 'Draft';
+        $currentStatus = 'Pending DTR';
 
         if ($insertStmt) {
             $insertStmt->bind_param('sisssss', $runCode, $companyId, $start, $end, $label, $status, $currentStatus);
@@ -292,57 +304,49 @@ function client_billing_sync_runs(mysqli $conn): void
     }
     if ($insertStmt) $insertStmt->close();
 
-    $conn->query("
-        UPDATE payroll_runs pr
-        SET pr.Status = CASE 
-            WHEN EXISTS (
-                SELECT 1 FROM dtr_submissions ds
-                INNER JOIN deployment dep ON dep.DeploymentID = ds.DeploymentID
-                WHERE dep.CompanyID = pr.CompanyID
-                  AND ds.CutoffStartDate = pr.PeriodStart
-                  AND ds.CutoffEndDate = pr.PeriodEnd
-            ) THEN 'Draft'
-            ELSE 'Approved'
-        END
-    ");
+    // Existing run lifecycle and archives must not be overwritten by background sync.
+    client_billing_sync_site_runs($conn);
+
 }
 
 function client_billing_update_run_status(mysqli $conn, string $runCode, string $newStatus, string $remarks, ?array $fileInfo, int $userId): bool
 {
+    if ($newStatus === 'Computed') $newStatus = 'Payroll Computed';
+    if (!in_array($newStatus,payroll_status_allowed_values(),true)) throw new InvalidArgumentException('Invalid payroll status.');
     client_billing_ensure_schema($conn);
-    $run = client_billing_get_run($conn, $runCode);
-    if (!$run) {
-        return false;
-    }
-    $runId = (int)$run['PayrollRunID'];
-
-    $attachmentPath = null;
-    if ($fileInfo && isset($fileInfo['tmp_name']) && is_uploaded_file($fileInfo['tmp_name'])) {
-        $uploadDir = __DIR__ . '/../../uploads/payroll_proofs/';
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+    $run = client_billing_get_run($conn,$runCode);
+    if (!$run) return false;
+    $proof = payroll_save_proof($fileInfo);
+    $conn->begin_transaction();
+    try {
+        $locked=payroll_query($conn,'SELECT * FROM payroll_runs WHERE PayrollRunID=? FOR UPDATE','i',[(int)$run['PayrollRunID']])->get_result()->fetch_assoc();
+        $members=client_billing_fetch_employees_for_run($conn,$locked,true);
+        $frozen=payroll_query($conn,'SELECT EmployeeID,DTR_SubmissionID FROM payroll_run_members WHERE PayrollRunID=?','i',[(int)$locked['PayrollRunID']])->get_result()->fetch_all(MYSQLI_ASSOC);
+        if($frozen) {
+            $roster=[];foreach($frozen as $member)$roster[(int)$member['EmployeeID']]=(int)$member['DTR_SubmissionID'];
+            $members=array_values(array_filter($members,static fn($member)=>isset($roster[(int)$member['EmployeeID']]) && $roster[(int)$member['EmployeeID']]===(int)$member['DTR_SubmissionID']));
+            if(count($members)!==count($frozen))throw new RuntimeException('The archived payroll roster no longer matches its verified DTRs.',409);
         }
-        $ext = strtolower(pathinfo($fileInfo['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, ['jpg', 'jpeg', 'png', 'pdf'], true)) {
-            $filename = 'proof_' . $runId . '_' . time() . '.' . $ext;
-            $target = $uploadDir . $filename;
-            if (move_uploaded_file($fileInfo['tmp_name'], $target)) {
-                $attachmentPath = 'uploads/payroll_proofs/' . $filename;
-            }
+        if (!$members) throw new InvalidArgumentException('No verified DTRs belong to this run.');
+        $unchanged=$locked['CurrentStatus']===$newStatus;
+        foreach($members as $member)if((payroll_status_for_dtr($conn,(int)$member['DTR_SubmissionID'])['current']['status'] ?? '')!==$newStatus)$unchanged=false;
+        if ($unchanged) {
+            $conn->commit();
+            if ($proof) @unlink(dirname(__DIR__,2).'/'.$proof);
+            return true;
         }
+        payroll_query($conn,'UPDATE payroll_runs SET CurrentStatus=? WHERE PayrollRunID=?','si',[$newStatus,(int)$run['PayrollRunID']]);
+        payroll_query($conn,'INSERT INTO payroll_status_history (PayrollRunID,Status,Remarks,AttachmentPath,UpdatedBy) VALUES(?,?,?,?,?)','isssi',[(int)$run['PayrollRunID'],$newStatus,$remarks,$proof,$userId]);
+        $event=(int)$conn->insert_id;
+        payroll_status_notify($conn,array_column($members,'EmployeeID'),$newStatus,$run['PeriodStart'],$run['PeriodEnd'],'payroll_run_status',$event);
+        $conn->commit();
+        return true;
+    } catch(Throwable $e) {
+        $conn->rollback();
+        if ($proof) @unlink(dirname(__DIR__,2).'/'.$proof);
+        throw $e;
     }
 
-    $stmt = $conn->prepare('UPDATE payroll_runs SET CurrentStatus = ? WHERE PayrollRunID = ?');
-    $stmt->bind_param('si', $newStatus, $runId);
-    $stmt->execute();
-    $stmt->close();
-
-    $histStmt = $conn->prepare('INSERT INTO payroll_status_history (PayrollRunID, Status, Remarks, AttachmentPath, UpdatedBy) VALUES (?, ?, ?, ?, ?)');
-    $histStmt->bind_param('isssi', $runId, $newStatus, $remarks, $attachmentPath, $userId);
-    $histStmt->execute();
-    $histStmt->close();
-
-    return true;
 }
 
 function client_billing_get_status_history(mysqli $conn, int $payrollRunId): array
@@ -353,7 +357,7 @@ function client_billing_get_status_history(mysqli $conn, int $payrollRunId): arr
          FROM payroll_status_history h
          LEFT JOIN users u ON u.UsersID = h.UpdatedBy
          WHERE h.PayrollRunID = ?
-         ORDER BY h.UpdatedAt DESC"
+         ORDER BY h.UpdatedAt ASC, h.HistoryID ASC"
     );
     if (!$stmt) {
         return [];
@@ -449,9 +453,9 @@ function client_billing_list_runs_split(mysqli $conn): array
     $sql = "
         SELECT pr.PayrollRunID, pr.RunCode, pr.CompanyID, pr.PeriodStart, pr.PeriodEnd,
                pr.CutoffLabel, pr.Status, pr.CurrentStatus, pr.AdminOverheadPct, pr.VatPct, pr.ApprovedAt,
-               pr.BillingRefNo, pr.DeploymentSite, pr.TotalInvoice,
+               pr.BillingRefNo, pr.DeploymentSite, pr.TotalInvoice, pr.SiteID, pr.SiteSupervisorID,
                cc.Name AS client_name,
-               cc.PayrollType AS payroll_type,
+               COALESCE(pr.PayrollTypeSnapshot,cc.PayrollType) AS payroll_type,
                (SELECT COUNT(DISTINCT ds.EmployeeID)
                 FROM dtr_submissions ds
                 INNER JOIN deployment dep ON dep.DeploymentID = ds.DeploymentID
@@ -459,7 +463,10 @@ function client_billing_list_runs_split(mysqli $conn): array
                 WHERE dep.CompanyID = pr.CompanyID
                   AND ds.CutoffStartDate = pr.PeriodStart
                   AND ds.CutoffEndDate = pr.PeriodEnd
-               ) AS employee_count
+                  AND (pr.SiteID IS NULL OR ds.SiteID=pr.SiteID)
+                  AND (pr.SiteSupervisorID IS NULL OR ds.SiteSupervisorID=pr.SiteSupervisorID)
+               ) AS employee_count,
+               (SELECT COUNT(DISTINCT ds.SiteID) FROM dtr_submissions ds JOIN deployment d ON d.DeploymentID=ds.DeploymentID AND d.EmployeeID=ds.EmployeeID WHERE d.CompanyID=pr.CompanyID AND ds.CutoffStartDate=pr.PeriodStart AND ds.CutoffEndDate=pr.PeriodEnd AND (pr.SiteID IS NULL OR ds.SiteID=pr.SiteID) AND (pr.SiteSupervisorID IS NULL OR ds.SiteSupervisorID=pr.SiteSupervisorID)) site_count
         FROM payroll_runs pr
         INNER JOIN clientcompany cc ON cc.CompanyID = pr.CompanyID
         ORDER BY pr.PeriodEnd DESC, cc.Name ASC
@@ -471,7 +478,7 @@ function client_billing_list_runs_split(mysqli $conn): array
 
     if ($res) {
         while ($row = $res->fetch_assoc()) {
-            if ((int)$row['employee_count'] === 0) {
+            if ((int)$row['employee_count'] === 0 && empty($row['SiteID']) && empty($row['SiteSupervisorID'])) {
                 $fallbackStmt = $conn->prepare(
                     'SELECT COUNT(DISTINCT dep.EmployeeID) AS ec
                      FROM deployment dep
@@ -487,6 +494,8 @@ function client_billing_list_runs_split(mysqli $conn): array
                 $row['employee_count'] = $fbRow['ec'] ?? 0;
             }
 
+            $snapshotCount=payroll_query($conn,'SELECT COUNT(*) n FROM payroll_run_members WHERE PayrollRunID=?','i',[(int)$row['PayrollRunID']])->get_result()->fetch_assoc();
+            if ((int)$snapshotCount['n']) $row['employee_count']=(int)$snapshotCount['n'];
             $mapped = client_billing_map_run_row($conn, $row);
             $clients[$mapped['client_name']] = $mapped['client_name'];
 
@@ -515,7 +524,7 @@ function client_billing_get_run(mysqli $conn, string $runCode): ?array
     client_billing_ensure_schema($conn);
     $runCode = client_billing_run_code_from_ref($runCode);
     $stmt = $conn->prepare(
-        'SELECT pr.*, cc.Name AS client_name
+        'SELECT pr.*, cc.Name AS client_name,cc.PayrollType current_payroll_type
          FROM payroll_runs pr
          INNER JOIN clientcompany cc ON cc.CompanyID = pr.CompanyID
          WHERE pr.RunCode = ? OR pr.BillingRefNo = ?
@@ -597,7 +606,7 @@ function client_billing_admin_overhead_pct(mysqli $conn, int $companyId, float $
     return $pct > 0 ? $pct : $default;
 }
 
-function client_billing_fetch_employees_for_run(mysqli $conn, array $run): array
+function client_billing_fetch_employees_for_run(mysqli $conn, array $run, bool $lock = false): array
 {
     $companyId = (int)$run['CompanyID'];
     $start = (string)$run['PeriodStart'];
@@ -613,8 +622,10 @@ function client_billing_fetch_employees_for_run(mysqli $conn, array $run): array
         WHERE dep.CompanyID=? AND ds.CutoffStartDate=? AND ds.CutoffEndDate=?
           AND ds.ReviewedBy IS NOT NULL AND ds.ReviewDate IS NOT NULL
           AND dep.SiteID IS NOT NULL AND ds.SiteID=dep.SiteID
-        ORDER BY e.LastName,e.FirstName");
-    $stmt->bind_param('iss',$companyId,$start,$end);$stmt->execute();
+          AND (?=0 OR ds.SiteSupervisorID=?) AND (?=0 OR ds.SiteID=?)
+        ORDER BY ds.DTR_SubmissionID".($lock ? " FOR UPDATE" : ""));
+    $lead=(int)($run['SiteSupervisorID'] ?? 0);$site=(int)($run['SiteID'] ?? 0);
+    $stmt->bind_param('issiiii',$companyId,$start,$end,$lead,$lead,$site,$site);$stmt->execute();
     $employees=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$stmt->close();
     $seen=[];$sites=[];
     foreach($employees as $employee) {
@@ -795,6 +806,10 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
 
         $rows[] = [
             'employee_id' => (string)$emp['EmployeeNumber'],
+            'employee_db_id' => $empId,
+            'dtr_submission_id' => (int)$emp['DTR_SubmissionID'],
+            'site_id' => (int)$emp['SiteID'],
+            'deployment_id' => (int)$emp['DeploymentID'],
             'employee_name' => $fullName,
             'designation' => trim((string)($emp['designation'] ?? '')),
             'area_site' => $area,
@@ -902,4 +917,13 @@ function client_billing_row_to_cells(array $row): array
         $row['grand_total_invoice'], $row['sss_number'], $row['philhealth_number'], $row['pagibig_number'],
         $row['tin'], $row['pay_period'], $row['run_id'], $row['client_name'], $row['status'],
     ];
+}
+
+/** Split ambiguous multi-site company cutoffs; keep legacy rows intact. */
+function client_billing_sync_site_runs(mysqli $db): void {
+    $rows=$db->query("SELECT d.CompanyID,ds.SiteID,ds.SiteSupervisorID,ds.CutoffStartDate,ds.CutoffEndDate,MAX(ds.CutoffPeriod) label,MAX(d.Location) site FROM dtr_submissions ds JOIN deployment d ON d.DeploymentID=ds.DeploymentID AND d.EmployeeID=ds.EmployeeID WHERE ds.SiteID IS NOT NULL AND ds.ReviewedBy IS NOT NULL AND ds.ReviewDate IS NOT NULL GROUP BY d.CompanyID,ds.SiteID,ds.SiteSupervisorID,ds.CutoffStartDate,ds.CutoffEndDate");
+    while($r=$rows->fetch_assoc()) {
+        $code=client_billing_run_code($r['CutoffStartDate'],$r['CutoffEndDate'],(int)$r['CompanyID'],(int)$r['SiteSupervisorID'],(int)$r['SiteID']);
+        payroll_query($db,"INSERT IGNORE INTO payroll_runs (RunCode,BillingRefNo,CompanyID,SiteSupervisorID,SiteID,PeriodStart,PeriodEnd,CutoffLabel,DeploymentSite,Status,CurrentStatus) VALUES(?,?,?,?,?,?,?,?,?,'Draft','Payroll Computed')",'ssiiissss',[$code,client_billing_billing_ref($code),(int)$r['CompanyID'],(int)$r['SiteSupervisorID'],(int)$r['SiteID'],$r['CutoffStartDate'],$r['CutoffEndDate'],$r['label'],$r['site']]);
+    }
 }

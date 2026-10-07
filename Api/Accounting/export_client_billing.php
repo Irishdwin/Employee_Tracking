@@ -22,6 +22,7 @@ if (!is_file($autoload)) {
 }
 require_once $autoload;
 require_once __DIR__ . '/Lib/client_billing_spreadsheet.php';
+require_once __DIR__.'/../Helpers/billing_revision_helper.php';
 
 if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
     http_response_code(401);
@@ -52,15 +53,38 @@ if ($runId === '' && $billingRef !== '') {
 }
 
 try {
-    $export = client_billing_build_export($conn, $runId);
-    $spreadsheet = client_billing_render_spreadsheet($export);
-
-    $clientName = (string)$export['client_name'];
-    $safeClient = preg_replace('/[^\w\-]+/', '_', $clientName) ?: 'Client';
-    $billingRefNo = client_billing_billing_ref($runId);
-    $filename = 'Client_Billing_' . $safeClient . '_' . $billingRefNo . '.xlsx';
-
-    client_billing_mark_exported($conn, $runId, (float)$export['totals']['grand_total']);
+    payroll_require_accounting($conn);
+    $run=client_billing_get_run($conn,$runId);
+    if(!$run) throw new InvalidArgumentException('Payroll run not found.');
+    // History download is a stored artifact, never a fresh payroll calculation.
+    if(($_GET['archive'] ?? '')==='1') {
+        $latest=payroll_query($conn,'SELECT ExportID FROM payroll_billing_exports WHERE PayrollRunID=? ORDER BY ExportID DESC LIMIT 1','i',[(int)$run['PayrollRunID']])->get_result()->fetch_assoc();
+        if(!$latest) throw new InvalidArgumentException('No archived export exists for this legacy run. Create an original export first.');
+        header('Location: download_billing_file.php?export_id='.(int)$latest['ExportID']);exit;
+    }
+    $path=null;
+    try {
+        $members=payroll_query($conn,'SELECT SnapshotJson FROM payroll_run_members WHERE PayrollRunID=? ORDER BY EmployeeID','i',[(int)$run['PayrollRunID']])->get_result()->fetch_all(MYSQLI_ASSOC);
+        $export=$members ? ['run'=>$run,'client_name'=>$run['client_name'],'rows'=>array_map(static fn($m)=>json_decode($m['SnapshotJson'],true,512,JSON_THROW_ON_ERROR),$members)] : client_billing_build_export($conn,$runId);
+        // build_export's schema checks run before the atomic snapshot transaction.
+        $conn->begin_transaction();
+        $locked=payroll_query($conn,'SELECT * FROM payroll_runs WHERE PayrollRunID=? FOR UPDATE','i',[(int)$run['PayrollRunID']])->get_result()->fetch_assoc();
+        if($locked['AdminOverheadPct']!==$run['AdminOverheadPct'] || $locked['VatPct']!==$run['VatPct'])throw new RuntimeException('Billing settings changed. Please retry export.',409);
+        $export=billing_prepare_snapshot($conn,$export);
+        $spreadsheet=client_billing_render_spreadsheet($export);
+        $token=bin2hex(random_bytes(32));
+        $snapshot=$export;$snapshot['token']=$token;$snapshot['sheet_title']=$spreadsheet->getSheet(0)->getTitle();
+        $snapshot['cells']=billing_capture_cells($spreadsheet,$snapshot);
+        $snapshot['column_values']=billing_capture_values($spreadsheet,$snapshot);
+        billing_add_manifest($spreadsheet,$snapshot,$token);
+        $relative='uploads/payroll_billing/export_'.$token.'.xlsx';
+        billing_storage();$path=dirname(__DIR__,2).'/'.$relative;
+        (new Xlsx($spreadsheet))->save($path);
+        payroll_query($conn,'INSERT INTO payroll_billing_exports (PayrollRunID,ExportToken,BaselineHash,SnapshotJson,FilePath,CreatedBy) VALUES(?,?,?,?,?,?)','issssi',[(int)$run['PayrollRunID'],$token,hash('sha256',billing_json($snapshot)),billing_json($snapshot),$relative,(int)$_SESSION['user_id']]);
+        client_billing_mark_exported($conn,$runId,(float)$export['totals']['grand_total']);
+        $conn->commit();
+    } catch(Throwable $e) {$conn->rollback();if($path)@unlink($path);throw $e;}
+    $filename='Client_Billing_'.client_billing_billing_ref($runId).'.xlsx';
 
     while (ob_get_level() > 0) {
         ob_end_clean();
@@ -71,8 +95,7 @@ try {
     header('Cache-Control: max-age=0');
     header('Pragma: public');
 
-    $writer = new Xlsx($spreadsheet);
-    $writer->save('php://output');
+    readfile($path);
     $spreadsheet->disconnectWorksheets();
     unset($spreadsheet);
     exit();
@@ -80,5 +103,5 @@ try {
     error_log('export_client_billing: ' . $e->getMessage());
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
-    echo 'Failed to generate billing export: ' . $e->getMessage();
+    echo $e instanceof InvalidArgumentException || $e->getCode()===409 ? $e->getMessage() : 'Failed to generate billing export. Contact Accounting support.';
 }

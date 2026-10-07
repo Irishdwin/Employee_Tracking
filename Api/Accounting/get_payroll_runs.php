@@ -23,6 +23,7 @@ if (!in_array($role, ['Accounting', 'Admin'], true)) {
     exit();
 }
 
+try { payroll_require_accounting($conn,$_SERVER['REQUEST_METHOD']==='POST'); } catch(Throwable $e) {payroll_api_error($e);exit;}
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'POST') {
@@ -39,7 +40,8 @@ if ($method === 'POST') {
             exit();
         }
 
-        $success = client_billing_update_run_status($conn, $runCode, $newStatus, $remarks, $fileInfo, $userId);
+        try { $success = client_billing_update_run_status($conn, $runCode, $newStatus, $remarks, $fileInfo, $userId);
+        } catch(Throwable $e) {payroll_api_error($e);exit;}
         if ($success) {
             echo json_encode(['success' => true, 'message' => 'Payroll status updated successfully.']);
         } else {
@@ -65,6 +67,7 @@ try {
     $split = client_billing_list_runs_split($conn);
     echo json_encode([
         'success' => true,
+        'csrf_token' => payroll_csrf_token(),
         'active_runs' => $split['active_runs'],
         'history_runs' => $split['history_runs'],
         'runs' => array_merge($split['active_runs'], $split['history_runs']),

@@ -15,6 +15,10 @@ try{messenger_actor($conn);}catch(Throwable $e){messenger_api_error($e);exit;}
 
 
 $userId = (int)$_SESSION['user_id'];
+if ($_SERVER['REQUEST_METHOD']==='GET' && $_SESSION['role']==='Employee') {
+    require_once __DIR__.'/../Helpers/leave_pay_notice.php';
+    try {employee_leave_pay_notice($conn,$userId);} catch(Throwable $e) {error_log('Employee leave notice: '.$e->getMessage());}
+}
 $method = $_SERVER['REQUEST_METHOD'];
 
 function json_resp($data, $status = 200) {

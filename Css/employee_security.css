@@ -23,3 +23,5 @@
  #section-settings .security-content { padding:20px; }
  #section-settings .security-actions .btn { flex:1 1 auto; }
 }
+
+#employeePasswordSetupNotice[hidden], #employeeSettingsPasswordBadge[hidden] { display:none !important; }

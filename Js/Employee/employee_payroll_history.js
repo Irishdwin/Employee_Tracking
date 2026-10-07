@@ -98,6 +98,7 @@
   }
 
   global.EmployeePayrollHistory = {
-    load: loadHistory
+    load: loadHistory,
+    open: openHistoryPayslip
   };
 })(window);

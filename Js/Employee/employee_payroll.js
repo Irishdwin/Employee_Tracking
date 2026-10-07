@@ -8,6 +8,7 @@
   var payrollCache = null;
 
   function money(n) {
+    if (n == null || n === '') return '—';
     var val = Number(n);
     if (!isFinite(val)) return '—';
     return '₱' + val.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -31,12 +32,19 @@
     if (!el || !tracker) return;
     var cls = STATUS_BADGE_CLASS[tracker.status_badge] || STATUS_BADGE_CLASS.secondary;
     el.className = 'inline-block rounded-full px-3 py-1 text-xs font-bold ' + cls;
-    el.textContent = tracker.status_label || 'Pending';
+    el.textContent = tracker.current_status || tracker.status_label || 'Pending';
+    var infoId = elId + '-updated';
+    var info = document.getElementById(infoId);
+    if (!info) { info = document.createElement('div'); info.id = infoId; info.className = 'text-xs text-slate-500 mt-2'; el.parentNode.insertBefore(info, el.nextSibling); }
+    info.textContent = tracker.updated_at ? 'Updated ' + new Date(tracker.updated_at.replace(' ', 'T')).toLocaleString('en-PH', { hour12: true }) : '';
   }
 
   function renderPayrollCards(data) {
     if (!data || !data.payroll) return;
     var p = data.payroll;
+    var notice = document.getElementById('employee-leave-pay-notice');
+    if (!notice) { var anchor = document.getElementById('empPayrollTabStatus'); if (anchor) { notice = document.createElement('div'); notice.id = 'employee-leave-pay-notice'; notice.className = 'rounded-lg border border-blue-200 bg-blue-50 p-3 mt-3 text-sm text-blue-900'; anchor.parentNode.appendChild(notice); } }
+    if (notice) notice.textContent = data.leave_pay_notice || 'Your leave pay will be paid together with your 13th-month pay.';
     var period = data.period || {};
     var tracker = data.payroll_tracker || {};
     var attendance = p.attendance_summary || { present: 0, late: 0, absent: 0 };
@@ -85,8 +93,8 @@
 
     var proofLink = document.getElementById('payslipStatusProofLink');
     if (proofLink) {
-      if (payrollStatus.has_proof && payrollStatus.proof_history_id) {
-        proofLink.href = '../../Api/Common/view_payroll_proof.php?id=' + payrollStatus.proof_history_id;
+      if (payrollStatus.has_proof && (payrollStatus.proof_url || payrollStatus.proof_history_id)) {
+        proofLink.href = payrollStatus.proof_url || '../../Api/Common/view_payroll_proof.php?id=' + payrollStatus.proof_history_id;
         proofLink.classList.remove('d-none');
       } else {
         proofLink.classList.add('d-none');
@@ -150,8 +158,8 @@
 
     var e = payslip.earnings || {};
     setText('payslipBasicPay', money(e.basic_pay));
-    setText('payslipSundayOt', money((e.sunday_overtime || 0) + (e.regular_overtime || 0)));
-    setText('payslipHolidayPay', money(e.holiday_pay));
+    setText('payslipSundayOt', money((e.sunday_overtime || 0) + (e.regular_overtime || 0) + (e.approved_overtime || 0)));
+    setText('payslipHolidayPay', money((e.holiday_pay || 0) + (e.holiday_ot_pay || 0)));
     setText('payslipAddBack', money(e.add_back));
     setText('payslipSil', money(e.sil_accrual));
     setText('payslipAllowance', money(e.allowance));
@@ -165,6 +173,7 @@
     setText('payslipSss', money(d.sss_ee));
     setText('payslipPhilhealth', money(d.philhealth_ee));
     setText('payslipPagibig', money(d.pagibig_ee));
+    setText('payslipOtherDeductions', money(d.other != null ? d.other : Math.max(0, Number(payslip.total_deductions || 0) - Number(d.sss_ee || 0) - Number(d.philhealth_ee || 0) - Number(d.pagibig_ee || 0))));
 
     setText('payslipNetPay', money(payslip.net_pay));
     setText('payslipGrossPay', money(payslip.gross_pay));
@@ -204,6 +213,9 @@
 
   function init() {
     loadPayroll();
+    var lastUnread = null;
+    document.addEventListener('onazul:realtime-counts', function (event) { var count = event.detail && event.detail.counts && event.detail.counts.notifications_unread; if (count != null && count !== lastUnread) { lastUnread = count; if (!document.hidden) loadPayroll(); } });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) loadPayroll(); });
 
     var btnView = document.getElementById('btnViewPayslip');
     if (btnView) {

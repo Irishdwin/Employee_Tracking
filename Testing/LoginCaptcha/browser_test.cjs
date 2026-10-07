@@ -1,0 +1,30 @@
+const {chromium}=require('C:/Users/Irishdwin Gamutan/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({channel:'chrome',headless:true});const checks=[];try{
+ const context=await browser.newContext();const a=await context.newPage(),b=await context.newPage();
+ const ready=page=>page.waitForFunction(()=>document.getElementById('captchaChallengeId').value && !document.getElementById('captchaInput').disabled);
+ const pair=page=>page.evaluate(()=>({id:document.getElementById('captchaChallengeId').value,answer:+document.getElementById('captchaNumerator').value + +document.getElementById('captchaDenominator').value}));
+ const valid=async page=>{const c=await pair(page);await page.locator('#captchaInput').fill(String(c.answer));await page.waitForFunction(()=>document.getElementById('captchaInput').classList.contains('is-valid'));assert.equal(await page.locator('#captchaMessage').textContent(),'');};
+ await a.goto('http://localhost/Employee_Tracking/index.html');await ready(a);
+ const original=await pair(a);await b.goto('http://localhost/Employee_Tracking/index.html');await ready(b);
+ await valid(a);await valid(b);checks.push('Actual tabs A and B accept their own displayed answers');
+ let firstValidation=true;
+ await a.route('**/Api/Login/check_captcha.php',async route=>{const response=await route.fetch();if(firstValidation){firstValidation=false;await new Promise(r=>setTimeout(r,600));}await route.fulfill({response});});
+ await a.locator('#captchaInput').fill(String(original.answer===200?199:original.answer+1));
+ await a.waitForTimeout(230);await valid(a);await a.waitForTimeout(750);assert(await a.locator('#captchaInput').evaluate(e=>e.classList.contains('is-valid')));checks.push('Delayed old incorrect response cannot overwrite current valid feedback');
+ await a.unroute('**/Api/Login/check_captcha.php');
+ let generations=0;
+ await a.route('**/Api/Login/captcha_gen.php',async route=>{const index=++generations;const response=await route.fetch();if(index===1)await new Promise(r=>setTimeout(r,650));await route.fulfill({response});});
+ await a.evaluate(()=>{for(let i=0;i<5;i++)document.getElementById('refreshCaptchaBtn').dispatchEvent(new Event('click'));});
+ await ready(a);await a.waitForTimeout(850);await valid(a);assert.equal(generations,5);checks.push('Out-of-order rapid refresh displays a valid final challenge');
+ const refreshed=await pair(a);assert.notEqual(refreshed.id,original.id);
+ const stale=await context.request.post('http://localhost/Employee_Tracking/Api/Login/check_captcha.php',{form:{challenge_id:original.id,answer:String(original.answer)}});assert.equal((await stale.json()).code,'expired');checks.push('Refreshed old challenge rejected');
+ await valid(b);checks.push('Other tab remains valid after rapid refresh');
+ await a.unroute('**/Api/Login/captcha_gen.php');
+ await a.reload();await ready(a);assert.notEqual((await pair(a)).id,refreshed.id);await valid(a);checks.push('Reload creates and validates a fresh challenge');
+ const c=await pair(a);
+ for(const answer of [String(c.answer-1),String(c.answer+1),'abc',`${c.answer}abc`]){const r=await context.request.post('http://localhost/Employee_Tracking/Api/Login/check_captcha.php',{form:{challenge_id:c.id,answer}});assert.equal((await r.json()).valid,false);}
+ checks.push('Incorrect and malformed answers still rejected by actual server');
+ await a.screenshot({path:__dirname+'/verified.png'});
+ console.log(JSON.stringify({success:true,passed:checks.length,tests:checks},null,2));
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

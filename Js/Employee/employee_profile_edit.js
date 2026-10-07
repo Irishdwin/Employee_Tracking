@@ -1,6 +1,7 @@
 (function () {
   'use strict';
-  var anchor=document.querySelector('#section-profile #userProfileCard') || document.getElementById('p-name')?.closest('section');
+  var profileApi=window.AccountProfileApi || '../../Api/Employee/profile.php';
+  var anchor=document.querySelector('#view-profile #userProfileCard') || document.querySelector('#section-profile #userProfileCard') || document.getElementById('p-name')?.closest('section');
   if(!anchor)return;
   var openButton=document.createElement('button');openButton.type='button';openButton.textContent='Edit Profile';
   openButton.style.cssText='background:#0a2a5e;color:white;padding:9px 16px;border-radius:8px;margin-bottom:16px;font-weight:600;';
@@ -34,7 +35,7 @@
   openButton.addEventListener('click',async function(){
     returnFocus=openButton;modal.hidden=false;status.hidden=true;form.hidden=true;csrf='';
     try{
-      var r=await fetch('../../Api/Employee/profile.php',{credentials:'same-origin',cache:'no-store'});var data=await r.json();if(!r.ok||!data.success)throw new Error(data.message);
+      var r=await fetch(profileApi,{credentials:'same-origin',cache:'no-store'});var data=await r.json();if(!r.ok||!data.success)throw new Error(data.message);
       csrf=data.csrf_token;var p=data.profile;form.reset();form.elements.mobile_number.value=p.mobile_number||'';form.elements.birth_date.value=p.birth_date||'';form.elements.gender.value=p.gender||'';
       document.getElementById('employeeSavedAddress').textContent='Current address: '+(p.address||'Not provided');toggle.checked=false;toggle.dispatchEvent(new Event('change'));form.hidden=false;
       await ApplicantProfileCascades.init();await ApplicantProfileCascades.hydrateAddress(p);form.elements.mobile_number.focus();
@@ -45,7 +46,7 @@
     try{
       var payload={csrf_token:csrf,mobile_number:form.elements.mobile_number.value.trim(),birth_date:form.elements.birth_date.value,gender:form.elements.gender.value,update_address:toggle.checked};
       if(toggle.checked){var address=ApplicantProfileCascades.getAddressValues();payload.address_psgc=address.address_psgc;payload.street_address=address.street_address;payload.postal_code=address.postal_code;}
-      var r=await fetch('../../Api/Employee/profile.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await r.json();
+      var r=await fetch(profileApi,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await r.json();
       if(!r.ok||!data.success){showError(data.errors?Object.values(data.errors).join(' '):data.message);var key=Object.keys(data.errors||{})[0];(form.elements[key]||document.getElementById(key==='street_address'?'streetAddressInput':key==='postal_code'?'postalCodeInput':'addressRegionWrap'))?.focus();return;}
       status.hidden=true;modal.hidden=true;successDialog.showModal();successDialog.querySelector('button').focus();
       if(window.UserProfileHydrate)UserProfileHydrate.load();document.dispatchEvent(new Event('employee-profile-updated'));

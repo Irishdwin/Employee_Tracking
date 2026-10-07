@@ -67,7 +67,7 @@
   }
 
   function canExport(run) {
-    return run.employee_count > 0;
+    return run.employee_count > 0 && run.exportable !== false;
   }
 
   function emptyActiveRow() {
@@ -117,7 +117,7 @@
       var ref = run.billing_ref_no || run.run_id;
       var exportBtn = canExport(run)
         ? exportButton(ref, 'Export Client Billing (.xlsx)')
-        : '<span class="text-muted small">Not available</span>';
+        : '<span class="text-muted small">Choose a site-specific run</span>';
       var isHighlighted = global.__highlightPayrollRun
         && (run.run_id === global.__highlightPayrollRun || ref === global.__highlightPayrollRun);
       var rowCls = 'border-b border-slate-200' + (isHighlighted ? ' table-warning' : '');
@@ -130,7 +130,7 @@
         + '<td class="border-r border-slate-200 px-4 py-3">' + esc(run.cutoff_period || run.cutoff) + '</td>'
         + '<td class="border-r border-slate-200 px-4 py-3 text-center">' + esc(String(run.employee_count)) + '</td>'
         + '<td class="border-r border-slate-200 px-4 py-3">' + statusBadge(run.status) + ' <span class="d-block text-muted small">' + esc(run.current_status || '') + '</span></td>'
-        + '<td class="px-4 py-3 text-right">' + exportBtn + '</td>'
+        + '<td class="px-4 py-3 text-right">' + exportBtn + '<button class="btn btn-sm btn-outline-primary mt-1" type="button" data-billing-import="' + esc(run.run_id) + '">Import Updated Billing</button></td>'
         + '</tr>';
     }).join('');
 
@@ -149,6 +149,11 @@
     var query = state.historyFilters.query.trim().toLowerCase();
 
     return (historyList || []).filter(function (run) {
+      var site = document.getElementById('filter-history-site'), type = document.getElementById('filter-history-type'), start = document.getElementById('filter-history-start'), end = document.getElementById('filter-history-end');
+      if (site && site.value && String(run.site_id) !== site.value) return false;
+      if (type && type.value && run.payroll_type !== type.value) return false;
+      if (start && start.value && run.period_start < start.value) return false;
+      if (end && end.value && run.period_end > end.value) return false;
       if (client && (run.client_name || run.client) !== client) {
         return false;
       }
@@ -189,7 +194,7 @@
         + 'data-history-summary="' + esc(ref) + '">'
         + '<i class="bi bi-eye me-1"></i> View Summary</button>';
       var downloadBtn = canExport(run)
-        ? exportButton(ref, 'Re-Download .xlsx', 'btn-outline-secondary')
+        ? exportButton(ref, 'Re-Download .xlsx', 'btn-outline-secondary').replace('?ref=', '?archive=1&ref=')
         : '<span class="text-muted small">Unavailable</span>';
 
       return '<tr class="border-b border-slate-200">'
@@ -200,7 +205,7 @@
         + '<td class="border-r border-slate-200 px-4 py-3 text-center">' + esc(String(run.employee_count)) + '</td>'
         + '<td class="border-r border-slate-200 px-4 py-3 text-right tabular-nums">' + formatMoney(run.total_invoice) + '</td>'
         + '<td class="border-r border-slate-200 px-4 py-3">' + statusBadge(run.status) + '</td>'
-        + '<td class="px-4 py-3 text-right">' + summaryBtn + downloadBtn + '</td>'
+        + '<td class="px-4 py-3 text-right">' + summaryBtn + downloadBtn + '<button class="btn btn-sm btn-outline-primary mt-1" type="button" data-billing-import="' + esc(run.run_id) + '">Import Updated Billing</button></td>'
         + '</tr>';
     }).join('');
 
@@ -224,32 +229,7 @@
   }
 
   function openHistorySummary(ref) {
-    var run = state.historyRuns.concat(state.activeRuns).find(function (item) {
-      return item.billing_ref_no === ref || item.run_id === ref;
-    });
-    if (!run) return;
-
-    var modal = document.getElementById('payrollHistorySummaryModal');
-    var body = document.getElementById('payrollHistorySummaryBody');
-    if (!body) return;
-
-    body.innerHTML = ''
-      + '<dl class="row mb-0 text-sm">'
-      + '<dt class="col-sm-4">Billing Ref No.</dt><dd class="col-sm-8 fw-semibold">' + esc(run.billing_ref_no) + '</dd>'
-      + '<dt class="col-sm-4">Client</dt><dd class="col-sm-8">' + esc(run.client_name || run.client) + '</dd>'
-      + '<dt class="col-sm-4">Deployment Site</dt><dd class="col-sm-8">' + esc(run.deployment_site) + '</dd>'
-      + '<dt class="col-sm-4">Cutoff Period</dt><dd class="col-sm-8">' + esc(run.cutoff_period || run.cutoff) + '</dd>'
-      + '<dt class="col-sm-4">Employees</dt><dd class="col-sm-8">' + esc(String(run.employee_count)) + '</dd>'
-      + '<dt class="col-sm-4">Total Invoice</dt><dd class="col-sm-8 tabular-nums">' + formatMoney(run.total_invoice) + '</dd>'
-      + '<dt class="col-sm-4">Status</dt><dd class="col-sm-8">' + statusBadge(run.status) + '</dd>'
-      + '</dl>';
-
-    if (modal && global.bootstrap) {
-      global.bootstrap.Modal.getOrCreateInstance(modal).show();
-    } else if (modal) {
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
+    global.PayrollBilling.details(ref);
   }
 
   function bindHistoryFilters() {
@@ -380,6 +360,8 @@
           });
         }
 
+        var siteFilter = document.getElementById('filter-history-site');
+        if (siteFilter) { var selectedSite = siteFilter.value, sites = {}; state.historyRuns.concat(state.activeRuns).forEach(function (run) { if (run.site_id) sites[run.site_id] = (run.client_name || '') + ' / ' + run.deployment_site; }); siteFilter.innerHTML = '<option value="">All sites</option>' + Object.keys(sites).map(function (id) { return '<option value="' + esc(id) + '">' + esc(sites[id]) + '</option>'; }).join(''); siteFilter.value = selectedSite; }
         populateClientFilter(state.clients);
         populatePayrollFilterOptions(state.activeRuns.concat(state.historyRuns));
         renderActivePayrollRuns(state.activeRuns);
@@ -408,6 +390,7 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     bindHistoryFilters();
+    ['filter-history-site','filter-history-type','filter-history-start','filter-history-end'].forEach(function (id) { var field = document.getElementById(id); if (field) field.addEventListener('change', function () { renderPayrollHistory(state.historyRuns); }); });
     bindActiveRunFilters();
 
     var refreshBtn = document.getElementById('btnRefreshPayrollRuns');

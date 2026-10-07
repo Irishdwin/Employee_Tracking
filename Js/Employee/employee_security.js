@@ -5,13 +5,61 @@
   if (!panel || !form) return;
   var state=null;
   var busy=false;
-  var api='../../Api/Employee/password.php';
+  var api=window.AccountSecurityApi || '../../Api/Employee/password.php';
   var message=document.getElementById('employeeSecurityMessage');
   var newInput=form.elements.new_password;
+  var newError=document.createElement('div');
+  newError.id='employeeNewPasswordError';
+  newError.className='text-danger small mt-2';
+  newError.setAttribute('role','alert');
+  newError.hidden=true;
+  newInput.closest('.input-group').insertAdjacentElement('afterend',newError);
+  var originalDescription=newInput.getAttribute('aria-describedby') || '';
+  function clearNewPasswordError() {
+    newError.hidden=true;
+    newError.textContent='';
+    newInput.classList.remove('is-invalid');
+    newInput.removeAttribute('aria-invalid');
+    if(originalDescription) newInput.setAttribute('aria-describedby',originalDescription);
+    else newInput.removeAttribute('aria-describedby');
+  }
+  newInput.addEventListener('input',clearNewPasswordError);
   var confirmInput=form.elements.confirm_password;
   var setupButton=document.getElementById('employeeSetupExistingPassword');
   var verification=document.getElementById('employeeEmailVerification');
   var codeForm=document.getElementById('employeePasswordCodeForm');
+  var promptRequested=false;
+  function openSetup() {
+    if(window.AccountSecurityOpen) { window.AccountSecurityOpen(); load(false); }
+    else if (window.profileShowSection) window.profileShowSection('section-settings');
+    else load(false);
+    history.replaceState(null,'','#section-settings');
+    panel.scrollIntoView({block:'start',behavior:'smooth'});
+  }
+  async function updateSetupReminder(data) {
+    var required=!!data.setup_notice_required;
+    document.getElementById('employeePasswordSetupNotice').hidden=!required;
+    document.getElementById('employeeSettingsPasswordBadge').hidden=!required;
+    if (!required || !data.first_visit_prompt || promptRequested || !window.bootstrap || location.hash==='#section-settings') return;
+    promptRequested=true;
+    try {
+      var response=await fetch(api,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'acknowledge_setup_prompt',csrf_token:data.csrf_token})});
+      var result=await response.json();
+      if(response.ok && result.success && result.show_prompt) {
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('employeePasswordSetupModal')).show();
+        if(window.OwNotifications) OwNotifications.poll();
+      }
+    } catch(error) { promptRequested=false; }
+  }
+  document.querySelectorAll('[data-open-password-setup]').forEach(function(button) {
+    button.addEventListener('click',function() {
+      var modal=document.getElementById('employeePasswordSetupModal');
+      if(modal.classList.contains('show')) {
+        modal.addEventListener('hidden.bs.modal',openSetup,{once:true});
+        bootstrap.Modal.getInstance(modal).hide();
+      } else openSetup();
+    });
+  });
   function showMessage(text,error) {
     message.textContent=text;
     message.className='alert '+(error?'alert-danger':'alert-success');
@@ -53,19 +101,21 @@
       var data=await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load Settings.');
       state=data;
+      updateSetupReminder(data);
       form.reset();
+      clearNewPasswordError();
       form.querySelectorAll('input').forEach(function (input) {input.type='password';input.classList.remove('is-invalid');});
       panel.querySelectorAll('[data-security-toggle]').forEach(function (button) {button.setAttribute('aria-label','Show password');button.innerHTML='<i class="bi bi-eye"></i>';});
       newInput.dispatchEvent(new Event('input'));
       document.getElementById('employeeOldPasswordGroup').hidden=data.setup_required;
       form.elements.old_password.required=!data.setup_required;
-      document.getElementById('employeePasswordTitle').textContent=data.setup_required?'Password Setup Required':'Password';
-      document.getElementById('employeePasswordState').textContent=data.setup_required
+      document.getElementById('employeePasswordTitle').textContent=data.reset_authorized?'Reset Password':data.setup_required?'Password Setup Required':'Password';
+      document.getElementById('employeePasswordState').textContent=data.reset_authorized ? 'Email verified. Enter and confirm your new password.' : data.setup_required
         ? 'Set up a password so you can log in using your email and password.'
         : data.state_unknown
           ? 'Already have a password? Choose Change Password. If you only used Google or cannot sign in with a password, choose Set Up Password and verify your email.'
           : 'Your password is configured.';
-      document.getElementById('employeeSavePassword').textContent=data.setup_required?'Set Up Password':'Change Password';
+      document.getElementById('employeeSavePassword').textContent=data.reset_authorized?'Reset Password':data.setup_required?'Set Up Password':'Change Password';
       form.hidden=!data.setup_required;
       document.getElementById('employeeChangePassword').hidden=data.setup_required;
       setupButton.hidden=data.setup_required;
@@ -73,8 +123,7 @@
     } catch (error) {showMessage(error.message,true);}
   }
   window.EmployeeSecurity={open:function () {
-    if (window.profileShowSection) window.profileShowSection('section-settings');
-    else load(false);
+    openSetup();
   },load:load};
   document.getElementById('employeeChangePassword').addEventListener('click',function () {
     message.hidden=true;
@@ -83,14 +132,22 @@
     form.hidden=false;this.hidden=true;form.elements.old_password.focus();
   });
   document.getElementById('employeeCancelPassword').addEventListener('click',function () {load(false);});
-  setupButton.addEventListener('click',function () {
+  function openEmailVerification() {
     if (!state || busy) return;
     form.hidden=true;verification.hidden=false;codeForm.hidden=true;codeForm.reset();
     document.getElementById('employeeVerificationEmail').textContent=state.email;
+    document.getElementById('employeePasswordTitle').textContent='Reset Password';
+    message.hidden=true;
+  }
+  setupButton.addEventListener('click',openEmailVerification);
+  document.getElementById('employeeForgotPassword').addEventListener('click',function () {
+    if(!state || busy)return;
+    openEmailVerification();
+    document.getElementById('employeeSendPasswordCode').click();
   });
   async function emailAction(action,code) {
     if (!state) throw new Error('Reopen Settings and try again.');
-    var response=await fetch('../../Api/Login/forgot_password.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({action:action,email:state.email,code:code||''})});
+    var response=await fetch('../../Api/Login/forgot_password.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({action:action,context:window.AccountSecurityContext || 'employee_settings',csrf_token:state.csrf_token,code:code||''})});
     var result=await response.json();
     if (!response.ok || !result.success) throw new Error(result.message||'Unable to verify email.');
     return result;
@@ -100,6 +157,7 @@
     try {
       var result=await emailAction('send_code');showMessage(result.message,false);
       codeForm.hidden=false;document.getElementById('employeePasswordCode').focus();
+      this.textContent='Resend code';
     } catch(error) {showMessage(error.message,true);}
     finally {busy=false;this.disabled=false;}
   });
@@ -108,7 +166,7 @@
     var button=codeForm.querySelector('button');button.disabled=true;
     try {
       await emailAction('verify_code',document.getElementById('employeePasswordCode').value);
-      await load(false);showMessage('Email verified. You can now set your password.',false);
+      await load(false);showMessage('Email verified. Enter and confirm your new password.',false);
       newInput.focus();
     } catch(error) {showMessage(error.message,true);}
     finally {busy=false;button.disabled=false;}
@@ -125,11 +183,33 @@
         old_password:form.elements.old_password.value,new_password:newInput.value,confirm_password:confirmInput.value
       })});
       var result=await response.json();
-      if (!response.ok || !result.success) throw new Error(result.message || 'Unable to save password.');
+      if (!response.ok || !result.success) {
+        var saveError=new Error(result.message || 'Unable to save password.');
+        saveError.code=result.code;
+        throw saveError;
+      }
       showMessage(result.message,false);
       await load(true);
       if (window.OwNotifications) OwNotifications.poll();
-    } catch (error) {showMessage(error.message,true);}
+    } catch (error) {
+      showMessage(error.message,true);
+      if(error.code==='password_reused') {
+        newError.textContent=error.message;
+        newError.hidden=false;
+        newInput.classList.add('is-invalid');
+        newInput.setAttribute('aria-invalid','true');
+        newInput.setAttribute('aria-describedby',(originalDescription+' '+newError.id).trim());
+        newInput.focus({preventScroll:true});
+        newInput.select();
+        newInput.closest('.mb-3').scrollIntoView({block:'center',behavior:'smooth'});
+      }
+    }
     finally {busy=false;document.getElementById('employeeSavePassword').disabled=false;}
   });
+  function initialLoad() {
+    if(location.hash==='#section-settings') openSetup();
+    else load(false);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initialLoad);
+  else initialLoad();
 })();

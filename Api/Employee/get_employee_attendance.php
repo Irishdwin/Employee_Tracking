@@ -111,7 +111,7 @@ try {
     // (e.g. weekends/rest days with no row) — widen the lookup window so a
     // day's holiday flag isn't missed just because of such gaps.
     $holidayRangeStart = date('Y-m-d', strtotime('-' . ($limit * 3) . ' days', strtotime($today)));
-    $holidaysByDate = holidays_fetch_for_range($conn, $rangeStart ?? $holidayRangeStart, $rangeEnd ?? $today);
+    $holidaysByDate = holidays_fetch_for_range($conn, $rangeStart ?? $holidayRangeStart, $rangeEnd ?? $today,$employeeId);
 
     $formatEntry = static function (?array $row, string $isoDate) use ($conn, $employeeId, $today, $formatTimeManila, $formatBreakDisplay, $holidaysByDate): array {
         $schedule = payroll_resolve_deployment_schedule($conn, $employeeId, $isoDate);

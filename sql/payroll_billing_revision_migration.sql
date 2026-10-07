@@ -1,0 +1,36 @@
+-- Additive persistence. Existing payroll, DTR, leave and holiday amounts remain untouched.
+CREATE TABLE IF NOT EXISTS payroll_run_members (
+ PayrollRunID INT UNSIGNED NOT NULL, EmployeeID INT NOT NULL, Payroll_ID INT NOT NULL,
+ DTR_SubmissionID INT NOT NULL, SiteID INT NOT NULL, SnapshotJson LONGTEXT NOT NULL,
+ PRIMARY KEY(PayrollRunID,EmployeeID), UNIQUE KEY uq_run_payroll(PayrollRunID,Payroll_ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS payroll_billing_exports (
+ ExportID BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, PayrollRunID INT UNSIGNED NOT NULL,
+ ExportToken CHAR(64) NOT NULL UNIQUE, BaselineHash CHAR(64) NOT NULL,
+ SnapshotJson LONGTEXT NOT NULL, FilePath VARCHAR(255) NOT NULL,
+ CreatedBy INT NOT NULL, CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY ix_exports_run(PayrollRunID,ExportID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS payroll_billing_revisions (
+ RevisionID BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, PayrollRunID INT UNSIGNED NOT NULL,
+ ExportID BIGINT UNSIGNED NOT NULL, FileHash CHAR(64) NOT NULL, PreviewToken CHAR(64) NOT NULL UNIQUE,
+ PreviewJson LONGTEXT NOT NULL, FilePath VARCHAR(255) NOT NULL, Reason TEXT NULL,
+ CreatedBy INT NOT NULL, CreatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ ConfirmedBy INT NULL, ConfirmedAt DATETIME NULL, ChangedEmployees INT NOT NULL DEFAULT 0,
+ UNIQUE KEY uq_revision_file(PayrollRunID,ExportID,FileHash), KEY ix_revisions_run(PayrollRunID,RevisionID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS payroll_billing_adjustment_sources (
+ RevisionID BIGINT UNSIGNED NOT NULL, Payroll_ID INT NOT NULL, Component VARCHAR(32) NOT NULL,
+ AdjustmentID INT NOT NULL, PRIMARY KEY(RevisionID,Payroll_ID,Component)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE payroll_runs MODIFY RunCode VARCHAR(64) NOT NULL;
+ALTER TABLE payroll_runs MODIFY BillingRefNo VARCHAR(64) NULL;
+ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS SiteID INT NULL;
+ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS SiteSupervisorID INT NULL;
+ALTER TABLE payroll_runs ADD COLUMN IF NOT EXISTS PayrollTypeSnapshot VARCHAR(1) NULL;
+CREATE TABLE IF NOT EXISTS holiday_deployment_sites (
+ HolidayID INT NOT NULL, SiteID INT NOT NULL, PRIMARY KEY(HolidayID,SiteID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+ALTER TABLE payroll_group_status_history MODIFY CreatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6);
+ALTER TABLE payroll_status_history MODIFY UpdatedAt DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6);

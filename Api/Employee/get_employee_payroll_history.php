@@ -29,7 +29,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../Common/session_init.php';
 require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/employee_payroll_helper.php'; // payroll_kinsenas_period()
-require_once __DIR__ . '/../Helpers/payroll_status_helper.php';
+require_once __DIR__ . '/../Helpers/payroll_status_service.php';
 
 payroll_status_ensure_schema($conn);
 
@@ -101,11 +101,12 @@ try {
              FROM deployment dep
              LEFT JOIN clientcompany cc ON cc.CompanyID = dep.CompanyID
              LEFT JOIN users tl ON tl.UsersID = dep.SiteSuperVisorID
-             WHERE dep.EmployeeID = ?
+             WHERE dep.EmployeeID = ? AND dep.DeploymentID=(SELECT DeploymentID FROM dtr_submissions WHERE DTR_SubmissionID=?)
              ORDER BY dep.StartDate DESC
              LIMIT 1"
         );
-        $depStmt->bind_param('i', $employeeId);
+        $originalDtr=(int)$row['DTR_SubmissionID'];
+        $depStmt->bind_param('ii', $employeeId,$originalDtr);
         $depStmt->execute();
         $depRow = $depStmt->get_result()->fetch_assoc();
         $depStmt->close();
@@ -166,6 +167,14 @@ try {
             }
         }
 
+        $resolved=payroll_status_for_dtr($conn,(int)$row['DTR_SubmissionID']);
+        $payrollStatusHistory=$resolved['history'];
+        if($resolved['current']) {
+            $latest=$resolved['current'];
+            $payrollStatus=['status'=>$latest['status'],'remarks'=>$latest['remarks'],'updated_at'=>$latest['created_at'],'has_proof'=>$latest['has_proof'],'proof_url'=>$latest['proof_url'],'proof_history_id'=>$latest['id']];
+        }
+        $detailRow=payroll_query($conn,'SELECT SnapshotJson FROM payroll_run_members WHERE Payroll_ID=? AND EmployeeID=? ORDER BY PayrollRunID DESC LIMIT 1','ii',[(int)$row['Payroll_ID'],$employeeId])->get_result()->fetch_assoc();
+        $billingDetail=$detailRow?json_decode($detailRow['SnapshotJson'],true):null;
         $payslip = [
             'employee_name' => trim($employee['FirstName'] . ' ' . $employee['LastName']),
             'employee_number' => $employee['EmployeeNumber'],
@@ -176,20 +185,22 @@ try {
             'team_lead' => $depRow['team_lead_name'] ?? null,
             'is_finalized' => true,
             'days_worked' => $daysWorked,
-            'daily_rate' => $dailyRate,
+            'daily_rate' => $billingDetail['daily_rate']??$dailyRate,
             'earnings' => [
-                'add_back' => (float)($conn->query("SELECT COALESCE(SUM(Amount),0) amount FROM payroll_adjustments WHERE Payroll_ID=".(int)$row['Payroll_ID']." AND AdjustmentType='Add Back' AND IsAddition=1")->fetch_assoc()['amount'] ?? 0),
+                'add_back' => $billingDetail ? (float)($billingDetail['addback']??0) : (float)($conn->query("SELECT COALESCE(SUM(Amount),0) amount FROM payroll_adjustments WHERE Payroll_ID=".(int)$row['Payroll_ID']." AND AdjustmentType='Add Back' AND IsAddition=1")->fetch_assoc()['amount'] ?? 0),
                 'basic_pay' => (float)($row['BasicSalary'] ?? 0),
-                'sunday_overtime' => 0.0, // not itemized separately in the persisted record; see note below
-                'regular_overtime' => (float)($row['OvertimePay'] ?? 0),
+                'sunday_overtime' => $billingDetail ? (float)($billingDetail['sunday_ot_amount']??0) : 0.0, // not itemized separately in the persisted record; see note below
+                'regular_overtime' => $billingDetail ? (float)($billingDetail['regular_ot_amount']??0) : (float)($row['OvertimePay']??0),
+                'holiday_ot_pay' => $billingDetail ? (float)($billingDetail['holiday_ot_amount']??0)+(float)($billingDetail['special_holiday_ot_amount']??0) : 0.0,
+                'approved_overtime' => $billingDetail ? round((float)$row['OvertimePay']-(float)($billingDetail['regular_ot_amount']??0)-(float)($billingDetail['sunday_ot_amount']??0)-(float)($billingDetail['holiday_ot_amount']??0)-(float)($billingDetail['special_holiday_ot_amount']??0),2) : 0.0,
                 'holiday_pay' => (float)($row['HolidayPay'] ?? 0),
-                'sil_accrual' => 0.0, // not stored historically — see file header note
+                'sil_accrual' => $billingDetail ? (float)($billingDetail['sil_accrual']??0) : null, // not stored historically — see file header note
                 'allowance' => (float)($row['Allowances'] ?? 0),
             ],
             'late_undertime' => [
-                'late_minutes' => null, // not stored historically — see file header note
+                'late_minutes' => $billingDetail['lates_minutes']??null,
                 'undertime_minutes' => null,
-                'amount' => null,
+                'amount' => $billingDetail['lates_undertime']??null,
             ],
             'deductions' => [
                 'sss_ee' => (float)($row['SSSDeduction'] ?? 0),
@@ -252,6 +263,8 @@ try {
             }
         }
 
+        $resolved=payroll_status_for_dtr($conn,(int)$row['DTR_SubmissionID']);
+        $payrollStatusLabel=$resolved['current']['status'] ?? $payrollStatusLabel;
         return [
             'payroll_id' => (int)$row['Payroll_ID'],
             'period_start' => $row['PayPeriodStart'],
@@ -275,6 +288,5 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Failed to load payroll history.',
-        'error_details' => $e->getMessage(),
     ]);
 }

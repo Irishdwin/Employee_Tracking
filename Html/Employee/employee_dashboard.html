@@ -160,7 +160,7 @@
   <link rel="stylesheet" href="../../Css/ow_dashboard_theme.css">
   <script src="../../Js/Shared/profile_view_switch.js"></script>
 <link rel="stylesheet" href="../../Css/password_strength.css">
-<link rel="stylesheet" href="../../Css/employee_security.css">
+<link rel="stylesheet" href="../../Css/employee_security.css?v=20261007-reminder">
 <link rel="stylesheet" href="../../Css/applicant_searchable_select.css">
 </head>
 <body class="min-h-screen bg-brand-surface text-slate-800 antialiased">
@@ -245,7 +245,7 @@
                 <ul class="list-unstyled mb-0 py-1 small">
                   <li><a href="#section-profile" id="menu-profile-link" data-show-section="section-profile" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Profile</a></li>
                   <li><a href="employee_profile_documents.html" id="menu-documents-link" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Documents</a></li>
-                  <li><a href="#section-settings" data-show-section="section-settings" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Settings</a></li>
+                  <li><a href="#section-settings" data-show-section="section-settings" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Settings <span id="employeeSettingsPasswordBadge" class="badge bg-danger ms-2" hidden aria-label="Password setup required">1</span></a></li>
                   <li class="border-top"><a href="#" data-logout class="d-block px-4 py-2 text-decoration-none text-danger fw-medium" role="menuitem">Logout</a></li>
                 </ul>
               </div>
@@ -262,6 +262,18 @@
     <div id="section-emp-dashboard" class="emp-tab-panel">
     <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">Employee Dashboard</h1>
     <p class="mt-1 text-sm text-slate-600">Welcome, <span data-user-field="full_name">Employee</span>.</p>
+
+    <div id="employeePasswordSetupNotice" class="alert alert-warning mt-4 d-flex flex-wrap align-items-center justify-content-between gap-3" hidden role="status">
+      <div><strong>Set up your password</strong><p class="mb-0 small">Set up a password for email and password sign-in. You can do this in Settings.</p></div>
+      <button type="button" class="btn btn-primary" data-open-password-setup>Set Up Password</button>
+    </div>
+    <div class="modal fade" id="employeePasswordSetupModal" tabindex="-1" aria-labelledby="employeePasswordSetupModalTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title" id="employeePasswordSetupModalTitle">Set up your Employee password</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body">Welcome to your Employee Dashboard. Set up your password in Settings to sign in using your email and password.</div>
+        <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Later</button><button type="button" class="btn btn-primary" data-open-password-setup>Go to Password Setup</button></div>
+      </div></div>
+    </div>
 
     <!-- Section: Management modules (overview) -->
     <section class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3" aria-label="Management modules">
@@ -514,9 +526,9 @@
       <div id="employeeEmailVerification" hidden>
         <h3>Verify your email</h3><p class="small text-muted">We will send a code to <strong id="employeeVerificationEmail"></strong> before allowing you to set a password.</p>
         <button type="button" class="btn btn-primary" id="employeeSendPasswordCode">Send verification code</button>
-        <form id="employeePasswordCodeForm" class="mt-3" hidden><label for="employeePasswordCode" class="form-label">4-digit verification code</label><input id="employeePasswordCode" class="form-control" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4}" maxlength="4" required><div class="security-actions"><button class="btn btn-primary" type="submit">Verify code</button></div></form>
+        <form id="employeePasswordCodeForm" class="mt-3" hidden><label for="employeePasswordCode" class="form-label">6-digit verification code</label><input id="employeePasswordCode" class="form-control" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required><div class="security-actions"><button class="btn btn-primary" type="submit">Verify code</button></div></form>
       </div>
-      <form id="employeePasswordForm" hidden><div class="mb-3" id="employeeOldPasswordGroup"><label class="form-label" for="employeeSecurityold_password">Old Password</label><div class="input-group"><input id="employeeSecurityold_password" type="password" name="old_password" class="form-control" autocomplete="current-password" required><button type="button" class="btn btn-outline-secondary" data-security-toggle="employeeSecurityold_password" aria-label="Show password"><i class="bi bi-eye"></i></button></div></div><div class="mb-3"><label class="form-label" for="employeeSecuritynew_password">New Password</label><div class="input-group"><input id="employeeSecuritynew_password" type="password" name="new_password" class="form-control" autocomplete="new-password" required minlength="8"><button type="button" class="btn btn-outline-secondary" data-security-toggle="employeeSecuritynew_password" aria-label="Show password"><i class="bi bi-eye"></i></button></div></div><div class="security-policy"><div class="small fw-semibold">Password requirements</div><ul class="small mb-3 ps-3" id="employeePasswordChecklist"><li class="text-muted">At least 8 characters</li><li class="text-muted">At least 1 uppercase letter</li><li class="text-muted">At least 1 lowercase letter</li><li class="text-muted">At least 1 number</li><li class="text-muted">At least 1 special character</li></ul><p class="small text-muted">Common or predictable passwords are not accepted.</p></div><div class="mb-3"><label class="form-label" for="employeeSecurityconfirm_password">Confirm New Password</label><div class="input-group"><input id="employeeSecurityconfirm_password" type="password" name="confirm_password" class="form-control" autocomplete="new-password" required minlength="8"><button type="button" class="btn btn-outline-secondary" data-security-toggle="employeeSecurityconfirm_password" aria-label="Show password"><i class="bi bi-eye"></i></button></div></div><div class="form-text mb-3" id="employeePasswordConfirmHint">Re-enter the same password.</div><div class="security-actions"><button class="btn btn-primary" type="submit" id="employeeSavePassword">Set Up Password</button><button class="btn btn-outline-secondary" type="button" id="employeeCancelPassword">Cancel</button></div></form>
+      <form id="employeePasswordForm" hidden><div class="mb-3" id="employeeOldPasswordGroup"><label class="form-label" for="employeeSecurityold_password">Old Password</label><div class="input-group"><input id="employeeSecurityold_password" type="password" name="old_password" class="form-control" autocomplete="current-password" required><button type="button" class="btn btn-outline-secondary" data-security-toggle="employeeSecurityold_password" aria-label="Show password"><i class="bi bi-eye"></i></button></div><div class="text-end mt-2"><button type="button" id="employeeForgotPassword" class="btn btn-link p-0 small">Forgot password?</button></div></div><div class="mb-3"><label class="form-label" for="employeeSecuritynew_password">New Password</label><div class="input-group"><input id="employeeSecuritynew_password" type="password" name="new_password" class="form-control" autocomplete="new-password" required minlength="8"><button type="button" class="btn btn-outline-secondary" data-security-toggle="employeeSecuritynew_password" aria-label="Show password"><i class="bi bi-eye"></i></button></div></div><div class="security-policy"><div class="small fw-semibold">Password requirements</div><ul class="small mb-3 ps-3" id="employeePasswordChecklist"><li class="text-muted">At least 8 characters</li><li class="text-muted">At least 1 uppercase letter</li><li class="text-muted">At least 1 lowercase letter</li><li class="text-muted">At least 1 number</li><li class="text-muted">At least 1 special character</li></ul><p class="small text-muted">Common or predictable passwords are not accepted. Choose a password you have never used before.</p></div><div class="mb-3"><label class="form-label" for="employeeSecurityconfirm_password">Confirm New Password</label><div class="input-group"><input id="employeeSecurityconfirm_password" type="password" name="confirm_password" class="form-control" autocomplete="new-password" required minlength="8"><button type="button" class="btn btn-outline-secondary" data-security-toggle="employeeSecurityconfirm_password" aria-label="Show password"><i class="bi bi-eye"></i></button></div></div><div class="form-text mb-3" id="employeePasswordConfirmHint">Re-enter the same password.</div><div class="security-actions"><button class="btn btn-primary" type="submit" id="employeeSavePassword">Set Up Password</button><button class="btn btn-outline-secondary" type="button" id="employeeCancelPassword">Cancel</button></div></form>
     </div>
   </div>
 </section>
@@ -685,6 +697,7 @@
                   <div class="payslip-line"><span>SSS EE Share (Regular + MPF)</span><span id="payslipSss" class="fw-semibold">—</span></div>
                   <div class="payslip-line"><span>PhilHealth EE Share</span><span id="payslipPhilhealth" class="fw-semibold">—</span></div>
                   <div class="payslip-line"><span>Pag-IBIG EE Share</span><span id="payslipPagibig" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Other Deductions</span><span id="payslipOtherDeductions" class="fw-semibold">—</span></div>
                   <div class="payslip-line fw-bold text-danger"><span>Total Deductions</span><span id="payslipTotalDeductions">—</span></div>
                 </div>
               </div>
@@ -977,6 +990,8 @@
         }
       }
       window.showEmpTab = showEmpTab;
+      if (location.hash === '#section-emp-payroll') showEmpTab('section-emp-payroll');
+      if (location.hash === '#section-emp-payroll-history') showEmpTab('section-emp-payroll-history');
 
       document.querySelectorAll('[data-emp-tab]').forEach(function (link) {
         link.addEventListener('click', function (e) {
@@ -1500,7 +1515,7 @@
   <script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
   <script src="../../Js/Shared/ow_system_events.js"></script>
   <script src="../../Js/Shared/password_strength.js"></script>
-  <script src="../../Js/Employee/employee_security.js"></script>
+  <script src="../../Js/Employee/employee_security.js?v=20261008-history"></script>
   <script src="../../Js/Shared/ow_notifications.js"></script>
   <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
   <script>
@@ -1580,5 +1595,20 @@
 <script src="../../Js/Applicant/searchable_select.js"></script>
 <script src="../../Js/Applicant/applicant_profile_cascades.js"></script>
 <script src="../../Js/Employee/employee_profile_edit.js"></script>
+<div class="modal fade" id="employeeMarkAllNotificationsModal" tabindex="-1" aria-labelledby="employeeMarkAllNotificationsTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header">
+        <h5 class="modal-title" id="employeeMarkAllNotificationsTitle">Mark all notifications as read?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">This will mark all your notifications as read. You can still view them in your inbox.</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" data-confirm-mark-all>Mark all as read</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

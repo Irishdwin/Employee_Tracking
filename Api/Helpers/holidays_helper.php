@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/holiday_scope.php';
 /**
  * CRUD + payroll lookup helper for the `holidays` table.
  *
@@ -29,6 +30,8 @@ function holidays_allowed_types(): array
  * already exists correctly. */
 function holidays_ensure_schema(mysqli $conn): void
 {
+    static $ready=[];$key=spl_object_id($conn);if(isset($ready[$key]))return;
+    $ready[$key]=true;
     $conn->query("
         CREATE TABLE IF NOT EXISTS `holidays` (
           `HolidayID` int(11) NOT NULL AUTO_INCREMENT,
@@ -345,11 +348,11 @@ function holidays_delete(mysqli $conn, int $id): array
  *
  * @return array<string, array<int, array{id:int,name:string,type:?string,pay_multiplier:float}>>
  */
-function holidays_fetch_for_range(mysqli $conn, string $start, string $end): array
+function holidays_fetch_for_range(mysqli $conn, string $start, string $end, int $employeeId = 0, ?int $deploymentId = null): array
 {
     holidays_ensure_schema($conn);
     $stmt = $conn->prepare(
-        'SELECT HolidayID, HolidayName, HolidayDate, HolidayType, PayMultiplier
+        'SELECT HolidayID, HolidayName, HolidayDate, HolidayType, PayMultiplier,IsNationwide,Region
          FROM holidays WHERE HolidayDate BETWEEN ? AND ? ORDER BY HolidayID ASC'
     );
     $stmt->bind_param('ss', $start, $end);
@@ -358,6 +361,7 @@ function holidays_fetch_for_range(mysqli $conn, string $start, string $end): arr
     $out = [];
     while ($row = $res->fetch_assoc()) {
         $iso = (string)$row['HolidayDate'];
+        if($employeeId>0 && !holiday_applies_to_employee($conn,$row,$employeeId,$iso,$deploymentId))continue;
         if (!isset($out[$iso])) {
             $out[$iso] = [];
         }

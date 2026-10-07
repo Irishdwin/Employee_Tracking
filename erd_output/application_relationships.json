@@ -1,0 +1,273 @@
+{
+  "links": [
+    {
+      "child": "applicant_profiles",
+      "column": "UserID",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Applicant/save_applicant_profile_setup.php:331",
+      "explanation": "Profile upsert uses the authenticated session user ID."
+    },
+    {
+      "child": "chat_threads",
+      "column": "CreatedBy",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/chat_helper.php:129; Api/Common/messenger_thread.php:5",
+      "explanation": "Thread creator supplied from the authenticated messenger actor."
+    },
+    {
+      "child": "chat_messages",
+      "column": "ThreadID",
+      "parent": "chat_threads",
+      "key": "ThreadID",
+      "kind": "application_reference",
+      "evidence": "Api/Common/messages_threads.php:36; Api/Helpers/chat_helper.php:194",
+      "explanation": "Messages inserted and fetched for an existing thread."
+    },
+    {
+      "child": "chat_messages",
+      "column": "SenderUserID",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Common/messages_messages.php:51",
+      "explanation": "Explicit INNER JOIN to users.UsersID."
+    },
+    {
+      "child": "chat_thread_participants",
+      "column": "ThreadID",
+      "parent": "chat_threads",
+      "key": "ThreadID",
+      "kind": "application_reference",
+      "evidence": "Api/Common/messages_threads.php:70",
+      "explanation": "Explicit thread-to-participant join."
+    },
+    {
+      "child": "chat_thread_participants",
+      "column": "UserID",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/chat_helper.php:165; Api/Helpers/messenger_rbac.php:50",
+      "explanation": "Participant IDs originate from authorized users."
+    },
+    {
+      "child": "chat_thread_reads",
+      "column": "ThreadID",
+      "parent": "chat_threads",
+      "key": "ThreadID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/chat_helper.php:174; Api/Common/messages_threads.php:63",
+      "explanation": "Read cursor maintained per thread."
+    },
+    {
+      "child": "chat_thread_reads",
+      "column": "UserID",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/chat_helper.php:208",
+      "explanation": "Read cursor upsert uses viewer user ID."
+    },
+    {
+      "child": "chat_thread_reads",
+      "column": "LastReadMessageID",
+      "parent": "chat_messages",
+      "key": "MessageID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/chat_helper.php:207; Api/Helpers/messenger_unread.php:12",
+      "explanation": "Read cursor uses maximum MessageID; zero is an initial sentinel, not an enforced reference."
+    },
+    {
+      "child": "daily_time_records",
+      "column": "employee_id",
+      "parent": "employee",
+      "key": "EmployeeID",
+      "kind": "application_reference",
+      "evidence": "Api/TeamLead/get_tl_attendance_roster.php:82",
+      "explanation": "Explicit attendance-to-employee join."
+    },
+    {
+      "child": "payroll_runs",
+      "column": "CompanyID",
+      "parent": "clientcompany",
+      "key": "CompanyID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/client_billing_helper.php:464",
+      "explanation": "Explicit payroll-run-to-client-company join."
+    },
+    {
+      "child": "payroll_status_history",
+      "column": "PayrollRunID",
+      "parent": "payroll_runs",
+      "key": "PayrollRunID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/client_billing_helper.php:335; Api/Helpers/client_billing_helper.php:340",
+      "explanation": "Status update and history insert share the same run ID."
+    },
+    {
+      "child": "payroll_status_history",
+      "column": "UpdatedBy",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/client_billing_helper.php:354",
+      "explanation": "Explicit history-updater join to users."
+    },
+    {
+      "child": "payroll_group_status_history",
+      "column": "UpdatedBy",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/payroll_status_helper.php:84",
+      "explanation": "Explicit history-updater join to users."
+    },
+    {
+      "child": "payroll_group_status_history",
+      "column": "CompanyID",
+      "parent": "clientcompany",
+      "key": "CompanyID",
+      "kind": "application_reference",
+      "evidence": "Api/Accounting/update_payroll_group_status.php:51; Api/Helpers/payroll_status_helper.php:108",
+      "explanation": "Company ID validated against submitted DTR/payroll group before insert."
+    },
+    {
+      "child": "payroll_group_status_history",
+      "column": "SiteSupervisorID",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/payroll_status_helper.php:108; Api/Accounting/update_payroll_group_status.php:160",
+      "explanation": "Team Lead ID validated against submitted DTR group; DTR supervisor has an enforced users FK."
+    },
+    {
+      "child": "address_province_lookup",
+      "column": "RegionID",
+      "parent": "address_region_lookup",
+      "key": "RegionID",
+      "kind": "application_reference",
+      "evidence": "Api/Applicant/get_provinces.php:12; sql/psgc_address_hierarchy_migration.sql:23",
+      "explanation": "Region-filtered province lookup; migration documents the hierarchy but does not declare a constraint."
+    },
+    {
+      "child": "psgc_locations",
+      "column": "ParentPSGCCode",
+      "parent": "psgc_locations",
+      "key": "PSGCCode",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/psgc_address.php:38",
+      "explanation": "Parent-child geographic traversal; no forced province for NCR/HUC cities."
+    },
+    {
+      "child": "applicants",
+      "column": "AddressPSGC",
+      "parent": "psgc_locations",
+      "key": "PSGCCode",
+      "kind": "application_reference",
+      "evidence": "Api/Applicant/save_applicant_profile_setup.php:105,324; Api/Helpers/psgc_address.php:50",
+      "explanation": "JSON region/province/city/barangay codes validated against PSGC records. Multi-value application reference, not a scalar FK."
+    },
+    {
+      "child": "system_logs",
+      "column": "user_id",
+      "parent": "users",
+      "key": "UsersID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/AuditLogger.php:14,27",
+      "explanation": "Audit actor is the session user ID. Logger also falls back to applicant_id; that fallback is polymorphic and cannot be an enforced users FK."
+    },
+    {
+      "child": "deployment",
+      "column": "SiteID",
+      "parent": "deployment_sites",
+      "key": "SiteID",
+      "kind": "application_reference",
+      "evidence": "Api/TeamLead/get_tl_attendance_roster.php:78",
+      "explanation": "Explicit deployment-site join."
+    },
+    {
+      "child": "dtr_submissions",
+      "column": "SiteID",
+      "parent": "deployment_sites",
+      "key": "SiteID",
+      "kind": "application_reference",
+      "evidence": "Api/TeamLead/submit_dtr.php:100,130",
+      "explanation": "Authorized SiteID is validated and inserted into DTR submissions."
+    },
+    {
+      "child": "attendance",
+      "column": "EvidenceDeploymentID",
+      "parent": "deployment",
+      "key": "DeploymentID",
+      "kind": "application_reference",
+      "evidence": "Api/Helpers/add_back.php:24",
+      "explanation": "Attendance evidence deployment ID compared against the actual deployment."
+    },
+    {
+      "child": "clientcompany",
+      "column": "Industry",
+      "parent": "industry_lookup",
+      "key": "Name",
+      "kind": "dependency",
+      "evidence": "Js/Admin/admin_dashboard.js:559; Api/Admin/industries.php:61",
+      "explanation": "Industry dropdown stores the selected name as text; not an IndustryID FK."
+    },
+    {
+      "child": "job_order_requests",
+      "column": "WorkSchedule",
+      "parent": "work_schedule_lookup",
+      "key": "Name",
+      "kind": "dependency",
+      "evidence": "Html/TeamLead/request_job_order.html:408; Api/Common/work_schedules.php:62",
+      "explanation": "Work schedule dropdown stores selected name as text and permits custom values; no FK."
+    },
+    {
+      "child": "applicants",
+      "column": "Region",
+      "parent": "address_region_lookup",
+      "key": "Name",
+      "kind": "dependency",
+      "evidence": "Api/Applicant/get_regions.php:7; Js/Applicant/applicant_profile_cascades.js:10,61",
+      "explanation": "Legacy applicant region options API is retained. Current selector uses psgc_locations instead; this is a legacy lookup association, not a current enforced or scalar-ID reference."
+    },
+    {
+      "child": "payroll",
+      "column": "SSSDeduction",
+      "parent": "sss_rates_config",
+      "key": "monthly_salary_credit",
+      "kind": "dependency",
+      "evidence": "Api/Helpers/employee_payroll_helper.php:366,371",
+      "explanation": "Payroll calculation selects an active SSS bracket by salary/MSC; computation dependency, not a stored key."
+    },
+    {
+      "child": "payroll",
+      "column": "PhilHealthDeduction",
+      "parent": "gov_percentage_rates",
+      "key": "philhealth_ee_pct",
+      "kind": "dependency",
+      "evidence": "Api/Helpers/employee_payroll_helper.php:400,403",
+      "explanation": "Payroll calculation reads the government rate configuration; computation dependency, not a stored key."
+    },
+    {
+      "child": "payroll_run_status_history",
+      "column": "PayrollRunID",
+      "parent": "payroll_runs",
+      "key": "PayrollRunID",
+      "kind": "unverified_reference",
+      "evidence": "Installed information_schema metadata; no current PHP/SQL implementation found",
+      "explanation": "Candidate reference suggested by installed schema only. No FK constraint and no application usage found; explicitly unverified."
+    }
+  ],
+  "counts": {
+    "application_reference": 23,
+    "dependency": 5,
+    "unverified_reference": 1
+  },
+  "isolated_tables": [],
+  "connected_component_tables": 67,
+  "enforced_fk_count": 137
+}

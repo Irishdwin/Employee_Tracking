@@ -72,7 +72,7 @@
                             </span>
                         </div>
                         <div class="text-end mt-1">
-                            <a href="#" class="small text-decoration-none" id="forgotPasswordLink">Forgot password / Set up password</a>
+                            <a href="#" class="small text-decoration-none" id="forgotPasswordLink">Forgot password</a>
                         </div>
                     </div>
 
@@ -83,6 +83,7 @@
                             <span class="fw-bold px-1">+</span>
                             <input type="text" id="captchaDenominator" class="form-control shadow-none text-center fw-bold captcha-box" readonly aria-label="Security check denominator">
                             <span class="fw-bold px-1">=</span>
+                            <input type="hidden" name="captcha_challenge_id" id="captchaChallengeId">
                             <input type="text" name="captcha_input" id="captchaInput" class="form-control shadow-none text-center fw-bold captcha-box" placeholder="?" maxlength="3" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required aria-label="Security check answer">
                             <button type="button" class="btn btn-sm btn-light border captcha-refresh-btn" id="refreshCaptchaBtn" title="Refresh captcha" aria-label="Refresh security check">
                                 <i class="bi bi-arrow-clockwise text-primary"></i>
@@ -162,12 +163,12 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="forgotPasswordModalLabel">Set Up or Reset Password</h5>
+                <h5 class="modal-title" id="forgotPasswordModalLabel">Forgot Password</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="forgotPasswordAlert" class="alert d-none" role="alert"></div>
-                <p class="small text-muted">Cannot sign in with a password? Verify your registered email to set one. Google Sign-In remains available.</p>
+                <p class="small text-muted">Verify your registered email to reset your password.</p>
                 <form id="forgotPasswordForm" novalidate>
                     <div class="mb-3">
                         <label class="form-label">Registered Email</label>
@@ -177,9 +178,9 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">4-digit Code</label>
+                        <label class="form-label">6-digit Code</label>
                         <div class="input-group">
-                            <input type="text" id="fpCode" class="form-control" placeholder="Enter code" maxlength="4" inputmode="numeric" autocomplete="one-time-code">
+                            <input type="text" id="fpCode" class="form-control" placeholder="Enter code" maxlength="6" inputmode="numeric" autocomplete="one-time-code">
                             <button type="button" class="btn btn-outline-success" id="btnVerifyResetCode">Verify</button>
                         </div>
                     </div>
@@ -266,7 +267,7 @@
 <script src="Js/Shared/password_strength.js"></script>
 
 <!-- Page Specific JS -->
-<script src="Js/Login/employer_login.js"></script>
+<script src="Js/Login/employer_login.js?v=20261008-reset6"></script>
 
 </body>
 </html>

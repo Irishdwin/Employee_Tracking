@@ -623,7 +623,7 @@ function payroll_compute_period(
     // managed `holidays` table — NOT the flat payroll_ph_holidays_for_range()
     // list above, because computing pay needs the multiplier, not just a
     // yes/no. See Api/Helpers/holidays_helper.php.
-    $holidayDetail = holidays_fetch_for_range($conn, $periodStart, $periodEnd);
+    $holidayDetail = holidays_fetch_for_range($conn, $periodStart, $periodEnd,$employeeId,$deploymentId);
 
     $cursor = new DateTime($periodStart);
     $endDt = new DateTime($periodEnd);
@@ -943,5 +943,5 @@ function payroll_status_label(string $status): array
         return ['label' => 'Released', 'badge' => 'success', 'finalized' => true];
     }
 
-    return ['label' => $s, 'badge' => 'primary', 'finalized' => true];
+    return ['label' => $s, 'badge' => 'primary', 'finalized' => false];
 }

@@ -15,6 +15,7 @@
   
     var holidaysCache = [];
     var loaded = false;
+    var csrfToken = '';
   
     function showAlert(message, type) {
       if (!pageAlert) return;
@@ -98,7 +99,11 @@
           if (!data.success) {
             throw new Error(data.message || 'Failed to load holidays.');
           }
+          csrfToken = data.csrf_token || '';
           holidaysCache = data.holidays || [];
+          var scope = form.querySelector('[name="site_ids"]');
+          if (!scope) { var block = document.createElement('div'); block.className = 'mb-3'; block.innerHTML = '<label class="form-label" for="holiday-site-scope">Applicable deployment sites (local/company holidays)</label><select multiple id="holiday-site-scope" name="site_ids" class="form-select" size="4"></select><div class="form-text">Nationwide holidays apply to everyone. For local holidays, select the applicable sites; without a site selection, the region must match the deployment address.</div>'; form.appendChild(block); scope = block.querySelector('select'); }
+          scope.innerHTML = (data.sites || []).map(function (site) { return '<option value="' + Number(site.SiteID) + '">' + esc(site.company + ' / ' + site.Name) + '</option>'; }).join('');
           loaded = true;
           renderTable(holidaysCache);
         })
@@ -118,6 +123,7 @@
         pay_multiplier: parseFloat(fd.get('pay_multiplier')),
         region: (fd.get('region') || '').trim(),
         is_nationwide: form.querySelector('[name="is_nationwide"]').checked,
+        site_ids: fd.getAll('site_ids').map(Number),
         description: (fd.get('description') || '').trim()
       };
     }
@@ -131,6 +137,7 @@
       form.querySelector('[name="region"]').value = h ? (h.region || '') : '';
       form.querySelector('[name="is_nationwide"]').checked = h ? !!h.is_nationwide : true;
       form.querySelector('[name="description"]').value = h ? (h.description || '') : '';
+      var scope = form.querySelector('[name="site_ids"]'); if (scope) Array.from(scope.options).forEach(function (option) { option.selected = !!h && (h.site_ids || []).indexOf(Number(option.value)) !== -1; });
       if (multiplierInput) delete multiplierInput.dataset.userEdited;
     }
   
@@ -160,7 +167,7 @@
       fetch(API, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Payroll-CSRF': csrfToken },
         body: JSON.stringify(payload)
       })
         .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
@@ -188,7 +195,7 @@
       fetch(API, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Payroll-CSRF': csrfToken },
         body: JSON.stringify({ action: 'delete', id: id })
       })
         .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })

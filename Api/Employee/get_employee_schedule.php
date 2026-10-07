@@ -33,7 +33,7 @@ try {
             $schedules[$date] = team_schedule_public($schedule, $date);
         }
     }
-    echo json_encode(['success' => true, 'schedules' => $schedules, 'holidays' => $e ? employee_calendar_holidays($conn,$start,$end) : [], 'today' => date('Y-m-d')]);
+    echo json_encode(['success' => true, 'schedules' => $schedules, 'holidays' => $e ? employee_calendar_holidays($conn,$start,$end,(int)$e['EmployeeID']) : [], 'today' => date('Y-m-d')]);
 } catch (InvalidArgumentException $e) {
     http_response_code(422); echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 } catch (Throwable $e) {

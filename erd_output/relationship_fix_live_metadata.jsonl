@@ -1,0 +1,1141 @@
+{"table": "address_barangay_lookup", "column": "BarangayID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "address_barangay_lookup", "column": "CityID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "address_barangay_lookup", "column": "Name", "definition": "varchar(120)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "address_barangay_lookup", "column": "PSGCCode", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "address_city_lookup", "column": "CityID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "address_city_lookup", "column": "ProvinceID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "address_city_lookup", "column": "Name", "definition": "varchar(120)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "address_city_lookup", "column": "PSGCCode", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "address_country_lookup", "column": "CountryID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "address_country_lookup", "column": "Name", "definition": "varchar(120)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "address_province_lookup", "column": "ProvinceID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "address_province_lookup", "column": "RegionID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "address_province_lookup", "column": "CountryID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "address_province_lookup", "column": "Name", "definition": "varchar(120)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "address_province_lookup", "column": "PSGCCode", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "address_region_lookup", "column": "RegionID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "address_region_lookup", "column": "PSGCCode", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "address_region_lookup", "column": "Name", "definition": "varchar(150)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "add_back_evidence", "column": "EvidenceID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "add_back_evidence", "column": "RequestID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "add_back_evidence", "column": "EvidenceType", "definition": "varchar(20)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "add_back_evidence", "column": "StorageName", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "add_back_evidence", "column": "MimeType", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "add_back_evidence", "column": "ByteSize", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "add_back_evidence", "column": "Sha256", "definition": "char(64)", "nullable": "NO", "extra": "", "position": 7}
+{"table": "add_back_evidence", "column": "CapturedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 8}
+{"table": "add_back_evidence", "column": "CreatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 9}
+{"table": "add_back_requests", "column": "RequestID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "add_back_requests", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "add_back_requests", "column": "SubmittedBy", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "add_back_requests", "column": "DeploymentID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "add_back_requests", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "add_back_requests", "column": "AttendanceID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "add_back_requests", "column": "WorkDate", "definition": "date", "nullable": "NO", "extra": "", "position": 7}
+{"table": "add_back_requests", "column": "DutyStart", "definition": "datetime", "nullable": "NO", "extra": "", "position": 8}
+{"table": "add_back_requests", "column": "DutyEnd", "definition": "datetime", "nullable": "NO", "extra": "", "position": 9}
+{"table": "add_back_requests", "column": "RequestedHours", "definition": "decimal(6,2)", "nullable": "NO", "extra": "", "position": 10}
+{"table": "add_back_requests", "column": "OriginalHours", "definition": "decimal(6,2)", "nullable": "NO", "extra": "", "position": 11}
+{"table": "add_back_requests", "column": "Reason", "definition": "text", "nullable": "NO", "extra": "", "position": 12}
+{"table": "add_back_requests", "column": "SourceSnapshot", "definition": "longtext", "nullable": "NO", "extra": "", "position": 13}
+{"table": "add_back_requests", "column": "RateSnapshot", "definition": "longtext", "nullable": "YES", "extra": "", "position": 14}
+{"table": "add_back_requests", "column": "StatusID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 15}
+{"table": "add_back_requests", "column": "SubmittedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 16}
+{"table": "add_back_requests", "column": "ReviewedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 17}
+{"table": "add_back_requests", "column": "ReviewedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 18}
+{"table": "add_back_requests", "column": "ReviewRemarks", "definition": "text", "nullable": "YES", "extra": "", "position": 19}
+{"table": "add_back_requests", "column": "ApprovedHours", "definition": "decimal(6,2)", "nullable": "YES", "extra": "", "position": 20}
+{"table": "add_back_requests", "column": "ApprovedAmount", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 21}
+{"table": "add_back_requests", "column": "CalculationSnapshot", "definition": "longtext", "nullable": "YES", "extra": "", "position": 22}
+{"table": "add_back_requests", "column": "TargetStart", "definition": "date", "nullable": "YES", "extra": "", "position": 23}
+{"table": "add_back_requests", "column": "TargetEnd", "definition": "date", "nullable": "YES", "extra": "", "position": 24}
+{"table": "add_back_requests", "column": "Payroll_ID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 25}
+{"table": "applicantdocuments", "column": "DocumentID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "applicantdocuments", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "applicantdocuments", "column": "DocumentationType", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "applicantdocuments", "column": "DocumentPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "applicantdocuments", "column": "UploadedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "applicantdocuments", "column": "VerifiedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "applicantdocuments", "column": "VerifiedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 7}
+{"table": "applicantdocuments", "column": "IsVerified", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "applicantdocuments", "column": "ExpirationDate", "definition": "date", "nullable": "YES", "extra": "", "position": 9}
+{"table": "applicantdocuments", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "applicantdocuments", "column": "Notes", "definition": "text", "nullable": "YES", "extra": "", "position": 11}
+{"table": "applicants", "column": "ApplicantID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "applicants", "column": "UserID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "applicants", "column": "FullName", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "applicants", "column": "Email", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "applicants", "column": "MobileNumber", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "applicants", "column": "Address", "definition": "text", "nullable": "YES", "extra": "", "position": 6}
+{"table": "applicants", "column": "BirthDate", "definition": "date", "nullable": "YES", "extra": "", "position": 7}
+{"table": "applicants", "column": "Gender", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "applicants", "column": "ProfilePhotoPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "applicants", "column": "ProfileCompleted", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "applicants", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 11}
+{"table": "applicants", "column": "FirstName", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "applicants", "column": "LastName", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "applicants", "column": "HomeLocation", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "applicants", "column": "HasRecentExperience", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "applicants", "column": "JobTitle", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "applicants", "column": "CompanyName", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 17}
+{"table": "applicants", "column": "ExperienceStartMonth", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "applicants", "column": "ExperienceStartYear", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "applicants", "column": "ExperienceEndMonth", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 20}
+{"table": "applicants", "column": "ExperienceEndYear", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 21}
+{"table": "applicants", "column": "StillInRole", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 22}
+{"table": "applicants", "column": "PreferredClassification", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 23}
+{"table": "applicants", "column": "PreferredSubClassification", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 24}
+{"table": "applicants", "column": "ProfileVisibility", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 25}
+{"table": "applicants", "column": "ProfileDetailsCompleted", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 26}
+{"table": "applicants", "column": "ProfileVisibilityCompleted", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 27}
+{"table": "applicants", "column": "RegistrationTermsAccepted", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 28}
+{"table": "applicants", "column": "RegistrationTermsAcceptedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 29}
+{"table": "applicants", "column": "ProfileStatus", "definition": "tinyint(4)", "nullable": "NO", "extra": "", "position": 30}
+{"table": "applicants", "column": "JobCategory", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 31}
+{"table": "applicants", "column": "StreetAddress", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 32}
+{"table": "applicants", "column": "City", "definition": "varchar(120)", "nullable": "YES", "extra": "", "position": 33}
+{"table": "applicants", "column": "StateProvince", "definition": "varchar(120)", "nullable": "YES", "extra": "", "position": 34}
+{"table": "applicants", "column": "PostalCode", "definition": "varchar(40)", "nullable": "YES", "extra": "", "position": 35}
+{"table": "applicants", "column": "Country", "definition": "varchar(120)", "nullable": "YES", "extra": "", "position": 36}
+{"table": "applicants", "column": "Barangay", "definition": "varchar(120)", "nullable": "YES", "extra": "", "position": 37}
+{"table": "applicants", "column": "MiddleName", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 38}
+{"table": "applicants", "column": "Suffix", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 39}
+{"table": "applicants", "column": "Region", "definition": "varchar(120)", "nullable": "YES", "extra": "", "position": 40}
+{"table": "applicants", "column": "category_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 41}
+{"table": "applicants", "column": "classification_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 42}
+{"table": "applicants", "column": "sub_classification_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 43}
+{"table": "applicants", "column": "AddressPSGC", "definition": "text", "nullable": "YES", "extra": "", "position": 44}
+{"table": "applicant_profiles", "column": "UserID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 1}
+{"table": "applicant_profiles", "column": "FirstName", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "applicant_profiles", "column": "LastName", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "applicant_profiles", "column": "BirthDate", "definition": "date", "nullable": "YES", "extra": "", "position": 4}
+{"table": "applicant_profiles", "column": "HomeLocation", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "applicant_profiles", "column": "PreferredClassification", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "applicant_profiles", "column": "PreferredSubClassification", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "applicant_profiles", "column": "ProfileDetailsCompleted", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "applicant_profiles", "column": "UpdatedAt", "definition": "timestamp", "nullable": "NO", "extra": "on update current_timestamp()", "position": 9}
+{"table": "applicant_profiles", "column": "preferred_category", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "applicant_profiles", "column": "MiddleName", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "applicant_profiles", "column": "Suffix", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "applicant_uploaded_docs", "column": "DocID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "applicant_uploaded_docs", "column": "ApplicationID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "applicant_uploaded_docs", "column": "ApplicantID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "applicant_uploaded_docs", "column": "DocType", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "applicant_uploaded_docs", "column": "DocCategory", "definition": "varchar(32)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "applicant_uploaded_docs", "column": "FilePath", "definition": "varchar(255)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "applicant_uploaded_docs", "column": "OriginalFileName", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "applicant_uploaded_docs", "column": "FileSize", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "applicant_uploaded_docs", "column": "IsVerified", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "applicant_uploaded_docs", "column": "VerifiedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "applicant_uploaded_docs", "column": "VerifiedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 11}
+{"table": "applicant_uploaded_docs", "column": "UploadedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 12}
+{"table": "application_endorsement_attempts", "column": "AttemptID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "application_endorsement_attempts", "column": "ApplicationID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "application_endorsement_attempts", "column": "AttemptNumber", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "application_endorsement_attempts", "column": "JobOrderID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "application_endorsement_attempts", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "application_endorsement_attempts", "column": "TargetDetailID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "application_endorsement_attempts", "column": "CompanyName", "definition": "varchar(150)", "nullable": "NO", "extra": "", "position": 7}
+{"table": "application_endorsement_attempts", "column": "PositionTitle", "definition": "varchar(255)", "nullable": "NO", "extra": "", "position": 8}
+{"table": "application_endorsement_attempts", "column": "DeploymentSite", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "application_endorsement_attempts", "column": "EndorsedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "application_endorsement_attempts", "column": "EndorsedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 11}
+{"table": "application_endorsement_attempts", "column": "Decision", "definition": "enum('Pending','Approved','Rejected')", "nullable": "NO", "extra": "", "position": 12}
+{"table": "application_endorsement_attempts", "column": "DecidedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "application_endorsement_attempts", "column": "DecidedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 14}
+{"table": "application_endorsement_attempts", "column": "DecisionReason", "definition": "text", "nullable": "YES", "extra": "", "position": 15}
+{"table": "application_endorsement_attempts", "column": "ReendorsementReason", "definition": "text", "nullable": "YES", "extra": "", "position": 16}
+{"table": "application_endorsement_attempts", "column": "LegacySnapshot", "definition": "tinyint(4)", "nullable": "NO", "extra": "", "position": 17}
+{"table": "application_endorsement_attempts", "column": "PendingApplicationID", "definition": "int(11)", "nullable": "YES", "extra": "STORED GENERATED", "position": 18}
+{"table": "attendance", "column": "AttendanceID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "attendance", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "attendance", "column": "Date", "definition": "date", "nullable": "NO", "extra": "", "position": 3}
+{"table": "attendance", "column": "TimeIn", "definition": "datetime", "nullable": "YES", "extra": "", "position": 4}
+{"table": "attendance", "column": "TimeOut", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "attendance", "column": "clockin_latitude", "definition": "decimal(10,8)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "attendance", "column": "clockin_longitude", "definition": "decimal(11,8)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "attendance", "column": "clockout_latitude", "definition": "decimal(10,8)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "attendance", "column": "clockout_longitude", "definition": "decimal(10,8)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "attendance", "column": "gps_accuracy", "definition": "decimal(8,2)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "attendance", "column": "distance_from_site", "definition": "decimal(8,2)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "attendance", "column": "clockin_photo", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "attendance", "column": "clockout_photo", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "attendance", "column": "browser_name", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "attendance", "column": "operating_system", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "attendance", "column": "device_type", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "attendance", "column": "user_agent", "definition": "text", "nullable": "YES", "extra": "", "position": 17}
+{"table": "attendance", "column": "geofence_status", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "attendance", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "attendance", "column": "TotalHours", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 20}
+{"table": "attendance", "column": "DTRSubmissionID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 21}
+{"table": "attendance", "column": "BreakStart", "definition": "datetime", "nullable": "YES", "extra": "", "position": 22}
+{"table": "attendance", "column": "BreakEnd", "definition": "datetime", "nullable": "YES", "extra": "", "position": 23}
+{"table": "attendance", "column": "LateMinutes", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 24}
+{"table": "attendance", "column": "UndertimeMinutes", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 25}
+{"table": "attendance", "column": "IsRestDay", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 26}
+{"table": "attendance", "column": "HolidayID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 27}
+{"table": "attendance", "column": "IsHolidayWork", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 28}
+{"table": "attendance", "column": "HolidayPayRate", "definition": "decimal(4,2)", "nullable": "YES", "extra": "", "position": 29}
+{"table": "attendance", "column": "OvertimeHours", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 30}
+{"table": "attendance", "column": "OvertimePayRate", "definition": "decimal(4,2)", "nullable": "YES", "extra": "", "position": 31}
+{"table": "attendance", "column": "ApprovedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 32}
+{"table": "attendance", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 33}
+{"table": "attendance", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 34}
+{"table": "attendance", "column": "attendance_status", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 35}
+{"table": "attendance", "column": "scheduled_time_in", "definition": "time", "nullable": "YES", "extra": "", "position": 36}
+{"table": "attendance", "column": "scheduled_time_out", "definition": "time", "nullable": "YES", "extra": "", "position": 37}
+{"table": "attendance", "column": "minutes_late", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 38}
+{"table": "attendance", "column": "server_timestamp", "definition": "datetime", "nullable": "YES", "extra": "", "position": 39}
+{"table": "attendance", "column": "EvidenceDeploymentID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 40}
+{"table": "bonus", "column": "BonusID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "bonus", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "bonus", "column": "Payroll_ID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "bonus", "column": "BonusType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "bonus", "column": "Amount", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "bonus", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "bonus", "column": "Description", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "bonus", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "bonus", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "bonus", "column": "CreatedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 10}
+{"table": "cashadvance", "column": "CashAdvanceID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "cashadvance", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "cashadvance", "column": "RequestDate", "definition": "date", "nullable": "YES", "extra": "", "position": 3}
+{"table": "cashadvance", "column": "Amount", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "cashadvance", "column": "Purpose", "definition": "text", "nullable": "YES", "extra": "", "position": 5}
+{"table": "cashadvance", "column": "Approval", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "cashadvance", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "cashadvance", "column": "ApprovedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 8}
+{"table": "cashadvance", "column": "TotalAmount", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "cashadvance", "column": "RemainingBalance", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "cashadvance", "column": "InstallmentAmount", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "cashadvance", "column": "InstallmentCount", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "cashadvance", "column": "PaidInstallments", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "cashadvance", "column": "StartDeductionDate", "definition": "date", "nullable": "YES", "extra": "", "position": 14}
+{"table": "cashadvance", "column": "Payment", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "cashadvance", "column": "Notes", "definition": "text", "nullable": "YES", "extra": "", "position": 16}
+{"table": "cashadvance", "column": "CreatedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 17}
+{"table": "cashadvance", "column": "Payroll_ID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "cashadvancededuction", "column": "DeductionID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "cashadvancededuction", "column": "CashAdvanceID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "cashadvancededuction", "column": "Payroll_ID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "cashadvancededuction", "column": "DeductionAmount", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "cashadvancededuction", "column": "DeductionDate", "definition": "date", "nullable": "YES", "extra": "", "position": 5}
+{"table": "cashadvancededuction", "column": "RemainingBalanceAfter", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "cashadvancededuction", "column": "PayrollPeriod", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "cashadvancededuction", "column": "CreatedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 8}
+{"table": "chat_messages", "column": "MessageID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "chat_messages", "column": "ThreadID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "chat_messages", "column": "SenderUserID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "chat_messages", "column": "MessageText", "definition": "text", "nullable": "NO", "extra": "", "position": 4}
+{"table": "chat_messages", "column": "IsSystemMessage", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "chat_messages", "column": "CreatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 6}
+{"table": "chat_threads", "column": "ThreadID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "chat_threads", "column": "ThreadType", "definition": "varchar(30)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "chat_threads", "column": "RelatedModule", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "chat_threads", "column": "RelatedRecord", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "chat_threads", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "chat_threads", "column": "CreatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 6}
+{"table": "chat_threads", "column": "UpdatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 7}
+{"table": "chat_thread_participants", "column": "ThreadID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 1}
+{"table": "chat_thread_participants", "column": "UserID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "chat_thread_reads", "column": "ThreadID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 1}
+{"table": "chat_thread_reads", "column": "UserID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "chat_thread_reads", "column": "LastReadAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 3}
+{"table": "chat_thread_reads", "column": "LastReadMessageID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "clearance_items", "column": "ClearanceItemID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "clearance_items", "column": "ResignationID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "clearance_items", "column": "ItemName", "definition": "varchar(150)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "clearance_items", "column": "IsCleared", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "clearance_items", "column": "ClearedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "clearance_items", "column": "ClearedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "clearance_items", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "clientcompany", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "clientcompany", "column": "CompanyTypeID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "clientcompany", "column": "Name", "definition": "varchar(150)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "clientcompany", "column": "Address", "definition": "text", "nullable": "YES", "extra": "", "position": 4}
+{"table": "clientcompany", "column": "registered_latitude", "definition": "decimal(10,8)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "clientcompany", "column": "registered_longitude", "definition": "decimal(11,8)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "clientcompany", "column": "geofence_radius", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "clientcompany", "column": "site_registered_at", "definition": "datetime", "nullable": "YES", "extra": "", "position": 8}
+{"table": "clientcompany", "column": "registered_by_tl_id", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "clientcompany", "column": "ContactPerson", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "clientcompany", "column": "ContactNumber", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "clientcompany", "column": "Industry", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "clientcompany", "column": "IsActive", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "clientcompany", "column": "UserID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "clientcompany", "column": "latitude", "definition": "decimal(10,8)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "clientcompany", "column": "longitude", "definition": "decimal(11,8)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "clientcompany", "column": "PayrollType", "definition": "enum('A','B')", "nullable": "NO", "extra": "", "position": 17}
+{"table": "daily_time_records", "column": "id", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "daily_time_records", "column": "employee_id", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "daily_time_records", "column": "team_lead_user_id", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "daily_time_records", "column": "date", "definition": "date", "nullable": "NO", "extra": "", "position": 4}
+{"table": "daily_time_records", "column": "time_in", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "daily_time_records", "column": "break_time", "definition": "datetime", "nullable": "YES", "extra": "", "position": 6}
+{"table": "daily_time_records", "column": "time_out", "definition": "datetime", "nullable": "YES", "extra": "", "position": 7}
+{"table": "daily_time_records", "column": "total_hours_rendered", "definition": "decimal(6,2)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "daily_time_records", "column": "status", "definition": "enum('Absent','Clocked In','On Break','Clocked Out','Late','Present')", "nullable": "NO", "extra": "", "position": 9}
+{"table": "daily_time_records", "column": "qr_scan_count", "definition": "smallint(5) unsigned", "nullable": "NO", "extra": "", "position": 10}
+{"table": "daily_time_records", "column": "created_at", "definition": "datetime", "nullable": "NO", "extra": "", "position": 11}
+{"table": "daily_time_records", "column": "updated_at", "definition": "datetime", "nullable": "NO", "extra": "on update current_timestamp()", "position": 12}
+{"table": "deductions", "column": "DeductionsID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "deductions", "column": "Payroll_ID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "deductions", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "deductions", "column": "DeductionType", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "deductions", "column": "DeductionCategory", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "deductions", "column": "Amount", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "deductions", "column": "DeductionDate", "definition": "date", "nullable": "YES", "extra": "", "position": 7}
+{"table": "deductions", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 8}
+{"table": "deductions", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "deductions", "column": "PeriodStart", "definition": "date", "nullable": "YES", "extra": "", "position": 10}
+{"table": "deductions", "column": "PeriodEnd", "definition": "date", "nullable": "YES", "extra": "", "position": 11}
+{"table": "department", "column": "DepartmentID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "department", "column": "ManagerID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "department", "column": "Budget", "definition": "decimal(15,2)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "department", "column": "Location", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "department", "column": "Description", "definition": "text", "nullable": "YES", "extra": "", "position": 5}
+{"table": "deployment", "column": "DeploymentID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "deployment", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "deployment", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "deployment", "column": "Position", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "deployment", "column": "StartDate", "definition": "date", "nullable": "YES", "extra": "", "position": 5}
+{"table": "deployment", "column": "EndDate", "definition": "date", "nullable": "YES", "extra": "", "position": 6}
+{"table": "deployment", "column": "Location", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "deployment", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "deployment", "column": "DeploymentNotes", "definition": "text", "nullable": "YES", "extra": "", "position": 9}
+{"table": "deployment", "column": "AllowDTRSubmission", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "deployment", "column": "RequiresApproval", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "deployment", "column": "SiteSuperVisorID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "deployment", "column": "ServiceAgreementID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "deployment", "column": "TimeIn", "definition": "time", "nullable": "YES", "extra": "", "position": 14}
+{"table": "deployment", "column": "TimeOut", "definition": "time", "nullable": "YES", "extra": "", "position": 15}
+{"table": "deployment", "column": "BreakDuration", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 16}
+{"table": "deployment", "column": "GracePeriod", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 17}
+{"table": "deployment", "column": "WorkingDays", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "deployment", "column": "ShiftName", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "deployment", "column": "SiteID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 20}
+{"table": "deployment_sites", "column": "SiteID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "deployment_sites", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "deployment_sites", "column": "Name", "definition": "varchar(150)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "deployment_sites", "column": "Address", "definition": "text", "nullable": "YES", "extra": "", "position": 4}
+{"table": "deployment_sites", "column": "TeamLeadID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "deployment_sites", "column": "IsActive", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "deployment_sites", "column": "LegacyDefault", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "deployment_sites", "column": "registered_latitude", "definition": "decimal(10,8)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "deployment_sites", "column": "registered_longitude", "definition": "decimal(11,8)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "deployment_sites", "column": "geofence_radius", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 10}
+{"table": "deployment_sites", "column": "site_registered_at", "definition": "datetime", "nullable": "YES", "extra": "", "position": 11}
+{"table": "deployment_sites", "column": "registered_by_tl_id", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "dtr_submissions", "column": "DTR_SubmissionID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "dtr_submissions", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "dtr_submissions", "column": "DeploymentID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "dtr_submissions", "column": "SiteSupervisorID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "dtr_submissions", "column": "CutoffPeriod", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "dtr_submissions", "column": "CutoffStartDate", "definition": "date", "nullable": "YES", "extra": "", "position": 6}
+{"table": "dtr_submissions", "column": "CutoffEndDate", "definition": "date", "nullable": "YES", "extra": "", "position": 7}
+{"table": "dtr_submissions", "column": "TotalHours", "definition": "decimal(7,2)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "dtr_submissions", "column": "OvertimeHours", "definition": "decimal(7,2)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "dtr_submissions", "column": "TotalOvertimeHours", "definition": "decimal(7,2)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "dtr_submissions", "column": "SubmittedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "dtr_submissions", "column": "ReviewedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "dtr_submissions", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "dtr_submissions", "column": "ApprovalDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 14}
+{"table": "dtr_submissions", "column": "ReviewDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 15}
+{"table": "dtr_submissions", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 16}
+{"table": "dtr_submissions", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 17}
+{"table": "dtr_submissions", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "dtr_submissions", "column": "SiteID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "employee", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "employee", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "employee", "column": "DepartmentID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "employee", "column": "EmployeeNumber", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "employee", "column": "FirstName", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "employee", "column": "LastName", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "employee", "column": "Email", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "employee", "column": "Position", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "employee", "column": "EmployeeType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "employee", "column": "HiredDate", "definition": "date", "nullable": "YES", "extra": "", "position": 10}
+{"table": "employee", "column": "BasicSalary", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "employee", "column": "daily_rate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "employee", "column": "hourly_rate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "employee", "column": "allowance", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 14}
+{"table": "employee", "column": "monthly_salary_credit", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "employee", "column": "IsActive", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "employee", "column": "PayrollType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 17}
+{"table": "employee", "column": "BankName", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "employee", "column": "SSSNumber", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "employee", "column": "PhilHealthNumber", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 20}
+{"table": "employee", "column": "PagIBIGNumber", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 21}
+{"table": "employee", "column": "TINNumber", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 22}
+{"table": "employmentcontract", "column": "EmploymentContractID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "employmentcontract", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "employmentcontract", "column": "ContractNumber", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "employmentcontract", "column": "ContractType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "employmentcontract", "column": "ContractStartDate", "definition": "date", "nullable": "YES", "extra": "", "position": 5}
+{"table": "employmentcontract", "column": "ContractEndDate", "definition": "date", "nullable": "YES", "extra": "", "position": 6}
+{"table": "employmentcontract", "column": "SignedDocumentPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "employmentcontract", "column": "Position", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "employmentcontract", "column": "BasicSalary", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "employmentcontract", "column": "SalaryType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "employmentcontract", "column": "WorkSchedule", "definition": "text", "nullable": "YES", "extra": "", "position": 11}
+{"table": "employmentcontract", "column": "DeploymentTerms", "definition": "text", "nullable": "YES", "extra": "", "position": 12}
+{"table": "employmentcontract", "column": "BenefitsClause", "definition": "text", "nullable": "YES", "extra": "", "position": 13}
+{"table": "employmentcontract", "column": "ResponsibilitiesClause", "definition": "text", "nullable": "YES", "extra": "", "position": 14}
+{"table": "employmentcontract", "column": "TerminationClause", "definition": "text", "nullable": "YES", "extra": "", "position": 15}
+{"table": "employmentcontract", "column": "SignedDate", "definition": "date", "nullable": "YES", "extra": "", "position": 16}
+{"table": "employmentcontract", "column": "WitnessName", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 17}
+{"table": "employmentcontract", "column": "WitnessSignature", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "employmentcontract", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "employmentcontract", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 20}
+{"table": "employmentcontract", "column": "CreatedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 21}
+{"table": "employmentcontract", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 22}
+{"table": "employmentcontract", "column": "ApprovedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 23}
+{"table": "gov_percentage_rates", "column": "id", "definition": "tinyint(3) unsigned", "nullable": "NO", "extra": "", "position": 1}
+{"table": "gov_percentage_rates", "column": "philhealth_ee_pct", "definition": "decimal(6,4)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "gov_percentage_rates", "column": "philhealth_er_pct", "definition": "decimal(6,4)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "gov_percentage_rates", "column": "pagibig_ee_fixed", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "gov_percentage_rates", "column": "pagibig_er_fixed", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "gov_percentage_rates", "column": "updated_at", "definition": "timestamp", "nullable": "NO", "extra": "on update current_timestamp()", "position": 6}
+{"table": "gu_tags", "column": "GUTagID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "gu_tags", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "gu_tags", "column": "DeploymentID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "gu_tags", "column": "TagType", "definition": "enum('Time-In','Time-Out','Overtime-Out')", "nullable": "NO", "extra": "", "position": 4}
+{"table": "gu_tags", "column": "TagDateTime", "definition": "datetime", "nullable": "NO", "extra": "", "position": 5}
+{"table": "gu_tags", "column": "PhotoPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "gu_tags", "column": "Latitude", "definition": "decimal(10,7)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "gu_tags", "column": "Longitude", "definition": "decimal(10,7)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "gu_tags", "column": "LocationAddress", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "gu_tags", "column": "DeviceInfo", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "gu_tags", "column": "IsVerified", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "gu_tags", "column": "VerifiedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "gu_tags", "column": "VerifiedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 13}
+{"table": "gu_tags", "column": "AttendanceID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "gu_tags", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 15}
+{"table": "gu_tags", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 16}
+{"table": "holidays", "column": "HolidayID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "holidays", "column": "HolidayName", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "holidays", "column": "HolidayDate", "definition": "date", "nullable": "NO", "extra": "", "position": 3}
+{"table": "holidays", "column": "HolidayType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "holidays", "column": "PayMultiplier", "definition": "decimal(4,2)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "holidays", "column": "IsNationwide", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "holidays", "column": "Region", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "holidays", "column": "Year", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "holidays", "column": "Description", "definition": "text", "nullable": "YES", "extra": "", "position": 9}
+{"table": "holidays", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 10}
+{"table": "holidays", "column": "UpdatedAt", "definition": "datetime", "nullable": "YES", "extra": "on update current_timestamp()", "position": 11}
+{"table": "industry_lookup", "column": "IndustryID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "industry_lookup", "column": "Name", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "industry_lookup", "column": "CreatedAt", "definition": "timestamp", "nullable": "NO", "extra": "", "position": 3}
+{"table": "joborder", "column": "JobOrderID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "joborder", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "joborder", "column": "Position", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "joborder", "column": "RequiredSkills", "definition": "text", "nullable": "YES", "extra": "", "position": 4}
+{"table": "joborder", "column": "Qualifications", "definition": "text", "nullable": "YES", "extra": "", "position": 5}
+{"table": "joborder", "column": "ID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "joborder", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 7}
+{"table": "joborder", "column": "ServiceAgreementID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "joborder", "column": "RequiredCount", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "joborder", "column": "Location", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "joborder", "column": "WorkSchedule", "definition": "text", "nullable": "YES", "extra": "", "position": 11}
+{"table": "joborder", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "joborder", "column": "RequestDate", "definition": "date", "nullable": "YES", "extra": "", "position": 13}
+{"table": "joborder", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "joborder", "column": "PublishedDate", "definition": "date", "nullable": "YES", "extra": "", "position": 15}
+{"table": "joborder", "column": "JobCategory", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "joborder", "column": "Status", "definition": "enum('Open','Closed')", "nullable": "NO", "extra": "", "position": 17}
+{"table": "joborder", "column": "category_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 18}
+{"table": "joborder", "column": "TimeIn", "definition": "time", "nullable": "YES", "extra": "", "position": 19}
+{"table": "joborder", "column": "TimeOut", "definition": "time", "nullable": "YES", "extra": "", "position": 20}
+{"table": "joborder", "column": "BreakDuration", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 21}
+{"table": "joborder", "column": "GracePeriod", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 22}
+{"table": "joborder", "column": "WorkingDays", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 23}
+{"table": "joborder", "column": "ShiftName", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 24}
+{"table": "joborder", "column": "classification_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 25}
+{"table": "joborder", "column": "sub_classification_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 26}
+{"table": "joborderpositions", "column": "JobOrderPositionID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "joborderpositions", "column": "JobOrderID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "joborderpositions", "column": "Position", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "joborderpositions", "column": "RequiredCount", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "joborderpositions", "column": "FilledCount", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "joborderpositions", "column": "RemainingCount", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "joborderpositions", "column": "QualificationRequirements", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "joborderpositions", "column": "SalaryRates", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "jobrequirements", "column": "JobRequirementsID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "jobrequirements", "column": "JobOrderID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "jobrequirements", "column": "RequirementType", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "jobrequirements", "column": "IsMandatory", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "jobrequirements", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "job_applications", "column": "ApplicationID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "job_applications", "column": "ApplicantID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "job_applications", "column": "JobOrderID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "job_applications", "column": "target_detail_id", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "job_applications", "column": "ApplicationDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "job_applications", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "job_applications", "column": "InterviewDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 7}
+{"table": "job_applications", "column": "InterviewNotes", "definition": "text", "nullable": "YES", "extra": "", "position": 8}
+{"table": "job_applications", "column": "EndorsedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 9}
+{"table": "job_applications", "column": "EndorsedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "job_applications", "column": "ClientApprovalDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 11}
+{"table": "job_applications", "column": "ClientApprovalStatus", "definition": "enum('Pending','Approved','Rejected')", "nullable": "YES", "extra": "", "position": 12}
+{"table": "job_applications", "column": "HiredDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 13}
+{"table": "job_applications", "column": "HiredBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "job_applications", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 15}
+{"table": "job_applications", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 16}
+{"table": "job_categories", "column": "id", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "job_categories", "column": "category_name", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "job_categories", "column": "created_at", "definition": "datetime", "nullable": "NO", "extra": "", "position": 3}
+{"table": "job_categories", "column": "is_active", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "job_classifications", "column": "id", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "job_classifications", "column": "category_id", "definition": "int(10) unsigned", "nullable": "NO", "extra": "", "position": 2}
+{"table": "job_classifications", "column": "classification_name", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "job_classifications", "column": "is_default", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "job_classifications", "column": "is_active", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "job_classifications", "column": "created_at", "definition": "datetime", "nullable": "NO", "extra": "", "position": 6}
+{"table": "job_order_details", "column": "detail_id", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "job_order_details", "column": "RequestID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "job_order_details", "column": "position_title", "definition": "varchar(255)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "job_order_details", "column": "category_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 4}
+{"table": "job_order_details", "column": "job_category", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "job_order_details", "column": "required_workers", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "job_order_details", "column": "deployment_site", "definition": "varchar(255)", "nullable": "NO", "extra": "", "position": 7}
+{"table": "job_order_details", "column": "work_schedule", "definition": "varchar(150)", "nullable": "NO", "extra": "", "position": 8}
+{"table": "job_order_details", "column": "JobOrderID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "job_order_details", "column": "CreatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 10}
+{"table": "job_order_details", "column": "classification_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 11}
+{"table": "job_order_details", "column": "sub_classification_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 12}
+{"table": "job_order_requests", "column": "RequestID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "job_order_requests", "column": "RequestedBy", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "job_order_requests", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "job_order_requests", "column": "Position", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "job_order_requests", "column": "RequiredCount", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "job_order_requests", "column": "Location", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "job_order_requests", "column": "WorkSchedule", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "job_order_requests", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 8}
+{"table": "job_order_requests", "column": "RejectionReason", "definition": "text", "nullable": "YES", "extra": "", "position": 9}
+{"table": "job_order_requests", "column": "IsConsolidated", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 10}
+{"table": "job_order_requests", "column": "Status", "definition": "enum('Pending','Approved','Rejected')", "nullable": "NO", "extra": "", "position": 11}
+{"table": "job_order_requests", "column": "ProcessedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "job_order_requests", "column": "ProcessedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 13}
+{"table": "job_order_requests", "column": "JobOrderID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "job_order_requests", "column": "CreatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 15}
+{"table": "job_order_requests", "column": "JobCategory", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "job_order_requests", "column": "category_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 17}
+{"table": "job_sub_classifications", "column": "id", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "job_sub_classifications", "column": "classification_id", "definition": "int(10) unsigned", "nullable": "NO", "extra": "", "position": 2}
+{"table": "job_sub_classifications", "column": "sub_classification_name", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "job_sub_classifications", "column": "is_active", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "job_sub_classifications", "column": "created_at", "definition": "datetime", "nullable": "NO", "extra": "", "position": 5}
+{"table": "leaves", "column": "LeaveID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "leaves", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "leaves", "column": "LeaveType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "leaves", "column": "StartDate", "definition": "date", "nullable": "YES", "extra": "", "position": 4}
+{"table": "leaves", "column": "EndDate", "definition": "date", "nullable": "YES", "extra": "", "position": 5}
+{"table": "leaves", "column": "TotalDays", "definition": "decimal(4,1)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "leaves", "column": "Reason", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "leaves", "column": "SupportingDocuments", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "leaves", "column": "FiledDate", "definition": "date", "nullable": "YES", "extra": "", "position": 9}
+{"table": "leaves", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "leaves", "column": "ApprovalDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 11}
+{"table": "leaves", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "leaves", "column": "RejectionReason", "definition": "text", "nullable": "YES", "extra": "", "position": 13}
+{"table": "leaves", "column": "AffectsPayroll", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "leaves", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 15}
+{"table": "leaves", "column": "UpdatedAt", "definition": "datetime", "nullable": "YES", "extra": "on update current_timestamp()", "position": 16}
+{"table": "notifications", "column": "NotificationID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "notifications", "column": "UserID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "notifications", "column": "NotificationType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "notifications", "column": "Title", "definition": "varchar(200)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "notifications", "column": "Message", "definition": "text", "nullable": "YES", "extra": "", "position": 5}
+{"table": "notifications", "column": "RelateedModule", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "notifications", "column": "RelatedRecord", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "notifications", "column": "IsRead", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "notifications", "column": "Priority", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "notifications", "column": "DTRReminderKey", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "overtime", "column": "OvertimeID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "overtime", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "overtime", "column": "AttendanceID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "overtime", "column": "DeploymentID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "overtime", "column": "OvertimeDate", "definition": "date", "nullable": "YES", "extra": "", "position": 5}
+{"table": "overtime", "column": "OTStartTime", "definition": "time", "nullable": "YES", "extra": "", "position": 6}
+{"table": "overtime", "column": "OTEndTime", "definition": "time", "nullable": "YES", "extra": "", "position": 7}
+{"table": "overtime", "column": "RegularHours", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "overtime", "column": "OvertimeHours", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "overtime", "column": "NightDiffHours", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "overtime", "column": "OvertimeType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "overtime", "column": "OvertimeRate", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "overtime", "column": "TotalOvertimePay", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "overtime", "column": "RequestedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "overtime", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "overtime", "column": "ApprovalDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 16}
+{"table": "overtime", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 17}
+{"table": "overtime", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 18}
+{"table": "overtime", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 19}
+{"table": "overtime", "column": "UpdatedAt", "definition": "datetime", "nullable": "YES", "extra": "on update current_timestamp()", "position": 20}
+{"table": "payroll", "column": "Payroll_ID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payroll", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "payroll", "column": "PayPeriodStart", "definition": "date", "nullable": "YES", "extra": "", "position": 3}
+{"table": "payroll", "column": "PayPeriodEnd", "definition": "date", "nullable": "YES", "extra": "", "position": 4}
+{"table": "payroll", "column": "TotalDaysWorked", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "payroll", "column": "TotalHoursWorked", "definition": "decimal(7,2)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "payroll", "column": "RegularHours", "definition": "decimal(7,2)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "payroll", "column": "OvertimeHours", "definition": "decimal(7,2)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "payroll", "column": "BasicSalary", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "payroll", "column": "OvertimePay", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "payroll", "column": "NightDifferentialPay", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "payroll", "column": "HolidayPay", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "payroll", "column": "Allowances", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "payroll", "column": "GrossPay", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "payroll", "column": "SSSDeduction", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "payroll", "column": "PhilHealthDeduction", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "payroll", "column": "PagIBIGDeduction", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 17}
+{"table": "payroll", "column": "TaxDeduction", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 18}
+{"table": "payroll", "column": "LoanDeduction", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "payroll", "column": "TotalDeductions", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 20}
+{"table": "payroll", "column": "NetPay", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 21}
+{"table": "payroll", "column": "PaymentDate", "definition": "date", "nullable": "YES", "extra": "", "position": 22}
+{"table": "payroll", "column": "Payment", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 23}
+{"table": "payroll", "column": "ProcessedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 24}
+{"table": "payroll", "column": "ProcessedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 25}
+{"table": "payroll", "column": "PayslipGenerated", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 26}
+{"table": "payroll", "column": "PayslipSent", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 27}
+{"table": "payroll", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 28}
+{"table": "payroll", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 29}
+{"table": "payroll", "column": "HolidayID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 30}
+{"table": "payroll", "column": "SalaryRatesID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 31}
+{"table": "payroll", "column": "DTR_SubmissionID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 32}
+{"table": "payroll", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 33}
+{"table": "payroll_adjustments", "column": "AdjustmentID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payroll_adjustments", "column": "Payroll_ID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 2}
+{"table": "payroll_adjustments", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "payroll_adjustments", "column": "AdjustmentType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "payroll_adjustments", "column": "Amount", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "payroll_adjustments", "column": "IsAddition", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "payroll_adjustments", "column": "Reason", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "payroll_adjustments", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "payroll_adjustments", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "payroll_adjustments", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 10}
+{"table": "payroll_adjustments", "column": "AddBackRequestID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "payroll_audit_log", "column": "LogID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payroll_audit_log", "column": "Payroll_ID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "payroll_audit_log", "column": "Action", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "payroll_audit_log", "column": "PerformedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "payroll_audit_log", "column": "ActionDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "payroll_audit_log", "column": "OldValue", "definition": "text", "nullable": "YES", "extra": "", "position": 6}
+{"table": "payroll_audit_log", "column": "NewValue", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "payroll_audit_log", "column": "IPAddress", "definition": "varchar(45)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "payroll_group_status_history", "column": "PayrollStatusHistoryID", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payroll_group_status_history", "column": "SiteSupervisorID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "payroll_group_status_history", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "payroll_group_status_history", "column": "CutoffStartDate", "definition": "date", "nullable": "NO", "extra": "", "position": 4}
+{"table": "payroll_group_status_history", "column": "CutoffEndDate", "definition": "date", "nullable": "NO", "extra": "", "position": 5}
+{"table": "payroll_group_status_history", "column": "Status", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "payroll_group_status_history", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "payroll_group_status_history", "column": "ProofImagePath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "payroll_group_status_history", "column": "UpdatedBy", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 9}
+{"table": "payroll_group_status_history", "column": "CreatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 10}
+{"table": "payroll_runs", "column": "PayrollRunID", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payroll_runs", "column": "RunCode", "definition": "varchar(32)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "payroll_runs", "column": "CompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "payroll_runs", "column": "PeriodStart", "definition": "date", "nullable": "NO", "extra": "", "position": 4}
+{"table": "payroll_runs", "column": "PeriodEnd", "definition": "date", "nullable": "NO", "extra": "", "position": 5}
+{"table": "payroll_runs", "column": "CutoffLabel", "definition": "varchar(120)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "payroll_runs", "column": "Status", "definition": "varchar(32)", "nullable": "NO", "extra": "", "position": 7}
+{"table": "payroll_runs", "column": "AdminOverheadPct", "definition": "decimal(5,2)", "nullable": "NO", "extra": "", "position": 8}
+{"table": "payroll_runs", "column": "VatPct", "definition": "decimal(5,2)", "nullable": "NO", "extra": "", "position": 9}
+{"table": "payroll_runs", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "payroll_runs", "column": "CreatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 11}
+{"table": "payroll_runs", "column": "ApprovedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 12}
+{"table": "payroll_runs", "column": "BillingRefNo", "definition": "varchar(32)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "payroll_runs", "column": "DeploymentSite", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "payroll_runs", "column": "TotalInvoice", "definition": "decimal(14,2)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "payroll_runs", "column": "CurrentStatus", "definition": "varchar(64)", "nullable": "NO", "extra": "", "position": 16}
+{"table": "payroll_runs", "column": "SiteSupervisorID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 17}
+{"table": "payroll_run_status_history", "column": "HistoryID", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payroll_run_status_history", "column": "PayrollRunID", "definition": "int(10) unsigned", "nullable": "NO", "extra": "", "position": 2}
+{"table": "payroll_run_status_history", "column": "Status", "definition": "varchar(64)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "payroll_run_status_history", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 4}
+{"table": "payroll_run_status_history", "column": "AttachmentPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "payroll_run_status_history", "column": "UpdatedBy", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "payroll_run_status_history", "column": "UpdatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 7}
+{"table": "payroll_status_history", "column": "HistoryID", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payroll_status_history", "column": "PayrollRunID", "definition": "int(10) unsigned", "nullable": "NO", "extra": "", "position": 2}
+{"table": "payroll_status_history", "column": "Status", "definition": "varchar(64)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "payroll_status_history", "column": "Remarks", "definition": "text", "nullable": "YES", "extra": "", "position": 4}
+{"table": "payroll_status_history", "column": "AttachmentPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "payroll_status_history", "column": "UpdatedBy", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "payroll_status_history", "column": "UpdatedAt", "definition": "datetime", "nullable": "NO", "extra": "", "position": 7}
+{"table": "payslip", "column": "PayslipID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "payslip", "column": "Payroll_ID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "payslip", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "payslip", "column": "PayslipNumber", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "payslip", "column": "GeneratedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 5}
+{"table": "payslip", "column": "SentDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 6}
+{"table": "payslip", "column": "ViewedByEmployee", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "payslip", "column": "ViewDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 8}
+{"table": "payslip", "column": "DownloadCount", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "payslip", "column": "LastDownloadDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 10}
+{"table": "payslip", "column": "PDFFilePath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "payslip", "column": "DeliveryMethod", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "payslip", "column": "EmailSent", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "payslip", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 14}
+{"table": "payslip", "column": "UpdatedAt", "definition": "datetime", "nullable": "YES", "extra": "on update current_timestamp()", "position": 15}
+{"table": "performance", "column": "PerformanceID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "performance", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "performance", "column": "ReviewerID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "performance", "column": "ReviewerPeriod", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "performance", "column": "OverallScore", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "performance", "column": "Rating", "definition": "varchar(20)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "performance", "column": "Goals", "definition": "text", "nullable": "YES", "extra": "", "position": 7}
+{"table": "performance", "column": "Achievements", "definition": "text", "nullable": "YES", "extra": "", "position": 8}
+{"table": "psgc_locations", "column": "PSGCCode", "definition": "char(10)", "nullable": "NO", "extra": "", "position": 1}
+{"table": "psgc_locations", "column": "Name", "definition": "varchar(200)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "psgc_locations", "column": "GeographicLevel", "definition": "varchar(8)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "psgc_locations", "column": "ParentPSGCCode", "definition": "char(10)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "psgc_locations", "column": "RegionCode", "definition": "char(10)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "psgc_locations", "column": "ProvinceCode", "definition": "char(10)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "psgc_locations", "column": "CityMunicipalityCode", "definition": "char(10)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "psgc_locations", "column": "CorrespondenceCode", "definition": "char(9)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "psgc_locations", "column": "CityClass", "definition": "varchar(8)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "psgc_locations", "column": "OldNames", "definition": "text", "nullable": "YES", "extra": "", "position": 10}
+{"table": "psgc_locations", "column": "Status", "definition": "varchar(150)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "psgc_locations", "column": "SourceSHA256", "definition": "char(64)", "nullable": "NO", "extra": "", "position": 12}
+{"table": "psgc_locations", "column": "SourceVersion", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 13}
+{"table": "resignationrequest", "column": "ResignationID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "resignationrequest", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "resignationrequest", "column": "SubmissionDate", "definition": "date", "nullable": "YES", "extra": "", "position": 3}
+{"table": "resignationrequest", "column": "EffectiveDate", "definition": "date", "nullable": "YES", "extra": "", "position": 4}
+{"table": "resignationrequest", "column": "ResignationType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "resignationrequest", "column": "Reason", "definition": "text", "nullable": "YES", "extra": "", "position": 6}
+{"table": "resignationrequest", "column": "ClearanceFormPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "resignationrequest", "column": "ClearanceApprovedDate", "definition": "date", "nullable": "YES", "extra": "", "position": 8}
+{"table": "resignationrequest", "column": "QuitclaimDocumentPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "resignationrequest", "column": "QuitclaimSignedDate", "definition": "date", "nullable": "YES", "extra": "", "position": 10}
+{"table": "resignationrequest", "column": "FinalPayAmount", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "resignationrequest", "column": "FinalPayComputationDetails", "definition": "text", "nullable": "YES", "extra": "", "position": 12}
+{"table": "resignationrequest", "column": "FinalPay", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "resignationrequest", "column": "FinalPayDate", "definition": "date", "nullable": "YES", "extra": "", "position": 14}
+{"table": "resignationrequest", "column": "ProcessedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "resignationrequest", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "resignationrequest", "column": "CompletedDate", "definition": "date", "nullable": "YES", "extra": "", "position": 17}
+{"table": "resignationrequest", "column": "Notes", "definition": "text", "nullable": "YES", "extra": "", "position": 18}
+{"table": "resignationrequest", "column": "StatusID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 19}
+{"table": "roles", "column": "RolesID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "roles", "column": "RoleName", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "roles", "column": "Description", "definition": "text", "nullable": "YES", "extra": "", "position": 3}
+{"table": "roles", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 4}
+{"table": "roles", "column": "ModifiedAt", "definition": "datetime", "nullable": "YES", "extra": "on update current_timestamp()", "position": 5}
+{"table": "salary_rates", "column": "SalaryRatesID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "salary_rates", "column": "EmployeeID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "salary_rates", "column": "DeploymentID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "salary_rates", "column": "CompanyID", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "salary_rates", "column": "RateType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 5}
+{"table": "salary_rates", "column": "BasicRate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "salary_rates", "column": "OvertimeRate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "salary_rates", "column": "NightDiffRate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "salary_rates", "column": "HolidayRate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 9}
+{"table": "salary_rates", "column": "EffectiveDate", "definition": "date", "nullable": "YES", "extra": "", "position": 10}
+{"table": "salary_rates", "column": "EndDate", "definition": "date", "nullable": "YES", "extra": "", "position": 11}
+{"table": "salary_rates", "column": "IsActive", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "salary_rates", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 13}
+{"table": "salary_rates", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 14}
+{"table": "salary_rates", "column": "DailyRate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 15}
+{"table": "salary_rates", "column": "HourlyRate", "definition": "decimal(10,2)", "nullable": "YES", "extra": "", "position": 16}
+{"table": "serviceagreement", "column": "ServiceAgreementID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "serviceagreement", "column": "ClientCompanyID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "serviceagreement", "column": "ContractNumber", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "serviceagreement", "column": "ContractStartDate", "definition": "date", "nullable": "YES", "extra": "", "position": 4}
+{"table": "serviceagreement", "column": "ContractEndDate", "definition": "date", "nullable": "YES", "extra": "", "position": 5}
+{"table": "serviceagreement", "column": "Contract", "definition": "text", "nullable": "YES", "extra": "", "position": 6}
+{"table": "serviceagreement", "column": "SignedDocumentPath", "definition": "varchar(255)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "serviceagreement", "column": "BillingTerms", "definition": "text", "nullable": "YES", "extra": "", "position": 8}
+{"table": "serviceagreement", "column": "PaymentTerms", "definition": "text", "nullable": "YES", "extra": "", "position": 9}
+{"table": "serviceagreement", "column": "AgencyFeePercentage", "definition": "decimal(5,2)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "serviceagreement", "column": "CreatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "serviceagreement", "column": "CreatedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 12}
+{"table": "serviceagreement", "column": "ApprovedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 13}
+{"table": "serviceagreement", "column": "ApprovedDate", "definition": "datetime", "nullable": "YES", "extra": "", "position": 14}
+{"table": "serviceagreement", "column": "Notes", "definition": "text", "nullable": "YES", "extra": "", "position": 15}
+{"table": "serviceagreement", "column": "Status", "definition": "enum('Active','Expired')", "nullable": "YES", "extra": "", "position": 16}
+{"table": "serviceagreement", "column": "ContractType", "definition": "enum('Open','Expiring')", "nullable": "NO", "extra": "", "position": 17}
+{"table": "sss_rates_config", "column": "id", "definition": "int(10) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "sss_rates_config", "column": "salary_min", "definition": "decimal(12,2)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "sss_rates_config", "column": "salary_max", "definition": "decimal(12,2)", "nullable": "YES", "extra": "", "position": 3}
+{"table": "sss_rates_config", "column": "monthly_salary_credit", "definition": "decimal(12,2)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "sss_rates_config", "column": "regular_ss_er", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "sss_rates_config", "column": "regular_ss_ee", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "sss_rates_config", "column": "mpf_er", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 7}
+{"table": "sss_rates_config", "column": "mpf_ee", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 8}
+{"table": "sss_rates_config", "column": "ec_er", "definition": "decimal(10,2)", "nullable": "NO", "extra": "", "position": 9}
+{"table": "sss_rates_config", "column": "effective_year", "definition": "smallint(5) unsigned", "nullable": "NO", "extra": "", "position": 10}
+{"table": "sss_rates_config", "column": "is_active", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 11}
+{"table": "sss_rates_config", "column": "created_at", "definition": "timestamp", "nullable": "NO", "extra": "", "position": 12}
+{"table": "sss_rates_config", "column": "updated_at", "definition": "timestamp", "nullable": "NO", "extra": "on update current_timestamp()", "position": 13}
+{"table": "status", "column": "StatusID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "status", "column": "Name", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "systemsettings", "column": "SettingID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "systemsettings", "column": "SettingKey", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "systemsettings", "column": "SettingValue", "definition": "text", "nullable": "YES", "extra": "", "position": 3}
+{"table": "systemsettings", "column": "SettingType", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 4}
+{"table": "systemsettings", "column": "Description", "definition": "text", "nullable": "YES", "extra": "", "position": 5}
+{"table": "systemsettings", "column": "Category", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "systemsettings", "column": "IsEditable", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "systemsettings", "column": "UpdatedBy", "definition": "int(11)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "systemsettings", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 9}
+{"table": "systemsettings", "column": "UpdatedAt", "definition": "datetime", "nullable": "YES", "extra": "on update current_timestamp()", "position": 10}
+{"table": "system_logs", "column": "log_id", "definition": "bigint(20) unsigned", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "system_logs", "column": "user_id", "definition": "int(10) unsigned", "nullable": "YES", "extra": "", "position": 2}
+{"table": "system_logs", "column": "username", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "system_logs", "column": "role", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "system_logs", "column": "module", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "system_logs", "column": "action", "definition": "varchar(50)", "nullable": "NO", "extra": "", "position": 6}
+{"table": "system_logs", "column": "description", "definition": "text", "nullable": "NO", "extra": "", "position": 7}
+{"table": "system_logs", "column": "reference_id", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 8}
+{"table": "system_logs", "column": "ip_address", "definition": "varchar(45)", "nullable": "NO", "extra": "", "position": 9}
+{"table": "system_logs", "column": "browser", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 10}
+{"table": "system_logs", "column": "operating_system", "definition": "varchar(100)", "nullable": "YES", "extra": "", "position": 11}
+{"table": "system_logs", "column": "device", "definition": "varchar(50)", "nullable": "YES", "extra": "", "position": 12}
+{"table": "system_logs", "column": "created_at", "definition": "timestamp", "nullable": "NO", "extra": "", "position": 13}
+{"table": "team_schedule_entries", "column": "ScheduleID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "team_schedule_entries", "column": "DeploymentID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "team_schedule_entries", "column": "EntryKind", "definition": "enum('Dated','FixedHistory')", "nullable": "NO", "extra": "", "position": 3}
+{"table": "team_schedule_entries", "column": "ScheduleDate", "definition": "date", "nullable": "NO", "extra": "", "position": 4}
+{"table": "team_schedule_entries", "column": "ValidUntil", "definition": "date", "nullable": "YES", "extra": "", "position": 5}
+{"table": "team_schedule_entries", "column": "ScheduleType", "definition": "enum('Fixed','Rotating','Flexible')", "nullable": "NO", "extra": "", "position": 6}
+{"table": "team_schedule_entries", "column": "TimeIn", "definition": "time", "nullable": "NO", "extra": "", "position": 7}
+{"table": "team_schedule_entries", "column": "TimeOut", "definition": "time", "nullable": "NO", "extra": "", "position": 8}
+{"table": "team_schedule_entries", "column": "BreakDuration", "definition": "int(10) unsigned", "nullable": "NO", "extra": "", "position": 9}
+{"table": "team_schedule_entries", "column": "GracePeriod", "definition": "int(10) unsigned", "nullable": "NO", "extra": "", "position": 10}
+{"table": "team_schedule_entries", "column": "WorkingDays", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 11}
+{"table": "team_schedule_entries", "column": "ShiftName", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 12}
+{"table": "team_schedule_entries", "column": "UpdatedBy", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 13}
+{"table": "team_schedule_entries", "column": "UpdatedAt", "definition": "datetime", "nullable": "NO", "extra": "on update current_timestamp()", "position": 14}
+{"table": "users", "column": "UsersID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "users", "column": "RoleID", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "users", "column": "FullName", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "users", "column": "Email", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "users", "column": "Password", "definition": "varchar(255)", "nullable": "NO", "extra": "", "position": 5}
+{"table": "users", "column": "LocalPasswordConfigured", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 6}
+{"table": "users", "column": "IsActive", "definition": "tinyint(1)", "nullable": "YES", "extra": "", "position": 7}
+{"table": "users", "column": "LastLogin", "definition": "datetime", "nullable": "YES", "extra": "", "position": 8}
+{"table": "users", "column": "CreatedAt", "definition": "datetime", "nullable": "YES", "extra": "", "position": 9}
+{"table": "users", "column": "MessengerLastActivity", "definition": "bigint(20) unsigned", "nullable": "YES", "extra": "", "position": 10}
+{"table": "work_schedule_lookup", "column": "WorkScheduleID", "definition": "int(11)", "nullable": "NO", "extra": "auto_increment", "position": 1}
+{"table": "work_schedule_lookup", "column": "Name", "definition": "varchar(100)", "nullable": "NO", "extra": "", "position": 2}
+{"table": "work_schedule_lookup", "column": "SortOrder", "definition": "int(11)", "nullable": "NO", "extra": "", "position": 3}
+{"table": "work_schedule_lookup", "column": "IsActive", "definition": "tinyint(1)", "nullable": "NO", "extra": "", "position": 4}
+{"table": "work_schedule_lookup", "column": "CreatedAt", "definition": "timestamp", "nullable": "NO", "extra": "", "position": 5}
+{"table": "address_barangay_lookup", "constraint": "fk_address_barangay_city", "kind": "FOREIGN KEY", "column": "CityID", "position": 1, "parent": "address_city_lookup", "target": "CityID"}
+{"table": "address_barangay_lookup", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "BarangayID", "position": 1, "parent": null, "target": null}
+{"table": "address_barangay_lookup", "constraint": "uniq_barangay_city", "kind": "UNIQUE", "column": "CityID", "position": 1, "parent": null, "target": null}
+{"table": "address_barangay_lookup", "constraint": "uniq_barangay_city", "kind": "UNIQUE", "column": "Name", "position": 2, "parent": null, "target": null}
+{"table": "address_barangay_lookup", "constraint": "uq_barangay_psgc_code", "kind": "UNIQUE", "column": "PSGCCode", "position": 1, "parent": null, "target": null}
+{"table": "address_city_lookup", "constraint": "fk_address_city_province", "kind": "FOREIGN KEY", "column": "ProvinceID", "position": 1, "parent": "address_province_lookup", "target": "ProvinceID"}
+{"table": "address_city_lookup", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "CityID", "position": 1, "parent": null, "target": null}
+{"table": "address_city_lookup", "constraint": "uniq_city_province", "kind": "UNIQUE", "column": "ProvinceID", "position": 1, "parent": null, "target": null}
+{"table": "address_city_lookup", "constraint": "uniq_city_province", "kind": "UNIQUE", "column": "Name", "position": 2, "parent": null, "target": null}
+{"table": "address_city_lookup", "constraint": "uq_city_psgc_code", "kind": "UNIQUE", "column": "PSGCCode", "position": 1, "parent": null, "target": null}
+{"table": "address_country_lookup", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "CountryID", "position": 1, "parent": null, "target": null}
+{"table": "address_country_lookup", "constraint": "uniq_country_name", "kind": "UNIQUE", "column": "Name", "position": 1, "parent": null, "target": null}
+{"table": "address_province_lookup", "constraint": "fk_address_province_country", "kind": "FOREIGN KEY", "column": "CountryID", "position": 1, "parent": "address_country_lookup", "target": "CountryID"}
+{"table": "address_province_lookup", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ProvinceID", "position": 1, "parent": null, "target": null}
+{"table": "address_province_lookup", "constraint": "uniq_province_country", "kind": "UNIQUE", "column": "CountryID", "position": 1, "parent": null, "target": null}
+{"table": "address_province_lookup", "constraint": "uniq_province_country", "kind": "UNIQUE", "column": "Name", "position": 2, "parent": null, "target": null}
+{"table": "address_province_lookup", "constraint": "uq_province_psgc_code", "kind": "UNIQUE", "column": "PSGCCode", "position": 1, "parent": null, "target": null}
+{"table": "address_region_lookup", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "RegionID", "position": 1, "parent": null, "target": null}
+{"table": "address_region_lookup", "constraint": "uq_region_psgc_code", "kind": "UNIQUE", "column": "PSGCCode", "position": 1, "parent": null, "target": null}
+{"table": "add_back_evidence", "constraint": "add_back_evidence_ibfk_1", "kind": "FOREIGN KEY", "column": "RequestID", "position": 1, "parent": "add_back_requests", "target": "RequestID"}
+{"table": "add_back_evidence", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "EvidenceID", "position": 1, "parent": null, "target": null}
+{"table": "add_back_evidence", "constraint": "uq_addback_evidence_type", "kind": "UNIQUE", "column": "RequestID", "position": 1, "parent": null, "target": null}
+{"table": "add_back_evidence", "constraint": "uq_addback_evidence_type", "kind": "UNIQUE", "column": "EvidenceType", "position": 2, "parent": null, "target": null}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_1", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_2", "kind": "FOREIGN KEY", "column": "SubmittedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_3", "kind": "FOREIGN KEY", "column": "DeploymentID", "position": 1, "parent": "deployment", "target": "DeploymentID"}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_4", "kind": "FOREIGN KEY", "column": "CompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_5", "kind": "FOREIGN KEY", "column": "AttendanceID", "position": 1, "parent": "attendance", "target": "AttendanceID"}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_6", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_7", "kind": "FOREIGN KEY", "column": "ReviewedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "add_back_requests", "constraint": "add_back_requests_ibfk_8", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "add_back_requests", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "RequestID", "position": 1, "parent": null, "target": null}
+{"table": "applicantdocuments", "constraint": "fk_ad_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "applicantdocuments", "constraint": "fk_ad_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "applicantdocuments", "constraint": "fk_ad_verifiedby", "kind": "FOREIGN KEY", "column": "VerifiedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "applicantdocuments", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "DocumentID", "position": 1, "parent": null, "target": null}
+{"table": "applicants", "constraint": "fk_app_category", "kind": "FOREIGN KEY", "column": "category_id", "position": 1, "parent": "job_categories", "target": "id"}
+{"table": "applicants", "constraint": "fk_app_classification", "kind": "FOREIGN KEY", "column": "classification_id", "position": 1, "parent": "job_classifications", "target": "id"}
+{"table": "applicants", "constraint": "fk_app_subclassification", "kind": "FOREIGN KEY", "column": "sub_classification_id", "position": 1, "parent": "job_sub_classifications", "target": "id"}
+{"table": "applicants", "constraint": "fk_app_user", "kind": "FOREIGN KEY", "column": "UserID", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "applicants", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ApplicantID", "position": 1, "parent": null, "target": null}
+{"table": "applicant_profiles", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "UserID", "position": 1, "parent": null, "target": null}
+{"table": "applicant_uploaded_docs", "constraint": "fk_aud_applicant", "kind": "FOREIGN KEY", "column": "ApplicantID", "position": 1, "parent": "applicants", "target": "ApplicantID"}
+{"table": "applicant_uploaded_docs", "constraint": "fk_aud_application", "kind": "FOREIGN KEY", "column": "ApplicationID", "position": 1, "parent": "job_applications", "target": "ApplicationID"}
+{"table": "applicant_uploaded_docs", "constraint": "fk_aud_verifiedby", "kind": "FOREIGN KEY", "column": "VerifiedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "applicant_uploaded_docs", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "DocID", "position": 1, "parent": null, "target": null}
+{"table": "application_endorsement_attempts", "constraint": "fk_endorsement_application", "kind": "FOREIGN KEY", "column": "ApplicationID", "position": 1, "parent": "job_applications", "target": "ApplicationID"}
+{"table": "application_endorsement_attempts", "constraint": "fk_endorsement_company", "kind": "FOREIGN KEY", "column": "CompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "application_endorsement_attempts", "constraint": "fk_endorsement_order", "kind": "FOREIGN KEY", "column": "JobOrderID", "position": 1, "parent": "joborder", "target": "JobOrderID"}
+{"table": "application_endorsement_attempts", "constraint": "fk_endorsement_reviewer", "kind": "FOREIGN KEY", "column": "DecidedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "application_endorsement_attempts", "constraint": "fk_endorsement_sender", "kind": "FOREIGN KEY", "column": "EndorsedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "application_endorsement_attempts", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "AttemptID", "position": 1, "parent": null, "target": null}
+{"table": "application_endorsement_attempts", "constraint": "uq_attempt_number", "kind": "UNIQUE", "column": "ApplicationID", "position": 1, "parent": null, "target": null}
+{"table": "application_endorsement_attempts", "constraint": "uq_attempt_number", "kind": "UNIQUE", "column": "AttemptNumber", "position": 2, "parent": null, "target": null}
+{"table": "application_endorsement_attempts", "constraint": "uq_pending_endorsement", "kind": "UNIQUE", "column": "PendingApplicationID", "position": 1, "parent": null, "target": null}
+{"table": "attendance", "constraint": "fk_att_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "attendance", "constraint": "fk_att_dtr", "kind": "FOREIGN KEY", "column": "DTRSubmissionID", "position": 1, "parent": "dtr_submissions", "target": "DTR_SubmissionID"}
+{"table": "attendance", "constraint": "fk_att_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "attendance", "constraint": "fk_att_holiday", "kind": "FOREIGN KEY", "column": "HolidayID", "position": 1, "parent": "holidays", "target": "HolidayID"}
+{"table": "attendance", "constraint": "fk_att_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "attendance", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "AttendanceID", "position": 1, "parent": null, "target": null}
+{"table": "bonus", "constraint": "fk_bon_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "bonus", "constraint": "fk_bon_createdby", "kind": "FOREIGN KEY", "column": "CreatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "bonus", "constraint": "fk_bon_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "bonus", "constraint": "fk_bon_payroll", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "bonus", "constraint": "fk_bon_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "bonus", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "BonusID", "position": 1, "parent": null, "target": null}
+{"table": "cashadvance", "constraint": "fk_ca_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "cashadvance", "constraint": "fk_ca_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "cashadvance", "constraint": "fk_ca_payroll", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "cashadvance", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "CashAdvanceID", "position": 1, "parent": null, "target": null}
+{"table": "cashadvancededuction", "constraint": "fk_cad_cashadvance", "kind": "FOREIGN KEY", "column": "CashAdvanceID", "position": 1, "parent": "cashadvance", "target": "CashAdvanceID"}
+{"table": "cashadvancededuction", "constraint": "fk_cad_payroll", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "cashadvancededuction", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "DeductionID", "position": 1, "parent": null, "target": null}
+{"table": "chat_messages", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "MessageID", "position": 1, "parent": null, "target": null}
+{"table": "chat_threads", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ThreadID", "position": 1, "parent": null, "target": null}
+{"table": "chat_thread_participants", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ThreadID", "position": 1, "parent": null, "target": null}
+{"table": "chat_thread_participants", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "UserID", "position": 2, "parent": null, "target": null}
+{"table": "chat_thread_reads", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ThreadID", "position": 1, "parent": null, "target": null}
+{"table": "chat_thread_reads", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "UserID", "position": 2, "parent": null, "target": null}
+{"table": "clearance_items", "constraint": "fk_ci_clearedby", "kind": "FOREIGN KEY", "column": "ClearedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "clearance_items", "constraint": "fk_ci_resignation", "kind": "FOREIGN KEY", "column": "ResignationID", "position": 1, "parent": "resignationrequest", "target": "ResignationID"}
+{"table": "clearance_items", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ClearanceItemID", "position": 1, "parent": null, "target": null}
+{"table": "clientcompany", "constraint": "fk_company_user", "kind": "FOREIGN KEY", "column": "UserID", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "clientcompany", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "CompanyID", "position": 1, "parent": null, "target": null}
+{"table": "daily_time_records", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "id", "position": 1, "parent": null, "target": null}
+{"table": "daily_time_records", "constraint": "uq_dtr_employee_date", "kind": "UNIQUE", "column": "employee_id", "position": 1, "parent": null, "target": null}
+{"table": "daily_time_records", "constraint": "uq_dtr_employee_date", "kind": "UNIQUE", "column": "date", "position": 2, "parent": null, "target": null}
+{"table": "deductions", "constraint": "fk_ded_createdby", "kind": "FOREIGN KEY", "column": "CreatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "deductions", "constraint": "fk_ded_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "deductions", "constraint": "fk_ded_payroll", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "deductions", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "DeductionsID", "position": 1, "parent": null, "target": null}
+{"table": "department", "constraint": "fk_dept_manager", "kind": "FOREIGN KEY", "column": "ManagerID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "department", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "DepartmentID", "position": 1, "parent": null, "target": null}
+{"table": "deployment", "constraint": "fk_dep_company", "kind": "FOREIGN KEY", "column": "CompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "deployment", "constraint": "fk_dep_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "deployment", "constraint": "fk_dep_sa", "kind": "FOREIGN KEY", "column": "ServiceAgreementID", "position": 1, "parent": "serviceagreement", "target": "ServiceAgreementID"}
+{"table": "deployment", "constraint": "fk_dep_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "deployment", "constraint": "fk_dep_supervisor", "kind": "FOREIGN KEY", "column": "SiteSuperVisorID", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "deployment", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "DeploymentID", "position": 1, "parent": null, "target": null}
+{"table": "deployment_sites", "constraint": "deployment_sites_ibfk_1", "kind": "FOREIGN KEY", "column": "CompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "deployment_sites", "constraint": "deployment_sites_ibfk_2", "kind": "FOREIGN KEY", "column": "TeamLeadID", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "deployment_sites", "constraint": "one_legacy_default", "kind": "UNIQUE", "column": "CompanyID", "position": 1, "parent": null, "target": null}
+{"table": "deployment_sites", "constraint": "one_legacy_default", "kind": "UNIQUE", "column": "LegacyDefault", "position": 2, "parent": null, "target": null}
+{"table": "deployment_sites", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "SiteID", "position": 1, "parent": null, "target": null}
+{"table": "dtr_submissions", "constraint": "fk_dtr_approved", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "dtr_submissions", "constraint": "fk_dtr_deployment", "kind": "FOREIGN KEY", "column": "DeploymentID", "position": 1, "parent": "deployment", "target": "DeploymentID"}
+{"table": "dtr_submissions", "constraint": "fk_dtr_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "dtr_submissions", "constraint": "fk_dtr_reviewed", "kind": "FOREIGN KEY", "column": "ReviewedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "dtr_submissions", "constraint": "fk_dtr_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "dtr_submissions", "constraint": "fk_dtr_submitted", "kind": "FOREIGN KEY", "column": "SubmittedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "dtr_submissions", "constraint": "fk_dtr_supervisor", "kind": "FOREIGN KEY", "column": "SiteSupervisorID", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "dtr_submissions", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "DTR_SubmissionID", "position": 1, "parent": null, "target": null}
+{"table": "employee", "constraint": "Email", "kind": "UNIQUE", "column": "Email", "position": 1, "parent": null, "target": null}
+{"table": "employee", "constraint": "EmployeeNumber", "kind": "UNIQUE", "column": "EmployeeNumber", "position": 1, "parent": null, "target": null}
+{"table": "employee", "constraint": "fk_emp_department", "kind": "FOREIGN KEY", "column": "DepartmentID", "position": 1, "parent": "department", "target": "DepartmentID"}
+{"table": "employee", "constraint": "fk_emp_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "employee", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "EmployeeID", "position": 1, "parent": null, "target": null}
+{"table": "employmentcontract", "constraint": "fk_ec_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "employmentcontract", "constraint": "fk_ec_createdby", "kind": "FOREIGN KEY", "column": "CreatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "employmentcontract", "constraint": "fk_ec_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "employmentcontract", "constraint": "fk_ec_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "employmentcontract", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "EmploymentContractID", "position": 1, "parent": null, "target": null}
+{"table": "gov_percentage_rates", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "id", "position": 1, "parent": null, "target": null}
+{"table": "gu_tags", "constraint": "fk_gt_attendance", "kind": "FOREIGN KEY", "column": "AttendanceID", "position": 1, "parent": "attendance", "target": "AttendanceID"}
+{"table": "gu_tags", "constraint": "fk_gt_deployment", "kind": "FOREIGN KEY", "column": "DeploymentID", "position": 1, "parent": "deployment", "target": "DeploymentID"}
+{"table": "gu_tags", "constraint": "fk_gt_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "gu_tags", "constraint": "fk_gt_verifiedby", "kind": "FOREIGN KEY", "column": "VerifiedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "gu_tags", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "GUTagID", "position": 1, "parent": null, "target": null}
+{"table": "holidays", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "HolidayID", "position": 1, "parent": null, "target": null}
+{"table": "industry_lookup", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "IndustryID", "position": 1, "parent": null, "target": null}
+{"table": "industry_lookup", "constraint": "uniq_industry_name", "kind": "UNIQUE", "column": "Name", "position": 1, "parent": null, "target": null}
+{"table": "joborder", "constraint": "fk_jo_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "joborder", "constraint": "fk_jo_classification", "kind": "FOREIGN KEY", "column": "classification_id", "position": 1, "parent": "job_classifications", "target": "id"}
+{"table": "joborder", "constraint": "fk_jo_company", "kind": "FOREIGN KEY", "column": "CompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "joborder", "constraint": "fk_jo_createdby", "kind": "FOREIGN KEY", "column": "CreatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "joborder", "constraint": "fk_jo_sa", "kind": "FOREIGN KEY", "column": "ServiceAgreementID", "position": 1, "parent": "serviceagreement", "target": "ServiceAgreementID"}
+{"table": "joborder", "constraint": "fk_jo_subclassification", "kind": "FOREIGN KEY", "column": "sub_classification_id", "position": 1, "parent": "job_sub_classifications", "target": "id"}
+{"table": "joborder", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "JobOrderID", "position": 1, "parent": null, "target": null}
+{"table": "joborderpositions", "constraint": "fk_jop_joborder", "kind": "FOREIGN KEY", "column": "JobOrderID", "position": 1, "parent": "joborder", "target": "JobOrderID"}
+{"table": "joborderpositions", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "JobOrderPositionID", "position": 1, "parent": null, "target": null}
+{"table": "jobrequirements", "constraint": "fk_jr_joborder", "kind": "FOREIGN KEY", "column": "JobOrderID", "position": 1, "parent": "joborder", "target": "JobOrderID"}
+{"table": "jobrequirements", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "JobRequirementsID", "position": 1, "parent": null, "target": null}
+{"table": "job_applications", "constraint": "fk_app_target_detail", "kind": "FOREIGN KEY", "column": "target_detail_id", "position": 1, "parent": "job_order_details", "target": "detail_id"}
+{"table": "job_applications", "constraint": "fk_ja_applicant", "kind": "FOREIGN KEY", "column": "ApplicantID", "position": 1, "parent": "applicants", "target": "ApplicantID"}
+{"table": "job_applications", "constraint": "fk_ja_endorsed", "kind": "FOREIGN KEY", "column": "EndorsedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "job_applications", "constraint": "fk_ja_hired", "kind": "FOREIGN KEY", "column": "HiredBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "job_applications", "constraint": "fk_ja_joborder", "kind": "FOREIGN KEY", "column": "JobOrderID", "position": 1, "parent": "joborder", "target": "JobOrderID"}
+{"table": "job_applications", "constraint": "fk_ja_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "job_applications", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ApplicationID", "position": 1, "parent": null, "target": null}
+{"table": "job_categories", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "id", "position": 1, "parent": null, "target": null}
+{"table": "job_categories", "constraint": "uq_job_categories_name", "kind": "UNIQUE", "column": "category_name", "position": 1, "parent": null, "target": null}
+{"table": "job_classifications", "constraint": "fk_classification_category", "kind": "FOREIGN KEY", "column": "category_id", "position": 1, "parent": "job_categories", "target": "id"}
+{"table": "job_classifications", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "id", "position": 1, "parent": null, "target": null}
+{"table": "job_classifications", "constraint": "uq_classification_per_category", "kind": "UNIQUE", "column": "category_id", "position": 1, "parent": null, "target": null}
+{"table": "job_classifications", "constraint": "uq_classification_per_category", "kind": "UNIQUE", "column": "classification_name", "position": 2, "parent": null, "target": null}
+{"table": "job_order_details", "constraint": "fk_jod_classification", "kind": "FOREIGN KEY", "column": "classification_id", "position": 1, "parent": "job_classifications", "target": "id"}
+{"table": "job_order_details", "constraint": "fk_jod_request", "kind": "FOREIGN KEY", "column": "RequestID", "position": 1, "parent": "job_order_requests", "target": "RequestID"}
+{"table": "job_order_details", "constraint": "fk_jod_subclassification", "kind": "FOREIGN KEY", "column": "sub_classification_id", "position": 1, "parent": "job_sub_classifications", "target": "id"}
+{"table": "job_order_details", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "detail_id", "position": 1, "parent": null, "target": null}
+{"table": "job_order_requests", "constraint": "fk_jor_company", "kind": "FOREIGN KEY", "column": "CompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "job_order_requests", "constraint": "fk_jor_processed", "kind": "FOREIGN KEY", "column": "ProcessedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "job_order_requests", "constraint": "fk_jor_requested", "kind": "FOREIGN KEY", "column": "RequestedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "job_order_requests", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "RequestID", "position": 1, "parent": null, "target": null}
+{"table": "job_sub_classifications", "constraint": "fk_subclass_classification", "kind": "FOREIGN KEY", "column": "classification_id", "position": 1, "parent": "job_classifications", "target": "id"}
+{"table": "job_sub_classifications", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "id", "position": 1, "parent": null, "target": null}
+{"table": "job_sub_classifications", "constraint": "uq_subclass_per_classification", "kind": "UNIQUE", "column": "classification_id", "position": 1, "parent": null, "target": null}
+{"table": "job_sub_classifications", "constraint": "uq_subclass_per_classification", "kind": "UNIQUE", "column": "sub_classification_name", "position": 2, "parent": null, "target": null}
+{"table": "leaves", "constraint": "fk_lv_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "leaves", "constraint": "fk_lv_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "leaves", "constraint": "fk_lv_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "leaves", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "LeaveID", "position": 1, "parent": null, "target": null}
+{"table": "notifications", "constraint": "fk_notif_user", "kind": "FOREIGN KEY", "column": "UserID", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "notifications", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "NotificationID", "position": 1, "parent": null, "target": null}
+{"table": "notifications", "constraint": "uq_dtr_reminder", "kind": "UNIQUE", "column": "DTRReminderKey", "position": 1, "parent": null, "target": null}
+{"table": "overtime", "constraint": "fk_ot_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "overtime", "constraint": "fk_ot_attendance", "kind": "FOREIGN KEY", "column": "AttendanceID", "position": 1, "parent": "attendance", "target": "AttendanceID"}
+{"table": "overtime", "constraint": "fk_ot_deployment", "kind": "FOREIGN KEY", "column": "DeploymentID", "position": 1, "parent": "deployment", "target": "DeploymentID"}
+{"table": "overtime", "constraint": "fk_ot_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "overtime", "constraint": "fk_ot_requestedby", "kind": "FOREIGN KEY", "column": "RequestedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "overtime", "constraint": "fk_ot_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "overtime", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "OvertimeID", "position": 1, "parent": null, "target": null}
+{"table": "overtime", "constraint": "uq_overtime_employee_date_range", "kind": "UNIQUE", "column": "EmployeeID", "position": 1, "parent": null, "target": null}
+{"table": "overtime", "constraint": "uq_overtime_employee_date_range", "kind": "UNIQUE", "column": "OvertimeDate", "position": 2, "parent": null, "target": null}
+{"table": "overtime", "constraint": "uq_overtime_employee_date_range", "kind": "UNIQUE", "column": "OTStartTime", "position": 3, "parent": null, "target": null}
+{"table": "overtime", "constraint": "uq_overtime_employee_date_range", "kind": "UNIQUE", "column": "OTEndTime", "position": 4, "parent": null, "target": null}
+{"table": "payroll", "constraint": "fk_pay_dtr", "kind": "FOREIGN KEY", "column": "DTR_SubmissionID", "position": 1, "parent": "dtr_submissions", "target": "DTR_SubmissionID"}
+{"table": "payroll", "constraint": "fk_pay_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "payroll", "constraint": "fk_pay_holiday", "kind": "FOREIGN KEY", "column": "HolidayID", "position": 1, "parent": "holidays", "target": "HolidayID"}
+{"table": "payroll", "constraint": "fk_pay_processedby", "kind": "FOREIGN KEY", "column": "ProcessedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "payroll", "constraint": "fk_pay_salaryrate", "kind": "FOREIGN KEY", "column": "SalaryRatesID", "position": 1, "parent": "salary_rates", "target": "SalaryRatesID"}
+{"table": "payroll", "constraint": "fk_pay_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "payroll", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "Payroll_ID", "position": 1, "parent": null, "target": null}
+{"table": "payroll_adjustments", "constraint": "fk_pa_addback_request", "kind": "FOREIGN KEY", "column": "AddBackRequestID", "position": 1, "parent": "add_back_requests", "target": "RequestID"}
+{"table": "payroll_adjustments", "constraint": "fk_pa_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "payroll_adjustments", "constraint": "fk_pa_createdby", "kind": "FOREIGN KEY", "column": "CreatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "payroll_adjustments", "constraint": "fk_pa_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "payroll_adjustments", "constraint": "fk_pa_payroll", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "payroll_adjustments", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "AdjustmentID", "position": 1, "parent": null, "target": null}
+{"table": "payroll_adjustments", "constraint": "uq_adjustment_addback", "kind": "UNIQUE", "column": "AddBackRequestID", "position": 1, "parent": null, "target": null}
+{"table": "payroll_audit_log", "constraint": "fk_pal_payroll", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "payroll_audit_log", "constraint": "fk_pal_performedby", "kind": "FOREIGN KEY", "column": "PerformedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "payroll_audit_log", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "LogID", "position": 1, "parent": null, "target": null}
+{"table": "payroll_group_status_history", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "PayrollStatusHistoryID", "position": 1, "parent": null, "target": null}
+{"table": "payroll_runs", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "PayrollRunID", "position": 1, "parent": null, "target": null}
+{"table": "payroll_runs", "constraint": "uk_payroll_runs_code", "kind": "UNIQUE", "column": "RunCode", "position": 1, "parent": null, "target": null}
+{"table": "payroll_run_status_history", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "HistoryID", "position": 1, "parent": null, "target": null}
+{"table": "payroll_status_history", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "HistoryID", "position": 1, "parent": null, "target": null}
+{"table": "payslip", "constraint": "fk_ps_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "payslip", "constraint": "fk_ps_payroll", "kind": "FOREIGN KEY", "column": "Payroll_ID", "position": 1, "parent": "payroll", "target": "Payroll_ID"}
+{"table": "payslip", "constraint": "Payroll_ID", "kind": "UNIQUE", "column": "Payroll_ID", "position": 1, "parent": null, "target": null}
+{"table": "payslip", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "PayslipID", "position": 1, "parent": null, "target": null}
+{"table": "performance", "constraint": "fk_perf_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "performance", "constraint": "fk_perf_reviewer", "kind": "FOREIGN KEY", "column": "ReviewerID", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "performance", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "PerformanceID", "position": 1, "parent": null, "target": null}
+{"table": "psgc_locations", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "PSGCCode", "position": 1, "parent": null, "target": null}
+{"table": "resignationrequest", "constraint": "fk_rr_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "resignationrequest", "constraint": "fk_rr_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "resignationrequest", "constraint": "fk_rr_processedby", "kind": "FOREIGN KEY", "column": "ProcessedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "resignationrequest", "constraint": "fk_rr_status", "kind": "FOREIGN KEY", "column": "StatusID", "position": 1, "parent": "status", "target": "StatusID"}
+{"table": "resignationrequest", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ResignationID", "position": 1, "parent": null, "target": null}
+{"table": "roles", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "RolesID", "position": 1, "parent": null, "target": null}
+{"table": "salary_rates", "constraint": "fk_sr_company", "kind": "FOREIGN KEY", "column": "CompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "salary_rates", "constraint": "fk_sr_createdby", "kind": "FOREIGN KEY", "column": "CreatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "salary_rates", "constraint": "fk_sr_deployment", "kind": "FOREIGN KEY", "column": "DeploymentID", "position": 1, "parent": "deployment", "target": "DeploymentID"}
+{"table": "salary_rates", "constraint": "fk_sr_employee", "kind": "FOREIGN KEY", "column": "EmployeeID", "position": 1, "parent": "employee", "target": "EmployeeID"}
+{"table": "salary_rates", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "SalaryRatesID", "position": 1, "parent": null, "target": null}
+{"table": "serviceagreement", "constraint": "fk_sa_approvedby", "kind": "FOREIGN KEY", "column": "ApprovedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "serviceagreement", "constraint": "fk_sa_company", "kind": "FOREIGN KEY", "column": "ClientCompanyID", "position": 1, "parent": "clientcompany", "target": "CompanyID"}
+{"table": "serviceagreement", "constraint": "fk_sa_createdby", "kind": "FOREIGN KEY", "column": "CreatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "serviceagreement", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ServiceAgreementID", "position": 1, "parent": null, "target": null}
+{"table": "sss_rates_config", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "id", "position": 1, "parent": null, "target": null}
+{"table": "status", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "StatusID", "position": 1, "parent": null, "target": null}
+{"table": "systemsettings", "constraint": "fk_settings_user", "kind": "FOREIGN KEY", "column": "UpdatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "systemsettings", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "SettingID", "position": 1, "parent": null, "target": null}
+{"table": "systemsettings", "constraint": "SettingKey", "kind": "UNIQUE", "column": "SettingKey", "position": 1, "parent": null, "target": null}
+{"table": "system_logs", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "log_id", "position": 1, "parent": null, "target": null}
+{"table": "team_schedule_entries", "constraint": "fk_team_schedule_deployment", "kind": "FOREIGN KEY", "column": "DeploymentID", "position": 1, "parent": "deployment", "target": "DeploymentID"}
+{"table": "team_schedule_entries", "constraint": "fk_team_schedule_updated_by", "kind": "FOREIGN KEY", "column": "UpdatedBy", "position": 1, "parent": "users", "target": "UsersID"}
+{"table": "team_schedule_entries", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "ScheduleID", "position": 1, "parent": null, "target": null}
+{"table": "team_schedule_entries", "constraint": "uq_team_schedule_date", "kind": "UNIQUE", "column": "DeploymentID", "position": 1, "parent": null, "target": null}
+{"table": "team_schedule_entries", "constraint": "uq_team_schedule_date", "kind": "UNIQUE", "column": "ScheduleDate", "position": 2, "parent": null, "target": null}
+{"table": "team_schedule_entries", "constraint": "uq_team_schedule_date", "kind": "UNIQUE", "column": "EntryKind", "position": 3, "parent": null, "target": null}
+{"table": "users", "constraint": "Email", "kind": "UNIQUE", "column": "Email", "position": 1, "parent": null, "target": null}
+{"table": "users", "constraint": "fk_users_role", "kind": "FOREIGN KEY", "column": "RoleID", "position": 1, "parent": "roles", "target": "RolesID"}
+{"table": "users", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "UsersID", "position": 1, "parent": null, "target": null}
+{"table": "work_schedule_lookup", "constraint": "PRIMARY", "kind": "PRIMARY KEY", "column": "WorkScheduleID", "position": 1, "parent": null, "target": null}
+{"table": "work_schedule_lookup", "constraint": "uniq_work_schedule_name", "kind": "UNIQUE", "column": "Name", "position": 1, "parent": null, "target": null}
+{"base_table": "address_barangay_lookup"}
+{"base_table": "address_city_lookup"}
+{"base_table": "address_country_lookup"}
+{"base_table": "address_province_lookup"}
+{"base_table": "address_region_lookup"}
+{"base_table": "add_back_evidence"}
+{"base_table": "add_back_requests"}
+{"base_table": "applicantdocuments"}
+{"base_table": "applicants"}
+{"base_table": "applicant_profiles"}
+{"base_table": "applicant_uploaded_docs"}
+{"base_table": "application_endorsement_attempts"}
+{"base_table": "attendance"}
+{"base_table": "bonus"}
+{"base_table": "cashadvance"}
+{"base_table": "cashadvancededuction"}
+{"base_table": "chat_messages"}
+{"base_table": "chat_threads"}
+{"base_table": "chat_thread_participants"}
+{"base_table": "chat_thread_reads"}
+{"base_table": "clearance_items"}
+{"base_table": "clientcompany"}
+{"base_table": "daily_time_records"}
+{"base_table": "deductions"}
+{"base_table": "department"}
+{"base_table": "deployment"}
+{"base_table": "deployment_sites"}
+{"base_table": "dtr_submissions"}
+{"base_table": "employee"}
+{"base_table": "employmentcontract"}
+{"base_table": "gov_percentage_rates"}
+{"base_table": "gu_tags"}
+{"base_table": "holidays"}
+{"base_table": "industry_lookup"}
+{"base_table": "joborder"}
+{"base_table": "joborderpositions"}
+{"base_table": "jobrequirements"}
+{"base_table": "job_applications"}
+{"base_table": "job_categories"}
+{"base_table": "job_classifications"}
+{"base_table": "job_order_details"}
+{"base_table": "job_order_requests"}
+{"base_table": "job_sub_classifications"}
+{"base_table": "leaves"}
+{"base_table": "notifications"}
+{"base_table": "overtime"}
+{"base_table": "payroll"}
+{"base_table": "payroll_adjustments"}
+{"base_table": "payroll_audit_log"}
+{"base_table": "payroll_group_status_history"}
+{"base_table": "payroll_runs"}
+{"base_table": "payroll_run_status_history"}
+{"base_table": "payroll_status_history"}
+{"base_table": "payslip"}
+{"base_table": "performance"}
+{"base_table": "psgc_locations"}
+{"base_table": "resignationrequest"}
+{"base_table": "roles"}
+{"base_table": "salary_rates"}
+{"base_table": "serviceagreement"}
+{"base_table": "sss_rates_config"}
+{"base_table": "status"}
+{"base_table": "systemsettings"}
+{"base_table": "system_logs"}
+{"base_table": "team_schedule_entries"}
+{"base_table": "users"}
+{"base_table": "work_schedule_lookup"}

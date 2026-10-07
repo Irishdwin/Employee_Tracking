@@ -80,9 +80,9 @@ function client_billing_render_spreadsheet(array $export): Spreadsheet
 
     foreach ($export['rows'] as $rowData) {
         $sheet->setCellValue('A' . $rowIndex, $seq);
-        $sheet->setCellValue('B' . $rowIndex, strtoupper((string)($rowData['employee_name'] ?? '')));
-        $sheet->setCellValue('C' . $rowIndex, strtoupper((string)($rowData['designation'] ?? '')));
-        $sheet->setCellValue('D' . $rowIndex, strtoupper((string)($rowData['area_site'] ?? '')));
+        $sheet->setCellValueExplicit('B' . $rowIndex, strtoupper((string)($rowData['employee_name'] ?? '')), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('C' . $rowIndex, strtoupper((string)($rowData['designation'] ?? '')), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('D' . $rowIndex, strtoupper((string)($rowData['area_site'] ?? '')), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
 
         $sheet->setCellValue('E' . $rowIndex, (float)($rowData['daily_rate'] ?? 0));
         $sheet->setCellValue('F' . $rowIndex, (float)($rowData['days_worked'] ?? 0));
@@ -140,7 +140,7 @@ function client_billing_render_spreadsheet(array $export): Spreadsheet
         $sheet->setCellValue('AT' . $rowIndex, (float)($rowData['thirteenth_month_accrual'] ?? 0));
         $sheet->setCellValue('AU' . $rowIndex, (float)($rowData['admin_overhead_amount'] ?? 0));
         $sheet->setCellValue('AV' . $rowIndex, '=AS' . $rowIndex . '+AT' . $rowIndex . '+AU' . $rowIndex);
-        $sheet->setCellValue('AW' . $rowIndex, '=AD' . $rowIndex . '+AS' . $rowIndex . '+AT' . $rowIndex . '+AU' . $rowIndex);
+        $sheet->setCellValue('AW' . $rowIndex, (float)($rowData['grand_total_invoice'] ?? 0));
 
         // Represent the production engine's computed values without recalculating
         // payroll from rounded display quantities (for example fractional days).
@@ -152,6 +152,11 @@ function client_billing_render_spreadsheet(array $export): Spreadsheet
         if(isset($rowData['gross_payroll'],$rowData['gross_salary']))
             $sheet->setCellValue('AA'.$rowIndex,round((float)$rowData['gross_payroll']-(float)$rowData['gross_salary'],2));
 
+        // Preserve confirmed imported inputs and server-reconciled totals in future exports.
+        if(function_exists('billing_apply_components'))foreach(BILLING_EDITABLE_COLUMNS as $column=>$field) {
+            if(!empty($rowData['billing_overrides'][$field]) && array_key_exists($field,$rowData))
+                $sheet->setCellValueExplicit($column.$rowIndex,$rowData[$field],in_array($field,BILLING_TEXT_FIELDS,true)?\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING:\PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+        }
         $rowIndex++;
         $seq++;
     }

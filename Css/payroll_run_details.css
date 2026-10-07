@@ -1,0 +1,39 @@
+#billingRunDetails .modal-dialog{max-width:1250px;width:calc(100% - 32px);margin:24px auto}
+#billingRunDetails .modal-content{border:0;border-radius:16px;overflow:hidden;color:#172e4d}
+#billingRunDetails .modal-header{background:#eef5ff;padding:20px 24px}
+#billingRunDetails .modal-title{font-size:21px;font-weight:700}
+#billingRunDetails .modal-body{padding:24px;background:#f8fafc}
+#billingRunDetails .prd-summary{display:grid;grid-template-columns:1fr 1fr;gap:24px;background:white;border:1px solid #dce5f0;border-radius:12px;padding:22px;margin-bottom:18px}
+#billingRunDetails .prd-eyebrow{font-size:12px;text-transform:uppercase;color:#64748b;font-weight:700;letter-spacing:.05em}
+#billingRunDetails h2{font-size:21px;font-weight:700;margin:6px 0;overflow-wrap:anywhere}
+#billingRunDetails h3{font-size:18px;font-weight:700;margin:0 0 6px}
+#billingRunDetails p{margin:6px 0 0}
+#billingRunDetails dl{margin:0}
+#billingRunDetails dl>div{margin-bottom:12px}
+#billingRunDetails dt{font-size:12px;color:#64748b;font-weight:600}
+#billingRunDetails dd{margin:3px 0 0;font-size:14px;font-weight:600}
+#billingRunDetails .prd-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+#billingRunDetails .prd-note{padding:16px 18px;border-left:4px solid #0284c7;background:#eaf6ff;border-radius:8px;margin-bottom:16px;font-size:14px}
+#billingRunDetails .prd-warning{background:#fff8e8;border-color:#d97706}
+#billingRunDetails .prd-section{margin:26px 0}
+#billingRunDetails .prd-help{font-size:13px;color:#52647a;margin:0 0 14px;line-height:1.6}
+#billingRunDetails .prd-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+#billingRunDetails .prd-metric{background:white;border:1px solid #dce5f0;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:7px}
+#billingRunDetails .prd-metric span{font-size:13px;font-weight:600;color:#52647a}
+#billingRunDetails .prd-metric strong{font-size:23px;overflow-wrap:anywhere}
+#billingRunDetails .prd-metric small{font-size:12px;color:#64748b}
+#billingRunDetails .prd-primary{background:#eaf3ff;border-color:#a9c9f1}
+#billingRunDetails .prd-table{overflow:auto;max-height:380px;border:1px solid #dce5f0;border-radius:10px;background:white}
+#billingRunDetails table{width:100%;min-width:1700px;border-collapse:separate;border-spacing:0;font-size:13px}
+#billingRunDetails th,#billingRunDetails td{padding:14px 16px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+#billingRunDetails thead th{position:sticky;top:0;background:#eaf1fa;font-weight:700;white-space:nowrap;z-index:2}
+#billingRunDetails tbody th{min-width:190px}
+#billingRunDetails th small{display:block;font-weight:400;color:#64748b;margin-top:4px}
+#billingRunDetails tbody tr:nth-child(even){background:#f8fafc}
+#billingRunDetails .prd-number{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#billingRunDetails .prd-empty{background:white;border:1px dashed #cbd5e1;padding:20px;border-radius:10px;color:#64748b;font-size:14px}
+#billingRunDetails .prd-history{background:white;border-left:3px solid #1976d2;padding:14px 18px;margin:10px 0;border-radius:6px}
+#billingRunDetails .prd-file{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;background:white;border:1px solid #dce5f0;border-radius:10px;margin:10px 0}
+#billingRunDetails .prd-file small{display:block;color:#64748b;margin-top:5px}
+#billingRunDetails .prd-audit{display:flex;flex-wrap:wrap;gap:20px;border-top:1px solid #dce5f0;padding-top:18px}
+@media(max-width:700px){#billingRunDetails .modal-body{padding:16px}#billingRunDetails .prd-summary{grid-template-columns:1fr;padding:16px;gap:18px}#billingRunDetails .prd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#billingRunDetails .prd-metric{padding:14px}#billingRunDetails .prd-metric strong{font-size:20px}#billingRunDetails .prd-file{align-items:flex-start;flex-direction:column}}
