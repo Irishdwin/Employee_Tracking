@@ -1,0 +1,17 @@
+{
+    "success": true,
+    "checks": {
+        "Creates application_submitted": "PASS",
+        "Creates interview_scheduled": "PASS",
+        "Creates application_endorsed": "PASS",
+        "Creates client_approved": "PASS",
+        "Creates client_rejected": "PASS",
+        "Creates application_status": "PASS",
+        "Creates application_hired": "PASS",
+        "Status notifications reach own inbox": "PASS",
+        "Other account notification protected": "PASS",
+        "Only selected notification becomes read": "PASS",
+        "Mark all read": "PASS",
+        "Production unchanged": "PASS"
+    }
+}

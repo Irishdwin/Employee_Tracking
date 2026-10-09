@@ -539,6 +539,7 @@
 <link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
 <link rel="stylesheet" href="../../Css/ow_widgets.css">
 <style>.ow-msgr-panel,.ow-msgr-fab{z-index:22000}.ow-msgr-panel{background:#f0f5fc}</style>
+<style>.apm-required-badge{display:inline-block;margin-left:5px;padding:5px 9px;border:1px solid #f1b9c9;border-radius:999px;background:#fff0f4;color:#a61c48;font-size:12px;font-weight:700;line-height:1.2;vertical-align:middle;}</style>
 </head>
 <body class="applicant-blue-ui applicant-page-applicant-profile-master">
 <header class="topbar">
@@ -596,7 +597,6 @@
                             <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#documents">My documents</a>
                             <a class="account-dropdown-item" role="menuitem" href="my_applications.html">Job applications</a>
                             <a class="account-dropdown-item" role="menuitem" href="saved_jobs.html">Saved jobs</a>
-                            <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
                             <a class="account-dropdown-item" role="menuitem" href="../notifications.html">Notifications</a>
                             <div class="account-dropdown-divider"></div>
                             <button type="button" class="account-dropdown-item account-dropdown-signout" id="btnSignOut">Logout</button>
@@ -677,7 +677,8 @@
                     </div>
 
                     <div class="mb-4">
-                        <div class="section-heading">Address</div>
+                        <div class="mb-4"><label class="form-label fw-semibold" for="sexInput">Sex <span class="text-danger">*</span></label><select id="sexInput" class="form-select" required><option value="">Select sex</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div>
+                        <div class="section-heading">Address</div><p class="hint">Select Region first, then Province, City / Municipality, and Barangay. Each field becomes available after the preceding selection.</p>
                         <div class="grid-2 mb-3">
                             <div>
                                 <div class="label">Region *</div>
@@ -833,24 +834,24 @@
 
                     <div class="mb-4 apm-quick-section">
                         <div class="section-heading">Key documents</div>
-                        <p class="hint mb-3">Upload your resume, a valid ID, and certifications while you complete your profile. Files upload in the background.</p>
+                        <p class="hint mb-3">Your résumé and valid ID are required before you can save your profile. Certifications are optional. Wait for each required upload to finish.</p>
                         <div class="apm-quick-grid">
                             <div class="apm-quick-upload" data-doc-type="Resume" data-doc-category="employment">
                                 <i class="bi bi-file-earmark-person"></i>
-                                <strong>Resume / CV</strong>
-                                <span class="apm-doc-status text-muted small d-block my-1">PDF, Word, or image</span>
+                                <strong>Resume/CV (PDF Only) <span class="apm-required-badge">* Required</span></strong>
+                                <span class="apm-doc-status text-muted small d-block my-1">Upload your updated Resume or CV in PDF format. Maximum file size: 5 MB.</span>
                                 <div class="d-flex gap-2 justify-content-center mt-2">
                                     <button type="button" class="btn btn-sm btn-outline-primary apm-view-btn d-none"><i class="bi bi-eye"></i> View</button>
                                     <label class="btn btn-sm btn-outline-secondary mb-0 cursor-pointer apm-upload-label">
                                         <i class="bi bi-upload"></i> <span class="apm-upload-text">Choose File</span>
-                                        <input type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" aria-label="Upload resume" style="display:none;">
+                                        <input type="file" accept=".pdf,application/pdf" aria-label="Upload resume" style="display:none;">
                                     </label>
                                 </div>
                                 <div class="apm-upload-progress"><div class="apm-upload-progress-inner"></div></div>
                             </div>
                             <div class="apm-quick-upload" data-doc-type="Government ID" data-doc-category="identity">
                                 <i class="bi bi-person-vcard"></i>
-                                <strong>Valid ID</strong>
+                                <strong>Valid ID <span class="apm-required-badge">* Required</span></strong>
                                 <span class="apm-doc-status text-muted small d-block my-1">Government-issued ID</span>
                                 <div class="d-flex gap-2 justify-content-center mt-2">
                                     <button type="button" class="btn btn-sm btn-outline-primary apm-view-btn d-none"><i class="bi bi-eye"></i> View</button>
@@ -863,7 +864,7 @@
                             </div>
                             <div class="apm-quick-upload" data-doc-type="Certification" data-doc-category="academic">
                                 <i class="bi bi-award"></i>
-                                <strong>Certifications</strong>
+                                <strong>Certifications <span class="badge bg-light text-secondary border">Optional</span></strong>
                                 <span class="apm-doc-status text-muted small d-block my-1">Licenses, diplomas, etc.</span>
                                 <div class="d-flex gap-2 justify-content-center mt-2">
                                     <button type="button" class="btn btn-sm btn-outline-primary apm-view-btn d-none"><i class="bi bi-eye"></i> View</button>
@@ -923,6 +924,14 @@
     </div>
 </div>
 
+<div class="modal fade" id="profileSavedModal" tabindex="-1" aria-labelledby="profileSavedTitle" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+<div class="modal-header"><h5 class="modal-title" id="profileSavedTitle"><i class="bi bi-check-circle-fill text-success me-2" aria-hidden="true"></i>Profile saved successfully</h5></div>
+<div class="modal-body"><p class="mb-0">Your applicant information has been saved successfully. Click OK to continue.</p></div>
+<div class="modal-footer"><button type="button" class="btn btn-primary" id="profileSavedContinue">OK</button></div>
+</div></div></div>
+<div class="modal fade" id="requiredDocumentsModal" tabindex="-1" aria-labelledby="requiredDocumentsTitle" aria-hidden="true">
+<div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="requiredDocumentsTitle">Required documents missing</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p id="requiredDocumentsMessage" class="mb-0"></p></div><div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button></div></div></div></div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../../Js/Shared/ow_system_events.js"></script>
 <script src="../../Js/Shared/ow_notifications.js"></script>
@@ -972,5 +981,6 @@
 
 <script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
 <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
 </body>
 </html>

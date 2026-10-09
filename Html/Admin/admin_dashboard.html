@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="admin-ui">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -381,6 +381,14 @@
 #viewJorDetailsModal [data-detail-id] .form-select{min-width:0}
 @media(max-width:575px){#viewJorDetailsModal .jor-details-table,#viewJorDetailsModal .jor-details-table tbody,#viewJorDetailsModal .jor-details-table tr,#viewJorDetailsModal .jor-details-table td{display:block;width:100%}#viewJorDetailsModal .jor-details-table thead{display:none}#viewJorDetailsModal .jor-details-table td{border:0;padding:.35rem .5rem}#viewJorDetailsModal .jor-details-table tr{border-bottom:1px solid #dee2e6}}
 </style>
+<link rel="stylesheet" href="../../Css/application_review_modal.css">
+<link rel="stylesheet" href="../../Css/admin_job_orders.css">
+<link rel="stylesheet" href="../../Css/admin_workspace.css">
+<link rel="stylesheet" href="../../Css/hr_workspace.css">
+<script src="../../Js/Shared/hr_dialog.js"></script>
+<link rel="stylesheet" href="../../Css/hire_modal.css">
+<link rel="stylesheet" href="../../Css/app_dialog.css">
+<link rel="stylesheet" href="../../Css/employee_exit.css">
 </head>
 <body class="bg-light">
 <div id="sidebar-overlay" aria-hidden="true"></div>
@@ -430,11 +438,6 @@
                     <i class="bi bi-calendar-event"></i><span class="sidebar-label">Holidays</span>
                 </a>
             </li>
-            <li>
-                <a href="#section-logs" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-logs" title="Audit trail and system logs">
-                    <i class="bi bi-journal-text"></i><span class="sidebar-label">System Logs</span>
-                </a>
-            </li>
             <li class="cc-nav-divider sidebar-section-label">HR &amp; workforce</li>
             <li>
                 <a href="#section-job-orders" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none" data-target="section-job-orders" title="Team Lead requests waiting to be posted">
@@ -464,6 +467,9 @@
                     <i class="bi bi-person-check"></i><span class="flex-grow-1 sidebar-label">Employee Conversion</span>
                     <span class="sidebar-nav-badge d-none" id="adminEmployeeConversionBadge" aria-label="Applicants ready to hire">0</span>
                 </a>
+            </li>
+            <li>
+<a href="#section-resignations" data-target="section-resignations" class="sidebar-link d-flex align-items-center gap-2 px-3 py-2 small text-decoration-none"><i class="bi bi-door-open"></i><span class="sidebar-label">Resignations & AWOL</span></a>
             </li>
         </ul>
         </div>
@@ -506,6 +512,7 @@
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow">
                         <li><a class="dropdown-item" href="#section-profile" id="menuProfile" data-show-section="section-profile">Profile</a></li>
+                        <li><a class="dropdown-item" href="#section-logs" id="menuSystemLogs" data-show-section="section-logs"><i class="bi bi-journal-text me-2"></i>System Logs</a></li>
                         <li><a class="dropdown-item" href="#section-settings" id="menuSystemSettings" data-target="section-settings">System Settings</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="#" id="menuLogout">Logout</a></li>
@@ -515,6 +522,14 @@
         </header>
 
         <main id="main-content-area" class="cc-main-inner">
+        <section id="section-resignations" class="dashboard-section d-none" aria-labelledby="hrResignationsTitle">
+            <div class="mb-4">
+                <h1 id="hrResignationsTitle" class="page-header-title">Resignations, Clearance &amp; AWOL</h1>
+                <p class="page-header-subtitle mb-0">Manage employee resignations, physical clearance processing, and AWOL reviews.</p>
+            </div>
+            <div id="employeeExit" data-dashboard="true" data-api="../../Api/HR/resignations.php" aria-live="polite"><div class="card border-0 shadow-sm p-4 text-muted">Loading resignation records…</div></div>
+        </section>
+
             <!-- Section: Overview (Dashboard) -->
             <div id="section-overview" class="dashboard-section active">
                 <div class="mb-4">
@@ -867,7 +882,7 @@
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         <div class="page-header-title">Job Orders</div>
-                        <div class="page-header-subtitle">Create Job Orders. Requires an active Service Agreement with uploaded signed document for the selected client.</div>
+                        <div class="page-header-subtitle">Manage staffing requests and published job orders. A signed, active service agreement is required to create an order.</div>
                     </div>
                     <button class="btn btn-primary" id="btnCreateJobOrder"><i class="bi bi-plus-circle me-1"></i> Create Job Order</button>
                 </div>
@@ -877,7 +892,7 @@
                 </div>
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-inbox me-2"></i>Job Order Requests from Team Leads</span>
+                        <div><h2 class="jo-section-title"><i class="bi bi-inbox me-2"></i>Team Lead requests</h2><p class="jo-section-description">Review staffing requests before posting a job order.</p></div>
                         <select id="requestFilter" class="form-select form-select-sm" style="width: auto;">
                             <option value="">All</option>
                             <option value="Pending" selected>Pending</option>
@@ -896,18 +911,18 @@
                         </div>
                     </div>
                 </div>
-                <div class="d-flex flex-wrap gap-2 mb-3">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center"><div><h2 class="jo-section-title">Published job orders</h2><p class="jo-section-description">Track vacancies, deployment sites, and hiring status.</p></div><div class="jo-list-toolbar">
                     <div class="input-group" style="max-width: 280px;">
                         <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                        <input type="text" id="jobOrdersSearchInput" class="form-control" placeholder="Search position, company, or site">
+                        <input type="text" id="jobOrdersSearchInput" class="form-control" placeholder="Search position, company, or site" aria-label="Search job orders">
                     </div>
-                    <select id="jobOrdersStatusFilter" class="form-select form-select-sm" style="max-width: 160px;">
+                    <select id="jobOrdersStatusFilter" aria-label="Job order status" class="form-select form-select-sm" style="max-width: 160px;">
                         <option value="">All statuses</option>
                         <option value="Open">Still Hiring</option>
                         <option value="Closed">Filled</option>
                     </select>
-                </div>
-                <div class="card">
+                </div></div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover align-middle">
@@ -1045,7 +1060,7 @@
                 <div class="d-flex justify-content-between align-items-start mb-4">
                     <div>
                         <h1 class="topbar-title mb-1">System Settings</h1>
-                        <p class="topbar-subtitle mb-0">Manage the agency contact details shown to applicants on their application details page.</p>
+                        <p class="topbar-subtitle mb-0">Manage public agency contact details and company information on the applicant landing page.</p>
                     </div>
                 </div>
 
@@ -1071,9 +1086,10 @@
                                     <input type="text" class="form-control" id="agencyContactPhone" maxlength="50" required>
                                 </div>
                             </div>
-                            <div class="mt-3 d-flex justify-content-end">
+                            <hr class="my-4"><h3 class="h6 fw-semibold">Applicant landing page</h3><p class="text-muted small">These details are public. Publish your actual company information. Leave mission, office details, and official links blank to hide them.</p><div class="row g-3"><div class="col-md-6"><label class="form-label" for="agencyLanding-company_name">Company name</label><input type="text" class="form-control" id="agencyLanding-company_name" maxlength="150"></div><div class="col-md-6"><label class="form-label" for="agencyLanding-tagline">Welcome tagline</label><input type="text" class="form-control" id="agencyLanding-tagline" maxlength="180"></div><div class="col-12"><label class="form-label" for="agencyLanding-about">About the company</label><textarea rows="4" class="form-control" id="agencyLanding-about" maxlength="3000"></textarea></div><div class="col-12"><label class="form-label" for="agencyLanding-mission">Our purpose / mission</label><textarea rows="3" class="form-control" id="agencyLanding-mission" maxlength="1000"></textarea></div><div class="col-12"><label class="form-label" for="agencyLanding-applicant_guidance">Applicant guidance / what to prepare</label><textarea rows="3" class="form-control" id="agencyLanding-applicant_guidance" maxlength="2000"></textarea></div><div class="col-12"><label class="form-label" for="agencyLanding-office_address">Office address</label><textarea rows="3" class="form-control" id="agencyLanding-office_address" maxlength="500"></textarea></div><div class="col-md-6"><label class="form-label" for="agencyLanding-office_hours">Office / support hours</label><input type="text" class="form-control" id="agencyLanding-office_hours" maxlength="300"></div><div class="col-md-6"><label class="form-label" for="agencyLanding-website">Official website (HTTPS)</label><input type="url" class="form-control" id="agencyLanding-website" maxlength="500"></div><div class="col-md-6"><label class="form-label" for="agencyLanding-facebook">Official Facebook page (HTTPS)</label><input type="url" class="form-control" id="agencyLanding-facebook" maxlength="500"></div></div>
+<div class="mt-3 d-flex justify-content-end">
                                 <button type="submit" class="btn btn-primary" id="btnSaveAgencyContact">
-                                    <i class="bi bi-save me-1"></i>Save Agency Contact
+                                    <i class="bi bi-save me-1"></i>Save agency details
                                 </button>
                             </div>
                         </form>
@@ -1143,7 +1159,7 @@
                             <h2 class="h6 mb-0"><i class="bi bi-table me-2 text-primary"></i>SSS Rate Tiers (2025)</h2>
                             <small class="text-muted">15% total rate — Regular SS up to ₱20,000 MSC; MPF on excess up to ₱35,000.</small>
                         </div>
-                        <button type="button" class="btn btn-success btn-sm" id="btnOpenAddSss">
+                        <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddSss">
                             <i class="bi bi-plus-circle me-1"></i>Add New Bracket
                         </button>
                     </div>
@@ -1191,7 +1207,7 @@
                             <h2 class="h6 mb-0"><i class="bi bi-calendar-event me-2 text-primary"></i>Holiday Management</h2>
                             <small class="text-muted">Pay Rate is the multiplier applied to the employee's daily rate for that day (2.00 = double pay).</small>
                         </div>
-                        <button type="button" class="btn btn-success btn-sm" id="btnOpenAddHoliday">
+                        <button type="button" class="btn btn-primary btn-sm" id="btnOpenAddHoliday">
                             <i class="bi bi-plus-circle me-1"></i>Add Holiday
                         </button>
                     </div>
@@ -1503,6 +1519,7 @@
                             <button type="button" class="btn btn-outline-primary" id="btnAddIndustryEdit" title="Add new industry">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
+                            <button type="button" class="btn btn-outline-primary" id="btnEditSelectedIndustryEdit" disabled title="Edit selected industry" aria-label="Edit selected industry"><i class="bi bi-pencil"></i></button>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -1720,8 +1737,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Contact Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="contact_number" id="addContactNumber" required value="+63" autocomplete="tel">
-                        <div class="form-text">Format: +63 followed by 10 digits starting with 9 (e.g., +639123456789)</div>
+                        <input type="text" class="form-control" name="contact_number" id="addContactNumber" required placeholder="e.g., 09171234567 or +639171234567" autocomplete="tel">
+                        <div class="form-text">Use 09 followed by 9 digits, or the equivalent +639 / 639 format.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Industry</label>
@@ -1732,6 +1749,7 @@
                             <button type="button" class="btn btn-outline-primary" id="btnAddIndustry" title="Add new industry">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
+                            <button type="button" class="btn btn-outline-primary" id="btnEditSelectedIndustry" disabled title="Edit selected industry" aria-label="Edit selected industry"><i class="bi bi-pencil"></i></button>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -1805,7 +1823,7 @@
             <div class="modal-body">
                 <form id="formAddIndustry">
                     <label class="form-label">Industry Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="name" id="industryNameInput" required>
+                    <input type="text" class="form-control" name="name" id="industryNameInput" required maxlength="100">
                 </form>
                 <div class="small text-muted mt-2">This will appear in the Industry dropdown.</div>
             </div>
@@ -2068,7 +2086,7 @@
 
 <!-- Hire Applicant Modal -->
 <div class="modal fade" id="hireApplicantModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Complete Hire &amp; Salary Configuration</h5>
@@ -2096,6 +2114,7 @@
                     </div>
                     <hr class="my-2">
                     <h6 class="text-uppercase text-muted small fw-bold mb-3">Salary Configuration</h6>
+                    <div class="mb-3"><label class="form-label" for="hireSundayAllowance">Sunday Duty Allowance (PHP)</label><div class="input-group"><span class="input-group-text">₱</span><input type="number" id="hireSundayAllowance" class="form-control" min="0" max="99999999.99" step="0.01" value="0"></div><div class="form-text">Paid once per Sunday with completed, rendered duty. Separate from monthly allowance and premium pay.</div></div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="hireDailyRate">Daily Rate (PHP) *</label>
@@ -2104,13 +2123,6 @@
                                 <input type="number" id="hireDailyRate" class="form-control" min="0.01" step="0.01" placeholder="0.00" required>
                             </div>
                             <div class="form-text">Hourly (÷8) and monthly credit (×26) are computed automatically.</div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label" for="hireAllowance">Monthly Allowance (PHP)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">₱</span>
-                                <input type="number" id="hireAllowance" class="form-control" min="0" step="0.01" value="0" placeholder="0.00">
-                            </div>
                         </div>
                     </div>
                     <div class="row">
@@ -2137,11 +2149,11 @@
 
 <!-- Review Application Modal -->
 <div class="modal fade" id="reviewModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Review Application</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="reviewAlert" class="alert d-none"></div>
@@ -2415,7 +2427,17 @@
 <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
 <script src="../../Js/Admin/admin_system_events.js"></script>
 <script src="../../Js/Shared/pagination_ui.js"></script>
+<script src="../../Js/Shared/managed_list.js"></script>
+<link rel="stylesheet" href="../../Css/client_company_controls.css">
+<script src="../../Js/Shared/ph_mobile.js"></script>
+<script src="../../Js/Admin/client_company_ui.js"></script>
+<script src="../../Js/Shared/app_dialog.js"></script>
+<script src="../../Js/Shared/employee_exit.js"></script>
 <script src="../../Js/Admin/admin_dashboard.js"></script>
+<script>
+window.adminApplicationList=ManagedList({body:"applicationsBody",label:"applicants",columns:7,status:"filterStatus",filters:{company:"companies",position:"positions"},load:loadApplications});
+window.adminDeploymentList=ManagedList({body:"deploymentsBody",label:"deployments",columns:8,filters:{company:"companies",site:"sites",team_lead:"team leads",state:"deployment states"},load:loadDeployments});
+</script>
 <script src="../../Js/Admin/admin_deductions_config.js"></script>
 <script src="../../Js/Shared/agency_contact_config.js"></script>
 <script src="../../Js/Admin/admin_job_categories.js"></script>

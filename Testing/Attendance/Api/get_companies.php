@@ -5,7 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/_testing_guard.php';
 
 try {
-    $res = $conn->query("SELECT CompanyID, Name FROM clientcompany WHERE IsActive = 1 ORDER BY Name ASC");
+    $condition=($_GET['history']??'')==='1' ? 'IsActive=1 OR EXISTS(SELECT 1 FROM deployment d WHERE d.CompanyID=clientcompany.CompanyID)' : 'IsActive=1';
+    $res = $conn->query('SELECT CompanyID, Name FROM clientcompany WHERE '.$condition.' ORDER BY Name ASC');
     $companies = [];
     while ($row = $res->fetch_assoc()) {
         $companies[] = ['company_id' => (int)$row['CompanyID'], 'name' => $row['Name']];

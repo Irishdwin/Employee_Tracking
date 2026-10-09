@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-08",
+  "boundaryBalanced": true,
+  "diagrams": [
+    {
+      "name": "DFD_Level_0_Context",
+      "nodes": 10,
+      "flows": 18
+    },
+    {
+      "name": "DFD_Level_1",
+      "nodes": 38,
+      "flows": 156
+    },
+    {
+      "name": "DFD_Recruitment_Detail",
+      "nodes": 24,
+      "flows": 66
+    },
+    {
+      "name": "DFD_Attendance_Detail",
+      "nodes": 22,
+      "flows": 58
+    },
+    {
+      "name": "DFD_Payroll_Detail",
+      "nodes": 13,
+      "flows": 25
+    },
+    {
+      "name": "DFD_Level_2_Payroll",
+      "nodes": 14,
+      "flows": 24
+    }
+  ]
+}

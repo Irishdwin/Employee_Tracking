@@ -1,0 +1,27 @@
+#reviewModal .modal-dialog { max-width:1040px; width:calc(100% - 32px); }
+#reviewModal .modal-content { border:0; border-radius:16px; overflow:hidden; max-height:calc(100dvh - 48px); }
+#reviewModal .modal-header { padding:18px 22px; border-bottom:1px solid #e3eaf3; color:#102c54; }
+#reviewModal .modal-title { font-weight:600; font-size:1.15rem; }
+#reviewModal .modal-body { padding:20px; background:#f5f8fc; }
+#reviewContent { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+#reviewContent > div { min-width:0; margin:0!important; padding:16px; background:#fff; border:1px solid #e3eaf3; border-radius:10px; }
+#reviewContent h6 { color:#18385f; font-size:.94rem; font-weight:600; margin-bottom:12px; }
+#reviewContent p { font-size:.9rem; line-height:1.5; margin-bottom:7px; overflow-wrap:anywhere; }
+#reviewContent strong { color:#61748c; font-weight:500; }
+#reviewContent .review-details { display:grid; grid-template-columns:1fr 1fr; column-gap:16px; }
+#reviewContent .review-details h6 { grid-column:1/-1; }
+#reviewContent .review-details p strong { display:block; font-size:.78rem; margin-bottom:2px; }
+#reviewContent .list-group-item { padding:9px 12px; font-size:.87rem; gap:10px; overflow-wrap:anywhere; }
+#reviewContent .list-group-item .btn { flex-shrink:0; }
+#reviewContent .review-actions .row > div { width:50%; }
+#reviewContent .review-actions .row > div:last-child { width:100%; margin-top:10px; }
+#reviewContent > div:nth-child(n+5) { grid-column:1/-1; }
+@media(max-width:767px) {
+ #reviewModal .modal-dialog { margin:12px auto; width:calc(100% - 24px); }
+ #reviewModal .modal-content { max-height:calc(100dvh - 24px); }
+ #reviewModal .modal-body { padding:12px; }
+ #reviewContent { grid-template-columns:1fr; gap:12px; }
+ #reviewContent > div { padding:14px; }
+}
+
+#reviewContent > section { grid-column:1/-1; margin:0!important; padding:16px; background:#fff; border:1px solid #e3eaf3; border-radius:10px; }

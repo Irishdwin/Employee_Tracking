@@ -31,67 +31,12 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
-$stmt = $conn->prepare(
-    "SELECT
-        u.UsersID AS user_id,
-        u.Email AS email,
-        u.Password AS password_hash,
-        u.FullName AS full_name,
-        r.RoleName AS role,
-        CASE WHEN u.IsActive = 1 THEN 'Active' ELSE 'Inactive' END AS status
-     FROM users u
-     INNER JOIN roles r ON u.RoleID = r.RolesID
-     WHERE LOWER(TRIM(u.Email)) = LOWER(TRIM(?))
-     LIMIT 1"
-);
-$stmt->bind_param('s', $email);
-$stmt->execute();
-$result = $stmt->get_result();
-$row = $result->fetch_assoc();
-$stmt->close();
-
-if (!$row) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Incorrect email or password.']);
-    exit;
-}
-
-if (strcasecmp(trim((string)$row['role']), 'Applicant') !== 0) {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'This email is registered for a different account type.']);
-    exit;
-}
-
-if ($row['status'] !== 'Active') {
-    http_response_code(403);
-    echo json_encode(['success' => false, 'message' => 'Account is not active. Please contact support.']);
-    exit;
-}
-
-$storedPassword = (string)($row['password_hash'] ?? '');
-$passwordValid = false;
-if ($storedPassword !== '') {
-    $hashInfo = password_get_info($storedPassword);
-    if (!empty($hashInfo['algo'])) {
-        $passwordValid = password_verify($password, $storedPassword);
-    } else {
-        $passwordValid = hash_equals($storedPassword, $password);
-        if ($passwordValid) {
-            $newHash = password_hash($password, PASSWORD_DEFAULT);
-            $upgradeStmt = $conn->prepare('UPDATE users SET Password = ? WHERE UsersID = ?');
-            $upgradeStmt->bind_param('si', $newHash, $row['user_id']);
-            $upgradeStmt->execute();
-            $upgradeStmt->close();
-        }
-    }
-}
-
-if (!$passwordValid) {
-    http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Incorrect email or password.']);
-    exit;
-}
-
+require_once __DIR__.'/../Helpers/auth_password_protection.php';
+try{$auth=auth_password_login($conn,$email,$password,'Applicant');}catch(Throwable $e){error_log('Password authentication unavailable.');http_response_code(503);echo json_encode(['success'=>false,'message'=>'Unable to sign in. Please try again later.']);exit;}
+if(!$auth['success']){http_response_code($auth['retry_after']?429:401);header('Cache-Control: no-store');echo json_encode($auth);exit;}
+$row=$auth['user'];
+session_regenerate_id(true);
+AuditLogger::log($conn,'Auth','Login','Password authentication succeeded.',(string)$row['user_id']);
 $userId = (int)$row['user_id'];
 $configured = $conn->prepare('UPDATE users SET LocalPasswordConfigured=1 WHERE UsersID=?');
 $configured->bind_param('i', $userId);

@@ -36,6 +36,7 @@ if ($attendanceId <= 0) {
     exit();
 }
 
+$transaction=false;
 try {
     $stmt = $conn->prepare("SELECT EmployeeID, Date, DTRSubmissionID FROM attendance WHERE AttendanceID = ? LIMIT 1");
     $stmt->bind_param('i', $attendanceId);
@@ -58,6 +59,11 @@ try {
     $date = $row['Date'];
     testing_employee_context($conn,$body,$employeeId,$date);
 
+    $conn->begin_transaction();$transaction=true;
+    site_query($conn,'SELECT EmployeeID FROM employee WHERE EmployeeID=? FOR UPDATE','i',[$employeeId]);
+    testing_assert_unlocked($conn,$employeeId,$date);
+    $lockedRow=site_query($conn,'SELECT DTRSubmissionID FROM attendance WHERE AttendanceID=? FOR UPDATE','i',[$attendanceId])->fetch_assoc();
+    if(!$lockedRow || $lockedRow['DTRSubmissionID']!==null)throw new DomainException('This record is missing or linked to a submitted DTR and is locked.',409);
     $delAtt = $conn->prepare("DELETE FROM attendance WHERE AttendanceID = ?");
     $delAtt->bind_param('i', $attendanceId);
     $delAtt->execute();
@@ -68,12 +74,16 @@ try {
     $delDtr->execute();
     $delDtr->close();
 
+    require_once __DIR__.'/../../../Api/Helpers/AuditLogger.php';
+    if(!AuditLogger::log($conn,'Attendance Testing','delete','Test attendance '.$date.' employee '.$employeeId,(string)$attendanceId))throw new RuntimeException('Attendance audit failed.');
+    $conn->commit();$transaction=false;
     echo json_encode([
         'success' => true,
         'message' => 'Test attendance record deleted. This date will now read as Absent (if it is a past scheduled working day) or simply have no record.',
     ]);
 } catch (Throwable $e) {
     error_log('[Testing/Attendance] delete_attendance: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Failed to delete test attendance record.']);
+    if($transaction)$conn->rollback();
+    http_response_code($e instanceof DomainException ? ($e->getCode()?:422) : 500);
+    echo json_encode(['success' => false, 'message' => $e instanceof DomainException ? $e->getMessage() : 'Failed to delete test attendance record. No changes were committed.']);
 }

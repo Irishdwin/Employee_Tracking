@@ -2,10 +2,8 @@
 /**
  * GET — DTR Cutoff Review list for the logged-in Team Lead.
  *
- * For every employee currently deployed under this Team Lead (same
- * `deployment.SiteSuperVisorID` ownership check used by
- * Api/TeamLead/get_tl_attendance_roster.php and
- * Api/TeamLead/get_employee_attendance_logs.php), this returns:
+ * For employees currently deployed at the selected active site owned by
+ * this Team Lead, this returns:
  *   - the current kinsenas cutoff period (via payroll_kinsenas_period(),
  *     the existing, non-hardcoded cutoff resolver)
  *   - per-employee totals for that cutoff (Total Regular Hrs, Total OT Hrs,
@@ -54,8 +52,14 @@ $teamLeadUserId = (int)$_SESSION['user_id'];
 // past cutoff later; defaults to "today" -> current cutoff, same as
 // payroll_kinsenas_period()'s own default.
 $cutoffRef = isset($_GET['cutoff_ref']) ? trim((string)$_GET['cutoff_ref']) : null;
-if ($cutoffRef !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $cutoffRef)) {
-    $cutoffRef = null;
+if ($cutoffRef === '') $cutoffRef = null;
+if ($cutoffRef !== null) {
+    $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $cutoffRef);
+    if (!$parsed || $parsed->format('Y-m-d') !== $cutoffRef) {
+        http_response_code(422);
+        echo json_encode(['success'=>false,'message'=>'Enter a valid cutoff date.']);
+        exit;
+    }
 }
 
 try {
@@ -65,7 +69,7 @@ try {
     $selectedSite=site_for_lead($conn,$teamLeadUserId,(int)$siteId);
     $selectedPeriod=payroll_type_period_for_company($conn,(int)$selectedSite['CompanyID'],$cutoffRef);
     $current=site_current_deployment_sql();
-    $pdo = attendance_pdo();
+    $pdo = attendance_pdo($conn);
     if (function_exists('attendance_ensure_table')) {
         attendance_ensure_table($pdo);
     }
@@ -128,7 +132,7 @@ try {
             $existingByEmployeeCutoff[$key] = [
                 'dtr_submission_id' => (int)$subRow['DTR_SubmissionID'],
                 'submitted_at' => $subRow['CreatedAt'],
-                'regular_hours' => (float)$subRow['TotalHours'],
+                'regular_hours' => $subRow['TotalHours']===null ? null : (float)$subRow['TotalHours'],
                 'overtime_hours' => $subRow['TotalOvertimeHours'] !== null ? (float)$subRow['TotalOvertimeHours'] : ($subRow['OvertimeHours'] !== null ? (float)$subRow['OvertimeHours'] : null),
                 'classification' => dtr_classification_decode($subRow['Remarks']),
             ];
@@ -151,7 +155,7 @@ try {
             : $fallbackPeriod;
         $payrollType = $period['type'] ?? 'B';
         $deductionFlags = payroll_type_deductions($payrollType, $period['half'] ?? '1st');
-        $holidays = payroll_ph_holidays_for_range($conn, $period['start'], $period['end']);
+        $holidays = array_keys(holidays_fetch_for_range($conn, $period['start'], $period['end'], $employeeId, (int)$row['deployment_id']));
 
         // Resolve work schedule via the linked user account exactly like
         // get_tl_attendance_roster.php / get_employee_attendance_logs.php do.
@@ -192,20 +196,31 @@ try {
 
         // Aggregate totals for this cutoff — reuses the SAME payroll_compute_period()
         // helper the Employee Dashboard uses. No new payroll computation logic here.
-        $periodTotals = payroll_compute_period(
-            $conn,
-            $pdo,
-            $employeeId,
-            $dailyRate,
-            $hourlyRate,
-            $allowance,
-            $msc,
-            $period['start'],
-            $period['end'],
-            $workSchedule !== '' ? $workSchedule : null,
-            $deductionFlags,
-            (int)$row['deployment_id']
-        );
+        $alreadySubmitted = $existingByEmployeeCutoff[$employeeId . '|' . $period['start'] . '|' . $period['end']] ?? null;
+        $reviewMessage = $alreadySubmitted['classification']['review_message']??null;
+        $periodTotals = ['holiday_breakdown'=>$alreadySubmitted['classification']['holiday_breakdown']??[]];
+        if ($alreadySubmitted === null) {
+            try {
+                $periodTotals = payroll_compute_period(
+                    $conn,
+                    $pdo,
+                    $employeeId,
+                    $dailyRate,
+                    $hourlyRate,
+                    $allowance,
+                    $msc,
+                    $period['start'],
+                    $period['end'],
+                    $workSchedule !== '' ? $workSchedule : null,
+                    $deductionFlags,
+                    (int)$row['deployment_id']
+                );
+            } catch (InvalidArgumentException $review) {
+                if (!preg_match('/requires (Accounting review|review|confirmation)/', $review->getMessage())) throw $review;
+                $reviewMessage = $review->getMessage();
+                error_log('get_dtr_cutoff_review employee '.$employeeId.': '.$reviewMessage);
+            }
+        }
 
         // Day-by-day breakdown for the "view DTR" detail modal — built the same way
         // Api/TeamLead/get_employee_attendance_logs.php builds its history list, but
@@ -224,9 +239,6 @@ try {
         }
 
         $dailyBreakdown = [];
-        $totalRegularHours = 0.0;
-        $totalOtHours = 0.0;
-        $totalHolidayHours = 0.0;
 
         $cursor = new DateTime($period['start']);
         $endDt = new DateTime($period['end']);
@@ -246,6 +258,13 @@ try {
             }
 
             $meta = payroll_timesheet_day_status($rowForStatus, $iso, $schedule, $todayIso);
+            $recordedMeta = $meta;
+            if ($dtrRow && !empty($dtrRow['time_in']) && !empty($dtrRow['time_out'])
+                && (int)($schedule['deployment_id'] ?? 0) === (int)$row['deployment_id']) {
+                $dutySchedule = $schedule;
+                $dutySchedule['working_days'] = 'Mon,Tue,Wed,Thu,Fri,Sat,Sun';
+                $recordedMeta = payroll_timesheet_day_status($rowForStatus, $iso, $dutySchedule, $todayIso);
+            }
             $dayHours = (float)($meta['total_hours'] ?? 0);
             $holidayForDay=array_values(array_filter($periodTotals['holiday_breakdown']??[],static fn($h)=>$h['date']===$iso));
             $isHoliday = in_array($iso, $holidays, true);
@@ -255,6 +274,7 @@ try {
                 'time_in' => $dtrRow['time_in'] ?? null,
                 'time_out' => $dtrRow['time_out'] ?? null,
                 'rendered_hours' => $meta['total_hours'],
+                'recorded_duty_hours' => (int)($schedule['deployment_id'] ?? 0) === (int)$row['deployment_id'] ? $recordedMeta['total_hours'] : null,
                 'late_minutes' => $meta['late_minutes'] ?? 0,
                 'undertime_minutes' => $meta['undertime_minutes'],
                 'status' => $meta['status'],
@@ -265,12 +285,32 @@ try {
             $cursor->modify('+1 day');
         }
 
-        $classification=dtr_classification_from_payroll($periodTotals);
-        $totalRegularHours=$classification['regular_hours'];
-        $totalOtHours=$classification['overtime_hours'];
-        $totalHolidayHours=$classification['holiday_work_hours'];
+        // Physical attendance remains visible when pay eligibility is unresolved.
+        // Keep these display-only figures separate from the payroll classification.
+        $recordedHours = null;
+        if ($alreadySubmitted === null && $reviewMessage !== null) {
+            $dutyHours = 0.0;
+            $holidayDutyHours = 0.0;
+            foreach ($dailyBreakdown as $day) {
+                if (empty($day['time_in']) || empty($day['time_out'])) continue;
+                $hours = max(0, (float)($day['recorded_duty_hours'] ?? 0));
+                $dutyHours += $hours;
+                if ($day['is_holiday']) $holidayDutyHours += $hours;
+            }
+            // Empty holiday rates intentionally projects approved hours only;
+            // no eligibility decision or holiday payment is made here.
+            $approvedOt = payroll_fetch_approved_overtime($conn, $employeeId, $period['start'], $period['end'], 0, [], (int)$row['deployment_id']);
+            $recordedHours = [
+                'duty_hours' => round($dutyHours, 2),
+                'approved_overtime_hours' => $approvedOt['hours'],
+                'holiday_work_hours' => round($holidayDutyHours, 2),
+            ];
+        }
+        $classification=($alreadySubmitted === null && $reviewMessage === null) ? dtr_classification_from_payroll($periodTotals) : null;
+        $totalRegularHours=$classification['regular_hours']??null;
+        $totalOtHours=$classification['overtime_hours']??null;
+        $totalHolidayHours=$classification['holiday_work_hours']??null;
 
-        $alreadySubmitted = $existingByEmployeeCutoff[$employeeId . '|' . $period['start'] . '|' . $period['end']] ?? null;
         if ($alreadySubmitted !== null) {
             $totalRegularHours=$alreadySubmitted['regular_hours'];
             $totalOtHours=$alreadySubmitted['overtime_hours'];
@@ -299,11 +339,15 @@ try {
                 $deductionFlags['pagibig'] ? 'Pag-IBIG' : null,
                 $deductionFlags['sss'] ? 'SSS' : null,
             ])),
-            'total_regular_hours' => round($totalRegularHours, 2),
+            'requires_review' => $reviewMessage !== null,
+            'review_message' => $reviewMessage,
+            'has_attendance' => count($dtrByDate) > 0,
+            'total_regular_hours' => $totalRegularHours === null ? null : round($totalRegularHours, 2),
             'total_overtime_hours' => $totalOtHours === null ? null : round($totalOtHours, 2),
             'holiday_pay_hours' => $totalHolidayHours === null ? null : round($totalHolidayHours, 2),
             'classification' => $classification,
-            'attendance_summary' => $periodTotals['attendance_summary'],
+            'recorded_hours' => $recordedHours,
+            'attendance_summary' => $periodTotals['attendance_summary']??[],
             'daily_breakdown' => $dailyBreakdown,
             'is_submitted' => $alreadySubmitted !== null,
             'dtr_submission_id' => $alreadySubmitted['dtr_submission_id'] ?? null,
@@ -331,6 +375,9 @@ try {
         'success' => true,
         'site_id'=>(int)$siteId,'sites'=>$sites,
         'period' => $responsePeriod,
+        'submission_due' => date('Y-m-d') > $responsePeriod['end'],
+        'is_overdue' => date('Y-m-d') > $responsePeriod['end'],
+        'submission_warning' => date('Y-m-d') > $responsePeriod['end'] ? 'Please submit employee DTRs as soon as possible so Accounting can process payroll. Late submission is still allowed.' : null,
         'employees' => $employees,
     ]);
 } catch (DomainException $e) {
@@ -341,8 +388,5 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Failed to load DTR cutoff review.',
-        'error_details' => $e->getMessage(),
-        'file' => $e->getFile(),
-        'line' => $e->getLine(),
     ]);
 }

@@ -31,6 +31,17 @@ function jorw_validate_company(mysqli $db, int $uid, int $companyId): void {
     if(!$registered)throw new DomainException('Please register an assigned work site before creating a job order.',403);
     if (!jorw_rows($db,"SELECT ServiceAgreementID FROM serviceagreement WHERE ClientCompanyID=? AND Status='Active' AND COALESCE(NULLIF(TRIM(SignedDocumentPath),''),'')<>'' LIMIT 1",'i',[$companyId])) throw new DomainException('Your company needs an active service agreement with uploaded document before requesting a job order.',403);
 }
+function jorw_registered_site(mysqli $db,int $uid,int $companyId,string $selection,int $siteId=0): array {
+    $matches=[];
+    foreach(sites_for_lead($db,$uid) as $site) {
+        if((int)$site['CompanyID']!==$companyId)continue;
+        if($siteId ? (int)$site['SiteID']===$siteId : (trim($site['Name'])===$selection || trim($site['Address'])===$selection))$matches[]=$site;
+    }
+    if(count($matches)!==1)throw new DomainException('Select one of your assigned deployment sites.',403);
+    $site=$matches[0];
+    if(!geofence_coords_are_valid($site['registered_latitude'],$site['registered_longitude']))throw new DomainException('Please register the GPS location of the selected assigned work site before creating a job.',403);
+    return $site;
+}
 /** Same existing legacy category mappings, using read-only queries in write transactions. */
 function jorw_category(mysqli $db, int $id, string $name, string $position): ?array {
     if ($id>0) {

@@ -5,6 +5,7 @@
 require_once __DIR__ . '/../Common/session_init.php';
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
     http_response_code(401);
@@ -38,7 +39,7 @@ try {
             if ($rangeEnd<$rangeStart || (strtotime($rangeEnd)-strtotime($rangeStart))/86400>61) throw new InvalidArgumentException('Choose a date range of at most 62 days.');
         } catch (InvalidArgumentException $e) { http_response_code(422); echo json_encode(['success'=>false,'message'=>$e->getMessage()]); exit(); }
     }
-    $pdo = attendance_pdo();
+    $pdo = attendance_pdo($conn);
     attendance_ensure_table($pdo);
 
     $empStmt = $pdo->prepare("
@@ -162,7 +163,8 @@ try {
             'total_hours' => $meta['total_hours'] ?? $totalHours,
             'total_hours_rendered' => $meta['total_hours'] ?? $totalHours,
             'undertime_minutes' => $meta['undertime_minutes'] ?? null,
-            'is_late' => $meta['is_late'] ?? false,
+            'late_minutes' => $meta['late_minutes'] ?? 0,
+                'is_late' => $meta['is_late'] ?? false,
             'updated_at' => $row['updated_at'] ?? null,
             'holiday' => $holiday,
         ];
@@ -244,6 +246,8 @@ try {
             'position' => $employee['Position'],
         ],
         'today' => $todayPayload,
+        'range_start' => $rangeStart,
+        'range_end' => $rangeEnd,
         'logs' => $logs,
         'log_by_date' => $logByDate,
         'hours_this_week' => round($hoursThisWeek, 2),

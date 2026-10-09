@@ -1,5 +1,6 @@
 # Dependencies
 /vendor/
+node_modules/
 
 # Local secrets — never commit live credentials
 Api/config/mail_config.php

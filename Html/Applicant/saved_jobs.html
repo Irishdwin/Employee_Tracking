@@ -439,7 +439,6 @@
                 <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#documents">My documents</a>
                 <a class="account-dropdown-item" role="menuitem" href="my_applications.html">Job applications</a>
                 <a class="account-dropdown-item active" role="menuitem" href="saved_jobs.html">Saved jobs</a>
-                <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
                 <a class="account-dropdown-item" role="menuitem" href="../notifications.html">Notifications</a>
                 <div class="account-dropdown-divider"></div>
                 <button type="button" class="account-dropdown-item account-dropdown-signout" id="btnSignOut">Logout</button>
@@ -609,13 +608,15 @@
       if (btnOut) {
         btnOut.addEventListener('click', function () {
           closeMenu();
+          window.showLogoutConfirm(function () {
           fetch('../../Api/Login/logout.php', {
             method: 'GET',
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
           })
           .catch(function(){})
-          .then(function () { window.location.href = '/Employee_Tracking/index.html'; });
+          .then(function () { window.location.href = 'applicant_landing.html'; });
+        });
         });
       }
 
@@ -945,5 +946,6 @@
 
 <script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
 <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
 </body>
 </html>

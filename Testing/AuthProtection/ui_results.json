@@ -1,0 +1,15 @@
+{
+  "passed": 10,
+  "checks": [
+    "1366 countdown updates in form and error modal",
+    "1366 forgot password accessible while locked",
+    "1366 six-digit reset code accepted by UI",
+    "1366 responsive layout without script errors",
+    "390 countdown updates in form and error modal",
+    "390 forgot password accessible while locked",
+    "390 six-digit reset code accepted by UI",
+    "390 responsive layout without script errors",
+    "Applicant reset link opens shared reset modal",
+    "Applicant countdown visible and reports expiry"
+  ]
+}

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__ . '/../Common/session_init.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     http_response_code(401);
@@ -20,6 +20,8 @@ require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/hire_applicant.php';
 
 header('Content-Type: application/json');
+require_once __DIR__.'/../Helpers/application_endorsement.php';
+try {ae_authorize($conn,(int)$_SESSION['user_id'],['Admin','HR']);} catch(DomainException $e){http_response_code(403);echo json_encode(['success'=>false,'message'=>'Forbidden']);exit;}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
@@ -42,7 +44,8 @@ $result = hireApplicantFromApplication(
     $philhealthNumber,
     $pagibigNumber,
     is_numeric($dailyRate) ? (float)$dailyRate : 0,
-    is_numeric($allowance) ? (float)$allowance : 0
+    is_numeric($allowance) ? (float)$allowance : 0,
+    $input['sunday_duty_allowance'] ?? '0'
 );
 
 echo json_encode($result);

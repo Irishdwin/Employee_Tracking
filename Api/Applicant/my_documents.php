@@ -58,7 +58,7 @@ while ($row = $docResult->fetch_assoc()) {
         'doc_id' => (int)$row['DocID'],
         'doc_type' => $row['DocType'],
         'doc_category' => $cat,
-        'file_path' => $row['FilePath'],
+        'file_path' => '../../Api/Applicant/view_document.php?id='.(int)$row['DocID'],
         'original_filename' => $row['OriginalFileName'],
         'file_size' => isset($row['FileSize']) ? (int)$row['FileSize'] : null,
         'is_verified' => (bool)$row['IsVerified'],

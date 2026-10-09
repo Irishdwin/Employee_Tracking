@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hr-ui">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -92,6 +92,11 @@
             } catch (e) {}
         })();
     </script>
+<link rel="stylesheet" href="../../Css/admin_workspace.css">
+<script>try { if(window.parent!==window && /\/Admin\/admin_dashboard\.html$/.test(window.parent.location.pathname)) { document.documentElement.classList.remove("hr-ui"); document.documentElement.classList.add("admin-ui"); document.documentElement.dataset.adminModule="contracts"; } } catch(e) {}</script>
+<link rel="stylesheet" href="../../Css/hr_workspace.css">
+<script src="../../Js/Shared/hr_dialog.js"></script>
+<link rel="stylesheet" href="../../Css/applicant_contracts.css">
 </head>
 <body>
 <div class="layout-wrapper">
@@ -156,42 +161,43 @@
 </div>
 
 <!-- Contract Upload Modal -->
-<div class="modal fade" id="contractUploadModal" tabindex="-1" data-bs-backdrop="false">
-    <div class="modal-dialog modal-dialog-centered">
+<div class="modal fade" id="contractUploadModal" tabindex="-1" data-bs-backdrop="false" aria-labelledby="contractUploadTitle">
+    <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Upload Employment Contract</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="contractUploadTitle">Upload Employment Contract</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div id="contractUploadAlert" class="alert d-none"></div>
+                <div id="contractUploadSuccess" class="d-none text-center py-3" role="status"><i class="bi bi-check-circle-fill text-success" style="font-size:44px" aria-hidden="true"></i><h6 class="mt-3 fw-bold">Contract uploaded successfully</h6><p class="text-muted mb-0">Please proceed to Employee Conversion to hire the applicant.</p></div>
                 <form id="contractUploadForm">
                     <input type="hidden" id="uploadContractApplicationId" value="">
                     <div class="mb-3">
-                        <label class="form-label">Contract File *</label>
+                        <label class="form-label" for="contractFile">Signed contract file <span class="text-danger">*</span></label>
                         <input type="file" id="contractFile" name="contract" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
                         <small class="text-muted">Allowed: PDF, JPG, JPEG, PNG (max 10MB)</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Contract Type *</label>
+                        <label class="form-label" for="contractTypeSelect">Contract type <span class="text-danger">*</span></label>
                         <select id="contractTypeSelect" class="form-select" required>
                             <option value="open" selected>Open Contract</option>
                             <option value="expiring">Expiring Contract</option>
                         </select>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Duration *</label>
-                        <div class="d-flex gap-2">
-                            <input type="number" id="contractYearsDisplay" class="form-control" value="0" min="0" max="100" aria-label="Contract years" disabled style="max-width: 120px;">
-                            <input type="number" id="contractMonths" class="form-control" min="0" max="11" placeholder="Months (0-11)" aria-label="Contract months" value="0" disabled style="max-width: 180px;">
+                    <div class="mb-3" id="contractDurationFields">
+                        <div class="form-label">Contract duration <span class="text-danger">*</span></div>
+                        <div class="row g-3">
+                            <div class="col-6"><label for="contractYearsDisplay" class="form-label small text-muted">Years</label><input type="number" id="contractYearsDisplay" class="form-control" value="0" min="0" max="100" disabled></div>
+                            <div class="col-6"><label for="contractMonths" class="form-label small text-muted">Months</label><input type="number" id="contractMonths" class="form-control" min="0" max="11" value="0" disabled></div>
                         </div>
-                        <div class="form-text"><span id="contractDurationHelp">Open contracts have no expiry or fixed duration.</span></div>
                     </div>
+                    <p class="contract-duration-note" id="contractDurationHelp">Open contracts have no expiry or fixed duration.</p>
 
                     <div class="mb-3">
-                        <label class="form-label">Date Signed *</label>
+                        <label class="form-label" for="contractSignedDate">Date signed <span class="text-danger">*</span></label>
                         <input type="date" id="contractSignedDate" class="form-control" required>
                     </div>
                 </form>
@@ -207,7 +213,32 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../Js/Shared/pagination_ui.js"></script>
+<script src="../../Js/Shared/managed_list.js"></script>
 <script>
+    // Expand the embedded workspace upward without hiding the contracts list behind the dialog.
+    (function () {
+        var modal = document.getElementById('contractUploadModal');
+        var frame = window.frameElement, originalStyle = null, originalPadding = '';
+        if (!frame) return;
+        modal.addEventListener('show.bs.modal', function () {
+            originalStyle = frame.getAttribute('style');
+            var bounds = frame.getBoundingClientRect();
+            var header = window.parent.document.getElementById('top-navbar');
+            var top = header ? Math.max(12, header.getBoundingClientRect().bottom + 8) : 84;
+            var workspace = document.querySelector('.main-content');
+            originalPadding = workspace.style.paddingTop;
+            var padding = parseFloat(getComputedStyle(workspace).paddingTop) || 0;
+            workspace.style.paddingTop = (padding + Math.max(0, bounds.top - top)) + 'px';
+            frame.style.cssText = 'position:fixed;left:' + Math.max(0, bounds.left) + 'px;top:' + top + 'px;width:' + bounds.width + 'px;height:calc(100dvh - ' + (top + 12) + 'px);min-height:0;border:0;background:transparent;z-index:1060;';
+            document.body.classList.add('contract-modal-overlay');
+        });
+        modal.addEventListener('hidden.bs.modal', function () {
+            document.body.classList.remove('contract-modal-overlay');
+            document.querySelector('.main-content').style.paddingTop = originalPadding;
+            if (originalStyle === null) frame.removeAttribute('style'); else frame.setAttribute('style', originalStyle);
+        });
+    })();
     const API_BASE = '../../Api/HR/';
     let contractAppsCache = [];
 
@@ -225,44 +256,37 @@
     }
 
     function loadContracts() {
-        fetch(API_BASE + 'get_conversion_list.php', { credentials: 'same-origin' })
+        var manager=window.managedContract; var request=manager?manager.begin():null; var query=manager?manager.query():new URLSearchParams();
+        fetch(API_BASE + 'get_conversion_list.php?'+query.toString(), { credentials: 'same-origin', signal:manager?manager.signal():undefined })
             .then(function (r) {
                 if (!r.ok) return r.json().then(function (j) { throw new Error((j && j.message) || ('HTTP ' + r.status)); });
                 return r.json();
             })
             .then(data => {
+                if(manager && !manager.current(request))return;
                 if (data.success) {
                     contractAppsCache = data.applications || [];
-                    applyContractLookup();
+                    renderContractRows(contractAppsCache);
+                    if(manager)manager.finish(data.pagination);
                 } else {
+                    if(manager)manager.fail();
                     document.getElementById('contractTableBody').innerHTML =
                         '<tr><td colspan="6" class="text-center text-danger py-4">' + escapeHtml(data.message || 'Failed to load.') + '</td></tr>';
                 }
             })
             .catch(function (err) {
+                if(manager && !manager.current(request))return; if(manager)manager.fail();
                 document.getElementById('contractTableBody').innerHTML =
                     '<tr><td colspan="6" class="text-center text-danger py-4">Could not load list. ' + escapeHtml(err.message || 'Please refresh or log in again.') + '</td></tr>';
             });
     }
 
-    function applyContractLookup() {
-        var q = (document.getElementById('contractLookupInput')?.value || '').toLowerCase().trim();
-        var status = (document.getElementById('contractStatusFilter')?.value || 'all').toLowerCase();
-        var filtered = (contractAppsCache || []).filter(function (app) {
-            var hay = (String(app.applicant_name || '') + ' ' + String(app.company_name || '') + ' ' + String(app.position || '')).toLowerCase();
-            if (q && hay.indexOf(q) === -1) return false;
-            if (status === 'all') return true;
-            return getContractState(app) === status;
-        });
-        renderContractRows(filtered);
-    }
+    function applyContractLookup() { window.managedContract?.resetPage(); loadContracts(); }
 
     function renderContractRows(apps) {
         const tbody = document.getElementById('contractTableBody');
         if (apps.length === 0) {
-            var emptyMsg = (contractAppsCache.length === 0)
-                ? 'No applications yet. Rows appear here after client approval and before hire (same list used for conversion).'
-                : 'No matching records. Clear the search or filter.';
+            var emptyMsg = 'No matching records. Clear the search or filters, or use Reset.';
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">' + escapeHtml(emptyMsg) + '</td></tr>';
             return;
         }
@@ -290,7 +314,6 @@
                     `}
                 </td>
                 <td>
-                    ${app.contract_uploaded ? `<button type="button" class="btn btn-sm btn-primary me-1" onclick="goToEmployeeConversion(${app.application_id})"><i class="bi bi-person-check me-1"></i>Convert</button>` : ''}
                     <button class="btn btn-sm btn-outline-primary" onclick="openContractUpload(${app.application_id})">
                         <i class="bi bi-upload me-1"></i>${app.contract_uploaded ? 'Replace Contract' : 'Upload Contract'}
                     </button>
@@ -299,22 +322,6 @@
         `).join('');
     }
 
-    function goToEmployeeConversion(appId) {
-        var url = new URL('employee_conversion.html', window.location.href);
-        url.searchParams.set('application_id', appId);
-        if (window.parent !== window) {
-            var section = window.parent.document.getElementById('section-employee-conversion');
-            var frame = section && section.querySelector('iframe');
-            var link = window.parent.document.querySelector('[data-target="section-employee-conversion"]');
-            if (frame && link) {
-                url.searchParams.set('embedded', '1');
-                frame.src = url.href;
-                link.click();
-                return;
-            }
-        }
-        window.location.href = url.href;
-    }
 
     function refreshConversionAfterContractUpload(appId, contract) {
         var app = contractAppsCache.find(function (item) { return Number(item.application_id) === appId; });
@@ -332,6 +339,7 @@
             var section = window.parent.document.getElementById('section-employee-conversion');
             var frame = section && section.querySelector('iframe');
             if (frame && frame.contentWindow && typeof frame.contentWindow.loadConversions === 'function') frame.contentWindow.loadConversions();
+            window.parent.document.dispatchEvent(new Event('applicant-contract-updated'));
         }
         loadContracts();
     }
@@ -343,6 +351,7 @@
             input.disabled = !expiring;
             input.required = expiring;
         });
+        document.getElementById('contractDurationFields').hidden = !expiring;
         document.getElementById('contractDurationHelp').textContent = expiring
             ? 'Set years and months. Active employees become Open Contract six months after the contract signed date.'
             : 'Open contracts have no expiry or fixed duration.';
@@ -351,6 +360,11 @@
     syncContractDuration();
 
     function openContractUpload(appId) {
+        document.getElementById('contractUploadSuccess').classList.add('d-none');
+        document.getElementById('contractUploadForm').classList.remove('d-none');
+        document.getElementById('btnUploadContract').classList.remove('d-none');
+        document.getElementById('contractUploadTitle').textContent = 'Upload Employment Contract';
+        document.querySelector('#contractUploadModal .modal-footer [data-bs-dismiss]').textContent = 'Cancel';
         document.getElementById('uploadContractApplicationId').value = appId;
         var alertEl = document.getElementById('contractUploadAlert');
         if (alertEl) {
@@ -437,20 +451,13 @@
                 }
                 return;
             }
-            if (alertEl) {
-                alertEl.className = 'alert alert-success';
-                alertEl.textContent = data.message || 'Contract uploaded successfully.';
-                alertEl.classList.remove('d-none');
-            }
             refreshConversionAfterContractUpload(appId, data.contract);
-            if (alertEl) {
-                var convertButton = document.createElement('button');
-                convertButton.type = 'button';
-                convertButton.className = 'btn btn-primary d-block mt-3';
-                convertButton.textContent = 'Convert to Employee';
-                convertButton.addEventListener('click', function () { goToEmployeeConversion(appId); });
-                alertEl.appendChild(convertButton);
-            }
+            document.getElementById('contractUploadForm').classList.add('d-none');
+            document.getElementById('btnUploadContract').classList.add('d-none');
+            document.getElementById('contractUploadSuccess').classList.remove('d-none');
+            document.getElementById('contractUploadTitle').textContent = 'Contract uploaded';
+            document.querySelector('#contractUploadModal .modal-footer [data-bs-dismiss]').textContent = 'Close';
+
         })
         .catch(() => {
             if (alertEl) {
@@ -467,9 +474,9 @@
         return div.innerHTML;
     }
 
-    document.getElementById('contractLookupInput')?.addEventListener('input', applyContractLookup);
     document.getElementById('contractStatusFilter')?.addEventListener('change', applyContractLookup);
 
+    window.managedContract=ManagedList({body:"contractTableBody",search:"contractLookupInput",label:"contracts",columns:6,status:"contractStatusFilter",statusKey:"contract_state",statusDefault:"all",filters:{company:"companies",position:"positions"},load:loadContracts});
     loadContracts();
     // Keep embedded dashboards in sync after client decisions (e.g., Team Lead approval).
     // This page is often opened via an iframe, so polling prevents a manual refresh.

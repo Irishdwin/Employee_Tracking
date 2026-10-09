@@ -1,0 +1,114 @@
+[
+    {
+        "case": "ordinary",
+        "expected": 1000,
+        "gross": 1000,
+        "basic": 1000,
+        "premium": 0,
+        "holiday_ot": 0
+    },
+    {
+        "case": "regular8",
+        "expected": 2000,
+        "gross": 2000,
+        "basic": 1000,
+        "premium": 1000,
+        "holiday_ot": 0
+    },
+    {
+        "case": "regular10",
+        "expected": 2650,
+        "gross": 2650,
+        "basic": 1000,
+        "premium": 1000,
+        "holiday_ot": 650
+    },
+    {
+        "case": "special8",
+        "expected": 1300,
+        "gross": 1300,
+        "basic": 1000,
+        "premium": 300,
+        "holiday_ot": 0
+    },
+    {
+        "case": "special10",
+        "expected": 1722.5,
+        "gross": 1722.5,
+        "basic": 1000,
+        "premium": 300,
+        "holiday_ot": 422.5
+    },
+    {
+        "case": "regular_rest",
+        "expected": 2600,
+        "gross": 2600,
+        "basic": 1000,
+        "premium": 1600,
+        "holiday_ot": 0
+    },
+    {
+        "case": "special_rest",
+        "expected": 1500,
+        "gross": 1500,
+        "basic": 1000,
+        "premium": 500,
+        "holiday_ot": 0
+    },
+    {
+        "case": "regular_unworked",
+        "expected": 1000,
+        "gross": 1000,
+        "basic": 0,
+        "premium": 1000,
+        "holiday_ot": 0
+    },
+    {
+        "case": "regular_ineligible",
+        "expected": 0,
+        "gross": 0,
+        "basic": 0,
+        "premium": 0,
+        "holiday_ot": 0
+    },
+    {
+        "case": "special_unworked",
+        "expected": 0,
+        "gross": 0,
+        "basic": 0,
+        "premium": 0,
+        "holiday_ot": 0
+    },
+    {
+        "case": "double8",
+        "expected": 3000,
+        "gross": 3000,
+        "basic": 1000,
+        "premium": 2000,
+        "holiday_ot": 0
+    },
+    {
+        "case": "double_unworked",
+        "expected": 2000,
+        "gross": 2000,
+        "basic": 0,
+        "premium": 2000,
+        "holiday_ot": 0
+    },
+    {
+        "case": "regular_approved_ot",
+        "expected": 2650,
+        "gross": 2650,
+        "basic": 1000,
+        "premium": 1000,
+        "holiday_ot": 650
+    },
+    {
+        "case": "special_approved_ot",
+        "expected": 1722.5,
+        "gross": 1722.5,
+        "basic": 1000,
+        "premium": 300,
+        "holiday_ot": 422.5
+    }
+]

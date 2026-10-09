@@ -62,7 +62,7 @@ $stmt = $conn->prepare("
         LastName,
         Suffix,
         COALESCE(NULLIF(TRIM(applicants.FullName), ''), NULLIF(TRIM(users.FullName), '')) AS FullName,
-        BirthDate,
+        BirthDate, Gender,
         StreetAddress,
         Region,
         AddressPSGC,
@@ -143,6 +143,7 @@ $docStmt->bind_param("i", $userId);
 $docStmt->execute();
 $docRes = $docStmt->get_result();
 while ($dRow = $docRes->fetch_assoc()) {
+    if(preg_match('/^(resume|cv|resume\s*\/\s*cv)$/i',$dRow['DocType']))$dRow['FilePath']='../../Api/Applicant/view_document.php?id='.(int)$dRow['DocID'];
     $docs[] = $dRow;
 }
 $docStmt->close();
@@ -183,6 +184,7 @@ echo json_encode([
         'middle_name' => $middleName !== '' ? $middleName : null,
         'last_name' => $lastName !== '' ? $lastName : null,
         'suffix' => $suffix !== '' ? $suffix : null,
+        'gender' => $row['Gender'] ?? '',
         'birth_date' => isset($row['BirthDate']) ? $row['BirthDate'] : null,
         'street_address' => $row['StreetAddress'] ?? null,
         'region' => $row['Region'] ?? null,

@@ -53,6 +53,12 @@
     setText('empPayrollNextPayday', period.payday_display ? 'Next Payday: ' + period.payday_display : 'Next Payday: —');
     setText('empPayrollCutoff', period.label ? 'Cutoff period: ' + period.label : 'Cutoff period: —');
     renderStatusBadge('empDashboardPayrollStatus', tracker);
+    setText('empOverviewCutoff', period.label || 'Cutoff information unavailable');
+    setText('empOverviewDays', p.days_worked != null ? String(p.days_worked) : '—');
+    var overviewAttendance = p.attendance_summary || {};
+    [['empOverviewPresent','present'],['empOverviewLate','late'],['empOverviewAbsent','absent']].forEach(function(item){setText(item[0],overviewAttendance[item[1]] != null ? String(overviewAttendance[item[1]]) : '—');});
+    setText('empOverviewPayslip', tracker.is_finalized ? 'Your payslip for this cutoff is available. Open Payroll to view it, or Payroll History for previous cutoffs.' : 'Your payslip will be available after Accounting reviews and finalizes payroll.');
+
 
     // Payroll tab — "Payroll Overview" — period info, status, days worked, attendance summary.
     setText('empPayrollTabNextPayday', period.payday_display ? 'Next Payday: ' + period.payday_display : 'Next Payday: —');
@@ -163,6 +169,7 @@
     setText('payslipAddBack', money(e.add_back));
     setText('payslipSil', money(e.sil_accrual));
     setText('payslipAllowance', money(e.allowance));
+    setText('payslipSundayAllowance', money(e.sunday_allowance || 0));
 
     var lu = payslip.late_undertime || {};
     setText('payslipLateMinutes', lu.late_minutes != null ? lu.late_minutes + ' min' : '—');

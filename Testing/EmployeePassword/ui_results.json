@@ -1,0 +1,16 @@
+{
+  "success": true,
+  "results": [
+    {
+      "viewport": 1366,
+      "status": "PASS",
+      "checks": "Profile Settings; setup fields; shared strength; eye toggle; confirmation; success state; three-field change; container fits; Cancel; legacy email-code setup; Back; notification action"
+    },
+    {
+      "viewport": 390,
+      "status": "PASS",
+      "checks": "Profile Settings; setup fields; shared strength; eye toggle; confirmation; success state; three-field change; container fits; Cancel; legacy email-code setup; Back; notification action"
+    }
+  ],
+  "api_data": "Synthetic responses; production backend independently tested in run.php"
+}

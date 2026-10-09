@@ -22,11 +22,12 @@ try { ae_authorize($conn,(int)$_SESSION['user_id'],['Admin','HR']); } catch (Dom
 
 header('Content-Type: application/json');
 
+if(isset($_GET['status']) && (!is_scalar($_GET['status']) || strlen((string)$_GET['status'])>100)) { http_response_code(422); echo json_encode(['success'=>false,'message'=>'Invalid status filter.']); exit; }
 $statusFilter = isset($_GET['status']) ? trim($_GET['status']) : '';
 
 $sql = "
     SELECT 
-        ja.ApplicationID,
+        ja.ApplicationID, ja.ApplicantID,
         ja.StatusID,
         a.FullName AS ApplicantName,
         a.Email,
@@ -94,6 +95,8 @@ if ($statusFilter !== '') {
 }
 
 $sql .= ' ORDER BY ja.ApplicationDate DESC';
+require_once __DIR__ . '/../Helpers/list_query_page.php';
+[$sql,$bindTypes,$bindValues,$pagination]=list_query_page($conn,$sql,['ApplicationID','ApplicantName','Email','MobileNumber','Position','CompanyName','ApplicantID','StatusFromTable'],['company'=>'CompanyName','position'=>'Position'],$bindTypes,$bindValues);
 
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
@@ -132,4 +135,5 @@ $stmt->close();
 echo json_encode([
     'success'      => true,
     'applications' => $applications,
+    'pagination' => $pagination,
 ]);

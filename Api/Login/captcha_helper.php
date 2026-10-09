@@ -15,7 +15,7 @@ function login_captcha_generate($replace=null): array {
     while(count($_SESSION['login_captchas'])>=LOGIN_CAPTCHA_LIMIT)array_shift($_SESSION['login_captchas']);
     $a=random_int(1,100);$b=random_int(1,100);$id=bin2hex(random_bytes(32));
     $_SESSION['login_captchas'][$id]=['answer'=>$a+$b,'expires'=>time()+LOGIN_CAPTCHA_TTL];
-    return ['challenge_id'=>$id,'numerator'=>$a,'denominator'=>$b];
+    return ['challenge_id'=>$id,'numerator'=>$a,'denominator'=>$b,'expires_in'=>LOGIN_CAPTCHA_TTL];
 }
 /** Feedback does not consume a challenge; every login validation attempt does. */
 function login_captcha_validate($id,$answer,bool $consume=false): array {

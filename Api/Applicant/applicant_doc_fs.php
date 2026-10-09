@@ -12,7 +12,8 @@ function applicant_doc_absolute_path(string $filePathFromDb): ?string
     $root = dirname(__DIR__, 2);
     $full = $root . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $p);
     $real = realpath($full);
-    return $real !== false ? $real : null;
+    $allowed=realpath($root.'/Uploads/Documents');
+    return $real !== false && $allowed && str_starts_with(strtolower($real),strtolower($allowed.DIRECTORY_SEPARATOR)) ? $real : null;
 }
 
 function applicant_doc_ensure_schema(mysqli $conn): void

@@ -40,6 +40,21 @@ $GLOBALS['billing_http_test']=static function(mysqli $db,string $database,string
             if($post!==null){curl_setopt($curl,CURLOPT_POST,true);curl_setopt($curl,CURLOPT_POSTFIELDS,$post);if($token)curl_setopt($curl,CURLOPT_HTTPHEADER,['X-Payroll-CSRF: '.$csrf]);}
             $body=curl_exec($curl);$status=(int)curl_getinfo($curl,CURLINFO_HTTP_CODE);$error=curl_error($curl);curl_close($curl);if($body===false)throw new RuntimeException($error);return [$status,$body,json_decode($body,true)];
         };
+        // A legacy finalized run has saved payroll but no itemized billing snapshot.
+        $legacyCode=client_billing_run_code('2026-09-26','2026-10-10',1,30,1).'-LEGACY';
+        fixture($db,'payroll_runs',['RunCode'=>$legacyCode,'BillingRefNo'=>client_billing_billing_ref($legacyCode),'CompanyID'=>1,'SiteID'=>1,'SiteSupervisorID'=>30,'PeriodStart'=>'2026-09-26','PeriodEnd'=>'2026-10-10','CutoffLabel'=>'Synthetic legacy cutoff','CurrentStatus'=>'Payroll Released','Status'=>'Draft','AdminOverheadPct'=>10,'VatPct'=>12]);
+        $db->query('UPDATE payroll SET HolidayPay=0,TotalDaysWorked=2 WHERE EmployeeID IN(1,2)');
+        $db->query('UPDATE employee SET daily_rate=99999,hourly_rate=9999 WHERE EmployeeID IN(1,2)');
+        $beforeLegacy=$db->query('SELECT * FROM payroll ORDER BY Payroll_ID')->fetch_all(MYSQLI_ASSOC);
+        [$status,$body]=$http('Accounting/export_client_billing.php?run_id='.urlencode($legacyCode));
+        if($status!==200)throw new RuntimeException('Legacy export '.$status.': '.$body);
+        check(str_starts_with($body,'PK'),'HTTP legacy finalized billing returns genuine XLSX');
+        $legacyPath=$root.'/legacy.xlsx';file_put_contents($legacyPath,$body);$legacyBook=(new \PhpOffice\PhpSpreadsheet\Reader\Xlsx())->load($legacyPath);$legacySheet=$legacyBook->getSheet(0);
+        foreach($beforeLegacy as $index=>$pay){if((int)$pay['EmployeeID']>2)continue;$r=$index+6;check(abs((float)$legacySheet->getCell('AD'.$r)->getCalculatedValue()-(float)$pay['GrossPay'])<0.005 && abs((float)$legacySheet->getCell('AM'.$r)->getCalculatedValue()-(float)$pay['NetPay'])<0.005,'HTTP legacy saved gross and net preserved for employee '.$pay['EmployeeID']);}
+        check(str_contains($legacySheet->getComment('AA6')->getText()->getPlainText(),'Recovered from stored finalized payroll'),'legacy recovery limitation is disclosed in workbook');$legacyBook->disconnectWorksheets();
+        check($beforeLegacy===$db->query('SELECT * FROM payroll ORDER BY Payroll_ID')->fetch_all(MYSQLI_ASSOC),'legacy export leaves all saved payroll unchanged');
+        [$status,$body]=$http('Accounting/export_client_billing.php?ref='.urlencode(client_billing_billing_ref($legacyCode)));check($status===200 && str_starts_with($body,'PK'),'HTTP table billing reference resolves the same legacy run');
+        [$status]=$http('Accounting/export_client_billing.php?run_id='.urlencode($legacyCode),'employee');check($status===403,'HTTP employee denied billing XLSX');
         [$status,$body,$json]=$http('Accounting/payroll_workflow_context.php');check($status===200 && $json['csrf_token']===$csrf,'HTTP CSRF context');
         [$status,$body,$json]=$http('Accounting/get_payroll_run_details.php?run_id='.urlencode($code));if($status!==200 || !is_array($json))throw new RuntimeException('Details response '.$status.': '.$body);check($json['employee_count']===2,'HTTP run details exact roster');
         check(count(array_filter($json['employees'],static fn($e)=>$e['employee_id']===3))===0,'HTTP details exclude foreign company/site');

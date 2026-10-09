@@ -47,6 +47,12 @@ try {
     $otpAuthorized=is_array($otp) && !empty($otp['verified']) && (int)($otp['user_id']??0)===$userId
         && strcasecmp((string)($otp['email']??''),(string)$account['Email'])===0
         && !empty($otp['verified_at']) && time()-(int)$otp['verified_at']<=600;
+    if($otpAuthorized){
+        $requestHash=hash('sha256',(string)($otp['request_secret'] ?? ''));
+        $q=$conn->prepare('SELECT UserID,Verified,Consumed,ExpiresAt FROM password_reset_requests WHERE RequestHash=?'.($method==='POST'?' FOR UPDATE':''));
+        $q->bind_param('s',$requestHash);$q->execute();$resetRecord=$q->get_result()->fetch_assoc();
+        $otpAuthorized=$resetRecord && (int)$resetRecord['UserID']===$userId && $resetRecord['Verified'] && !$resetRecord['Consumed'] && (int)$resetRecord['ExpiresAt']>time();
+    }
     $google=$_SESSION['verified_google_login']??null;
     $googleAuthorized=$account['LocalPasswordConfigured']===null && is_array($google)
         && (int)($google['user_id']??0)===$userId && time()-(int)($google['at']??0)<=600;
@@ -104,15 +110,20 @@ try {
     if ($error) { $conn->rollback(); security_response(['success'=>false,'message'=>$error],$status); }
     $hash=password_hash($new,PASSWORD_DEFAULT);
     employee_password_record($conn,$userId,(string)$account['Password'],$hash);
-    $update=$conn->prepare('UPDATE users SET Password=?, LocalPasswordConfigured=1 WHERE UsersID=?');
+    $update=$conn->prepare('UPDATE users SET Password=?, LocalPasswordConfigured=1,FailedLoginAttempts=0,LoginLockedUntil=NULL WHERE UsersID=?');
     $update->bind_param('si',$hash,$userId);
     $update->execute();
     $update->close();
     $read=$conn->prepare("UPDATE notifications SET IsRead=1 WHERE UserID=? AND NotificationType='employee_password_setup'");
     $read->bind_param('i',$userId); $read->execute(); $read->close();
+    $q=$conn->prepare('UPDATE password_reset_requests SET Consumed=1 WHERE UserID=?');$q->bind_param('i',$userId);$q->execute();
     $conn->commit();
+    session_regenerate_id(true);
     unset($_SESSION['employee_password_attempt'],$_SESSION['forgot_password_otp'],$_SESSION['verified_google_login']);
     $_SESSION['employee_password_csrf']=bin2hex(random_bytes(32));
+    require_once __DIR__.'/AuditLogger.php';
+    AuditLogger::log($conn,'Auth',$otpAuthorized?'Password Reset Completed':'Password Changed','Account password updated.',(string)$userId);
+    if($otpAuthorized){require_once __DIR__.'/send_mail.php';$mailRes=send_mail_smtp($account['Email'],'Onazul password changed','Your Onazul password was changed. If this was not you, contact the agency immediately.',true);if(empty($mailRes['sent']))error_log('Password change notification delivery failed.');}
     security_response(['success'=>true,'message'=>$action==='setup'?($otpAuthorized && !$setupNoticeRequired?'Your password has been reset successfully.':'Your password has been set successfully.'):'Your password has been changed successfully.']);
 } catch (Throwable $e) {
     if ($method==='POST') $conn->rollback();

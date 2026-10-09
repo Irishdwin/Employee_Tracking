@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hr-ui">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -70,6 +70,8 @@
     <script>window.REQUIRED_ROLE = 'HR';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
 <script src="../../Js/Shared/applicant_reendorsement.js"></script>
+<link rel="stylesheet" href="../../Css/hr_workspace.css">
+<script src="../../Js/Shared/hr_dialog.js"></script>
 </head>
 <body>
 <div class="layout-wrapper">
@@ -269,8 +271,8 @@ ${['applied','scheduled_for_interview'].includes(data.workflow_stage) ? `<button
         `).join('') + '</ul>';
     }
     
-    function scheduleInterview(appId) {
-        const date = prompt('Enter interview date and time (YYYY-MM-DD HH:MM):');
+    async function scheduleInterview(appId) {
+        const date = await HRDialog.prompt('Enter interview date and time (YYYY-MM-DD HH:MM):');
         if (!date) return;
         
         fetch(API_BASE + 'schedule_interview.php', {
@@ -281,11 +283,11 @@ ${['applied','scheduled_for_interview'].includes(data.workflow_stage) ? `<button
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                alert('Interview scheduled successfully!');
+                HRDialog.alert('Interview scheduled successfully!');
                 bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
                 loadApplications();
             } else {
-                alert(data.message || 'Failed to schedule interview.');
+                HRDialog.alert(data.message || 'Failed to schedule interview.');
             }
         });
     }
@@ -299,17 +301,17 @@ ${['applied','scheduled_for_interview'].includes(data.workflow_stage) ? `<button
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                alert('Status updated successfully!');
+                HRDialog.alert('Status updated successfully!');
                 bootstrap.Modal.getInstance(document.getElementById('reviewModal')).hide();
                 loadApplications();
             } else {
-                alert(data.message || 'Failed to update status.');
+                HRDialog.alert(data.message || 'Failed to update status.');
             }
         });
     }
     
-    function endorseToClient(appId) {
-        if (!confirm('Endorse this applicant to the client?')) return;
+    async function endorseToClient(appId) {
+        if (!await HRDialog.confirm('Endorse this applicant to the client?')) return;
         
         fetch(API_BASE + 'endorse_to_client.php', {
             method: 'POST',
@@ -328,11 +330,11 @@ ${['applied','scheduled_for_interview'].includes(data.workflow_stage) ? `<button
         .then(res => {
             const data = res.data;
             if (res.data === null) {
-                alert('Invalid server response: ' + (res.raw || '(empty response)'));
+                HRDialog.alert('Invalid server response: ' + (res.raw || '(empty response)'));
                 return;
             }
             if (res.ok && data.success) {
-                alert('Applicant endorsed to client successfully!');
+                HRDialog.alert('Applicant endorsed to client successfully!');
                 const modalEl = document.getElementById('reviewModal');
                 if (modalEl) {
                     const modal = bootstrap.Modal.getInstance(modalEl);
@@ -340,11 +342,11 @@ ${['applied','scheduled_for_interview'].includes(data.workflow_stage) ? `<button
                 }
                 loadApplications();
             } else {
-                alert((data && (data.message || data.error)) || 'Failed to endorse applicant.');
+                HRDialog.alert((data && (data.message || data.error)) || 'Failed to endorse applicant.');
             }
         })
         .catch(err => {
-            alert('Request failed: ' + (err.message || 'network error'));
+            HRDialog.alert('Request failed: ' + (err.message || 'network error'));
         });
     }
     

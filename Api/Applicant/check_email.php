@@ -14,7 +14,7 @@ $raw = file_get_contents('php://input');
 $input = is_string($raw) && $raw !== '' ? (json_decode($raw, true) ?: []) : [];
 $email = trim((string)($input['email'] ?? $_GET['email'] ?? ''));
 
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if ($email === '' || (!filter_var($email, FILTER_VALIDATE_EMAIL) || !preg_match('/^[a-z0-9][a-z0-9._%+\-]*@gmail\.com$/i',$email))) {
     echo json_encode([
         'success' => true,
         'exists' => false,

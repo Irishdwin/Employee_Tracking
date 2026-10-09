@@ -1,0 +1,1 @@
+ALTER TABLE employee ADD COLUMN IF NOT EXISTS sunday_duty_allowance DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER allowance;

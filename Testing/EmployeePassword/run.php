@@ -10,10 +10,17 @@ function ep_insert($db,$table,$row) { $q=$db->prepare('INSERT INTO `'.$table.'` 
 function ep_assert($ok,$label) {global $checks;if(!$ok)throw new RuntimeException($label);$checks[$label]='PASS';file_put_contents(__DIR__.'/progress.json',json_encode($checks,JSON_PRETTY_PRINT));}
 function ep_session($root,$user,$role,$extra=[]) {ini_set('session.save_path',$root.'/sessions');ini_set('session.use_cookies',0);ini_set('session.cache_limiter','');$id=bin2hex(random_bytes(16));session_id($id);session_start();$_SESSION=array_merge(['user_id'=>$user,'role'=>$role,'last_activity'=>time()],$extra);session_write_close();return $id;}
 function ep_http($url,$sid,$body=null,$expected=200,$form=false) {
+ static $rotatedSessions=[];
+ $originalSid=$sid;$sid=$rotatedSessions[$sid]??$sid;
  $headers="Cookie: PHPSESSID=$sid\r\nX-Requested-With: XMLHttpRequest\r\nContent-Type: ".($form?'application/x-www-form-urlencoded':'application/json')."\r\n";
  $ctx=stream_context_create(['http'=>['method'=>$body===null?'GET':'POST','header'=>$headers,'content'=>$body===null?'':($form?http_build_query($body):json_encode($body)),'ignore_errors'=>true,'timeout'=>20]]);
- $raw=file_get_contents($url,false,$ctx);preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$match);$code=(int)($match[1]??0);$data=json_decode($raw,true);
+ $raw=file_get_contents($url,false,$ctx);foreach($http_response_header??[] as $header){if(preg_match('/^Set-Cookie: PHPSESSID=([^;]+)/i',$header,$cookie))$rotatedSessions[$originalSid]=$cookie[1];}preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$match);$code=(int)($match[1]??0);$data=json_decode($raw,true);
  if($code!==$expected||!is_array($data))throw new RuntimeException('Unexpected response '.$code.' expected '.$expected.': '.substr($raw,0,200));return $data;
+}
+function ep_reset_grant($db,$uid,$email) {
+ $secret=bin2hex(random_bytes(32));$hash=hash('sha256',$secret);$expires=time()+600;
+ ep_insert($db,'password_reset_requests',['RequestHash'=>$hash,'UserID'=>$uid,'Email'=>$email,'CodeHash'=>password_hash((string)random_int(100000,999999),PASSWORD_DEFAULT),'ExpiresAt'=>$expires,'Verified'=>1]);
+ return ['user_id'=>$uid,'email'=>$email,'verified'=>true,'verified_at'=>time(),'expires_at'=>$expires,'request_secret'=>$secret];
 }
 function ep_checksum($db) {$out=[];foreach(['users','employee','applicants','job_applications','notifications','deployment','payroll','attendance'] as $t)$out[$t]=$db->query('CHECKSUM TABLE `'.$t.'`')->fetch_assoc()['Checksum'];return $out;}
 function ep_remove($path) {foreach(new DirectoryIterator($path)as$f){if($f->isDot())continue;if($f->isDir())ep_remove($f->getPathname());else unlink($f->getPathname());}rmdir($path);}
@@ -102,7 +109,7 @@ MAIL
  for($i=0;$i<5;$i++)ep_http($api,$otherSid,$wrong,422);
  ep_http($api,$otherSid,$wrong,429);ep_assert(true,'Repeated incorrect current passwords throttled');
  $db->query('UPDATE users SET LocalPasswordConfigured=0 WHERE UsersID='.$other);
- $resetSession=ep_session($root,0,'',['forgot_password_otp'=>['email'=>'password-existing@example.invalid','user_id'=>$other,'verified'=>true,'verified_at'=>time()]]);
+ $resetSession=ep_session($root,0,'',['forgot_password_otp'=>ep_reset_grant($db,$other,'password-existing@example.invalid')]);
  ep_http($base.'/Api/Login/forgot_password.php',$resetSession,['action'=>'reset_password','email'=>'password-existing@example.invalid','new_password'=>'Birch!Velvet53','confirm_password'=>'Birch!Velvet53'],200,true);
  ep_assert((int)$db->query('SELECT LocalPasswordConfigured FROM users WHERE UsersID='.$other)->fetch_row()[0]===1&&password_verify('Birch!Velvet53',$db->query('SELECT Password FROM users WHERE UsersID='.$other)->fetch_row()[0]),'Existing verified OTP reset configures local password');
  $postHash=$db->query('SELECT Password FROM users WHERE UsersID='.$user)->fetch_row()[0];session_id(bin2hex(random_bytes(16)));session_start();$google=google_rbac_process_verified_email($db,'password-google@example.invalid','TEST Google','http://localhost/Employee_Tracking/Api/Applicant/google_oauth_callback.php');session_write_close();
@@ -114,7 +121,7 @@ MAIL
  foreach(['mismatched'=>['user_id'=>$user,'email'=>'password-google@example.invalid','verified_at'=>time()], 'expired'=>['user_id'=>$other,'email'=>'password-existing@example.invalid','verified_at'=>time()-601]]as$case=>$grant) {
   $session=ep_session($root,$other,'Employee',['forgot_password_otp'=>array_merge($grant,['verified'=>true])]);$state=ep_http($api,$session);$setupBody['csrf_token']=$state['csrf_token'];ep_http($api,$session,$setupBody,409);ep_assert(true,'Legacy setup rejects '.$case.' OTP grant');
  }
- $session=ep_session($root,$other,'Employee',['forgot_password_otp'=>['user_id'=>$other,'email'=>'password-existing@example.invalid','verified'=>true,'verified_at'=>time()]]);$state=ep_http($api,$session);ep_assert($state['setup_required'],'Verified own-email OTP enables legacy setup');
+ $session=ep_session($root,$other,'Employee',['forgot_password_otp'=>ep_reset_grant($db,$other,'password-existing@example.invalid')]);$state=ep_http($api,$session);ep_assert($state['setup_required'],'Verified own-email OTP enables legacy setup');
  $setupBody['csrf_token']=$state['csrf_token'];$setupBody['new_password']=$setupBody['confirm_password']='Sage!Pebble67';ep_http($api,$session,$setupBody);ep_assert(password_verify('Sage!Pebble67',$db->query('SELECT Password FROM users WHERE UsersID='.$other)->fetch_row()[0]),'Legacy setup completes without unknown old password');
  ep_assert(!ep_http($api,$session)['setup_required'],'OTP setup authorization consumed');
  $db->query('UPDATE users SET LocalPasswordConfigured=NULL WHERE UsersID='.$other);
@@ -129,7 +136,7 @@ MAIL
  preg_match('/code is: ([0-9]{6})/',$mail['body'],$matches);$code=$matches[1]??'';
  ep_assert(strlen($code)===6 && $mail['to']==='password-google@example.invalid','Six-digit code targets server registered email, ignores supplied email');
  ep_assert(!str_contains(json_encode($sent),$code),'Code not exposed in API response');
- ep_http($resetApi,$resetSid,$request,429,true);ep_assert(true,'Code resend throttled');
+ $resend=ep_http($resetApi,$resetSid,$request,200,true);ep_assert($resend['message']===$sent['message'],'Code resend throttled with generic response');
  $verify=array_merge($request,['action'=>'verify_code','code'=>'1234']);ep_http($resetApi,$resetSid,$verify,400,true);ep_assert(true,'Four-digit code rejected');
  $verify['code']=$code==='999999'?'999998':(string)((int)$code+1);ep_http($resetApi,$resetSid,$verify,400,true);ep_assert(true,'Incorrect six-digit code rejected');
  $expired=ep_session($root,$user,'Employee',['forgot_password_otp'=>['email'=>'password-google@example.invalid','user_id'=>$user,'code_hash'=>password_hash($code,PASSWORD_DEFAULT),'expires_at'=>time()-1]]);$expiredState=ep_http($api,$expired);

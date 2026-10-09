@@ -1211,6 +1211,8 @@
 <link rel="stylesheet" href="../../Css/applicant_surfaces.css?v=20261006">
 <link rel="stylesheet" href="../../Css/ow_widgets.css">
 <style>.ow-msgr-panel,.ow-msgr-fab{z-index:22000}.ow-msgr-panel{background:#f0f5fc}</style>
+<link rel="stylesheet" href="../../Css/applicant_landing_refinements.css">
+<link rel="stylesheet" href="../../Css/applicant_company_story.css">
 </head>
 <body class="applicant-blue-ui applicant-page-applicant-landing">
   <!-- OAuth: Google redirects here when Authorized redirect URI is applicant_landing.html; forward code to the thin callback page (same redirect_uri in token exchange). -->
@@ -1241,7 +1243,7 @@
           <a class="nav-link" href="#agencyContactModal" data-bs-toggle="modal" data-bs-target="#agencyContactModal">Contact the Agency</a>
         </nav>
         <div class="d-flex align-items-center gap-3">
-          <a href="../../index.html" class="employer-link d-none d-md-inline" id="employerSiteLink">Employer site</a>
+          <a href="../../index.html" class="employer-link d-none" id="employerSiteLink">Employer site</a>
           
           <!-- Notification Bell Dropdown (signed-in applicants) -->
           <div class="dropdown d-none" id="notificationMenuWrap">
@@ -1283,7 +1285,6 @@
                   <span class="badge bg-danger rounded-pill d-none" id="accountJobOrdersBadge">0</span>
                 </a>
                 <a class="account-dropdown-item" role="menuitem" href="saved_jobs.html">Saved jobs</a>
-                <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
                 <a class="account-dropdown-item" role="menuitem" href="../Common/notifications.html">Notifications</a>
                 <div class="account-dropdown-divider" role="presentation"></div>
                 <button type="button" class="account-dropdown-item account-dropdown-signout w-100" role="menuitem" id="btnSignOut">Logout</button>
@@ -1305,7 +1306,7 @@
   <div class="applicant-discovery-background">
   <section class="hero">
     <div class="container hero-inner">
-      <div class="hero-title">Find your next job</div>
+      <div class="hero-title">Find your next job</div><p class="landing-welcome" id="landingWelcome">Your next step starts here.</p>
       <div class="hero-subtitle">Search by job title, company, or location. Click SEEK to find available opportunities.</div>
 
       <div class="seek-bar">
@@ -1404,6 +1405,21 @@
     </div>
   </section>
 
+<section class="landing-about" id="aboutOnazul" aria-labelledby="landingAboutTitle"><div class="container">
+ <div class="landing-about-grid"><div class="landing-about-story"><span class="landing-eyebrow">GET TO KNOW US</span><h2 id="landingAboutTitle">About Onazul Manpower Services</h2><p id="landingAboutText">Explore available roles, build your applicant profile, and follow your next step with Onazul.</p><div id="landingMissionBlock" hidden><h3>Our purpose</h3><p id="landingMission"></p></div><a class="landing-text-link" href="#jobWallSection">Explore open roles <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div><figure class="landing-office"><img src="../../Images/onazul_office_storefront.png" alt="Onazul office exterior" loading="lazy"><figcaption>Onazul Manpower Services</figcaption></figure></div>
+ <div class="landing-help-grid">
+ <article class="landing-info-card"><span class="landing-info-icon"><i class="bi bi-signpost" aria-hidden="true"></i></span><h3>Your application, step by step</h3><ol><li><strong>Find a role.</strong> Search by job, company, or location.</li><li><strong>Complete your profile.</strong> Keep your contact details and supporting documents current.</li><li><strong>Stay connected.</strong> Follow your status in My Applications and check your notifications.</li></ol></article>
+ <article class="landing-info-card" id="landingGuidanceBlock"><span class="landing-info-icon"><i class="bi bi-file-earmark-check" aria-hidden="true"></i></span><h3>Before you apply</h3><p id="landingGuidance">Review the role and deployment details before applying. Have your résumé and relevant supporting documents ready, and use contact details where HR can reach you.</p><a class="landing-text-link" href="#applicantTermsPreviewModal" data-bs-toggle="modal" data-bs-target="#applicantTermsPreviewModal">Read the applicant terms <i class="bi bi-arrow-right" aria-hidden="true"></i></a></article>
+ <article class="landing-info-card"><span class="landing-info-icon"><i class="bi bi-chat-dots" aria-hidden="true"></i></span><h3>Talk to the agency</h3><p>Have a question about an opportunity or your application? Reach out using the agency’s published details.</p><address id="landingPublicContact">Contact details will appear here once published by the agency.</address><div id="landingOfficeAddressBlock" hidden><span class="landing-detail-label">Office</span><p id="landingOfficeAddress"></p></div><div id="landingOfficeHoursBlock" hidden><span class="landing-detail-label">Support hours</span><p id="landingOfficeHours"></p></div><div class="landing-official-links" id="landingOfficialLinks"></div></article>
+ </div></div></section>
+<div class="modal fade" id="landingAboutModal" tabindex="-1" aria-labelledby="landingAboutModalTitle" aria-hidden="true">
+ <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+  <div class="modal-header"><h2 class="modal-title fs-5" id="landingAboutModalTitle">About Onazul Manpower Services</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+  <div class="modal-body landing-about-modal-body"><img src="../../Images/onazul_office_storefront.png" alt="Onazul office exterior" class="landing-about-modal-photo"><div id="landingAboutModalContent"></div></div>
+  <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-primary" id="landingAboutExplore">Explore open roles</button></div>
+ </div></div>
+</div>
+<footer class="landing-footer"><div class="container"><span id="landingFooterName">Onazul Manpower Services</span><nav aria-label="Footer"><a href="#landingAboutModal" data-bs-toggle="modal" data-bs-target="#landingAboutModal">About us</a><a href="#jobWallSection">Open roles</a><a href="#applicantTermsPreviewModal" data-bs-toggle="modal" data-bs-target="#applicantTermsPreviewModal">Applicant terms</a></nav></div></footer>
   <script>
   (function () {
     var STATUS_API = '../../Api/Applicant/get_profile_status.php';
@@ -1765,6 +1781,8 @@
       var av = document.getElementById('accountAvatarInitial');
       if (!btn || !wrap) return;
       var loggedIn = !!(res && res.ok && res.data && res.data.success && res.data.logged_in !== false);
+      var employerLink = document.getElementById('employerSiteLink');
+      if (employerLink) employerLink.classList.toggle('d-md-inline', !loggedIn);
       if (!loggedIn) {
         wrap.classList.add('d-none');
         if (notifWrap) notifWrap.classList.add('d-none');
@@ -1822,6 +1840,7 @@
       if (btnOut) {
         btnOut.addEventListener('click', function () {
           closeMenu();
+          window.showLogoutConfirm(function () {
           fetch('../../Api/Login/logout.php', {
             method: 'GET',
             credentials: 'include',
@@ -1831,6 +1850,7 @@
             .then(function () {
               window.location.href = 'applicant_landing.html';
             });
+        });
         });
       }
 
@@ -2412,7 +2432,8 @@
     });
   })();
   </script>
-  <script src="../../Js/Applicant/applicant_auth_modal.js"></script>
+  <script src="../../Js/Shared/ph_mobile.js"></script>
+<script src="../../Js/Applicant/applicant_auth_modal.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <link rel="stylesheet" href="../../Css/applicant_job_wall_slots.css">
   <script src="../../Js/Applicant/job_wall_slots.js"></script>
@@ -2492,7 +2513,7 @@
           <form id="authEmailLoginForm" novalidate>
             <div class="mb-3">
               <label class="auth-form-label" for="authLoginEmail">Email address</label>
-              <input type="email" id="authLoginEmail" class="form-control auth-form-control" placeholder="you@email.com" autocomplete="email" required>
+              <input type="email" id="authLoginEmail" class="form-control auth-form-control" placeholder="you@gmail.com" autocomplete="email" required>
             </div>
             <div class="mb-3">
               <label class="auth-form-label" for="authLoginPassword">Password</label>
@@ -2572,13 +2593,13 @@
             </div>
             <div class="mb-3">
               <label class="auth-form-label" for="authRegPassword">Password</label>
-              <input type="password" id="authRegPassword" name="password" class="form-control auth-form-control" minlength="8" required autocomplete="new-password">
-              <div class="auth-register-note">Uppercase, lowercase, number, and special character required.</div>
+              <div style="position:relative"><input type="password" id="authRegPassword" name="password" class="form-control auth-form-control" style="padding-right:48px" minlength="8" required autocomplete="new-password"><button type="button" data-auth-password-toggle="authRegPassword" aria-label="Show password" aria-pressed="false" class="btn btn-link" style="position:absolute;right:4px;top:4px"><i class="bi bi-eye"></i></button></div>
+              <ul id="authRegPasswordRules" class="small text-muted ps-3 mt-2 mb-1"><li>At least 8 characters</li><li>At least 1 uppercase letter</li><li>At least 1 lowercase letter</li><li>At least 1 number</li><li>At least 1 special character</li></ul>
               <div class="auth-field-error" id="authRegPasswordError" role="alert"></div>
             </div>
             <div class="mb-3">
               <label class="auth-form-label" for="authRegConfirm">Confirm password</label>
-              <input type="password" id="authRegConfirm" name="confirm_password" class="form-control auth-form-control" required autocomplete="new-password">
+              <div style="position:relative"><input type="password" id="authRegConfirm" name="confirm_password" class="form-control auth-form-control" style="padding-right:48px" required autocomplete="new-password"><button type="button" data-auth-password-toggle="authRegConfirm" aria-label="Show password" aria-pressed="false" class="btn btn-link" style="position:absolute;right:4px;top:4px"><i class="bi bi-eye"></i></button></div>
               <div class="auth-field-error" id="authRegConfirmError" role="alert"></div>
             </div>
             <button type="submit" class="auth-submit-btn" id="btnModalRegister">Create account</button>
@@ -2650,6 +2671,25 @@ document.getElementById('agencyContactModal').addEventListener('show.bs.modal', 
 
 <script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
 <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
+<script src="../../Js/Applicant/agency_landing_content.js"></script>
+
+<div class="modal fade" id="applicantTermsPreviewModal" tabindex="-1" aria-labelledby="applicantTermsPreviewTitle" aria-describedby="applicantTermsPreviewNote" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <div class="modal-content landing-terms-preview">
+      <div class="modal-header"><h2 class="modal-title fs-5" id="applicantTermsPreviewTitle">Applicant terms</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close terms"></button></div>
+      <div class="modal-body">
+        <p class="landing-terms-note" id="applicantTermsPreviewNote">For reading only. Viewing or closing this window does not register an account or accept any terms.</p>
+        <section aria-labelledby="termsDataTitle"><h3 id="termsDataTitle">Collection notice and privacy</h3><p>The registration process asks applicants to agree to the Collection Notice and Privacy Policy for the processing of their personal information.</p></section>
+        <section aria-labelledby="termsMinorTitle"><h3 id="termsMinorTitle">Applicants below 18</h3><p>Applicants below 18 years old are asked to confirm that they have parental consent for Onazul to process their data.</p></section>
+        <section aria-labelledby="termsUpdatesTitle"><h3 id="termsUpdatesTitle">Career advice and updates</h3><p>The registration page also includes an agreement to receive career advice, newsletters, and related updates from Onazul. Applicants can unsubscribe at any time.</p></section>
+        <p class="small text-muted mb-0">These are the notices shown during account registration. Any required agreement is handled separately when you register.</p>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button></div>
+    </div>
+  </div>
+</div>
+
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
 </body>
 </html>
 

@@ -2,14 +2,14 @@
 /**
  * Shared PDO connection for attendance APIs.
  */
-function attendance_pdo(): PDO
+function attendance_pdo(?mysqli $conn = null): PDO
 {
-    static $pdo = null;
-    if ($pdo instanceof PDO) {
-        return $pdo;
-    }
+    static $connections = [];
+    $database=$conn ? (string)$conn->query('SELECT DATABASE()')->fetch_row()[0] : 'onazul_hris_db';
+    if(!preg_match('/\A[a-zA-Z0-9_]+\z/D',$database))throw new RuntimeException('Invalid attendance database.');
+    if(isset($connections[$database]))return $connections[$database];
     $pdo = new PDO(
-        'mysql:host=127.0.0.1;dbname=onazul_hris_db;charset=utf8mb4',
+        'mysql:host=127.0.0.1;dbname='.$database.';charset=utf8mb4',
         'root',
         '',
         [
@@ -17,7 +17,7 @@ function attendance_pdo(): PDO
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]
     );
-    return $pdo;
+    return $connections[$database]=$pdo;
 }
 
 function attendance_ensure_table(PDO $pdo): void

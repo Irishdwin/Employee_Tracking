@@ -1,0 +1,44 @@
+digraph DFD {
+// Gane & Sarson: rectangular entities, rounded processes, open-right stores.
+graph [rankdir=LR, bgcolor="white", nodesep=0.4, ranksep=1.3, pad=0.35, label="Level 2 - Process 9.0 Payroll Computation and Finalization\nGane & Sarson notation", labelloc=t, fontsize=22, fontname="Arial"];
+node [fontname="Arial", fontsize=12, margin="0.16,0.10", color="#43835b", fontcolor="#172b20"];
+edge [fontname="Arial", fontsize=10, color="#43835b", fontcolor="#172b20", arrowsize=0.7];
+C [label="Accounting Staff", shape=box];
+E [label="Employee", shape=box];
+D3 [label="D3 - Employees and Separation", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D3 - Employees and Separation</TD></TR></TABLE> >];
+D7 [label="D7 - Schedules and Holidays", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D7 - Schedules and Holidays</TD></TR></TABLE> >];
+D8 [label="D8 - Attendance and DTR", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D8 - Attendance and DTR</TD></TR></TABLE> >];
+D9 [label="D9 - Overtime and Existing Leave", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D9 - Overtime and Existing Leave</TD></TR></TABLE> >];
+D10 [label="D10 - Payroll, Billing and\nStatus History", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D10 - Payroll, Billing and Status History</TD></TR></TABLE> >];
+D13 [label="D13 - Audit and Configuration", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D13 - Audit and Configuration</TD></TR></TABLE> >];
+D11 [label="D11 - Notifications", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D11 - Notifications</TD></TR></TABLE> >];
+P91 [label="9.1 Verify Submitted DTR", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+P92 [label="9.2 Compute Payroll Preview", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+P93 [label="9.3 Finalize Reviewed Billing\nSnapshot", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+P94 [label="9.4 Retrieve Finalized Payslip", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+P10 [label="10.0 Manage Billing Revisions\nand Payroll Status", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+C -> P91 [label="DTR verification decision"];
+D8 -> P91 [label="Submitted site and cutoff DTR"];
+P91 -> D8 [label="Reviewed DTR"];
+P91 -> C [label="Verification result"];
+C -> P92 [label="Site-scoped computation inputs"];
+D8 -> P92 [label="Verified employee DTR"];
+D3 -> P92 [label="Employee salary configuration"];
+D7 -> P92 [label="Schedules and holiday rules"];
+D9 -> P92 [label="Approved overtime and existing\nleave"];
+D13 -> P92 [label="Government deduction rates"];
+D10 -> P92 [label="Existing runs and adjustments"];
+P92 -> D10 [label="Computed run and computation\nhistory"];
+P92 -> P10 [label="Computed billing rows"];
+P92 -> C [label="Payroll preview and computation\nresult"];
+P10 -> D10 [label="Persisted billing export\nsnapshot"];
+C -> P93 [label="Latest export ID and\nbilling-reviewed confirmation"];
+D10 -> P93 [label="Latest post-computation export\nand roster snapshot"];
+D8 -> P93 [label="Verified site-scoped DTR\nmembership"];
+P93 -> D10 [label="Finalized payroll and frozen\nrun-member snapshots"];
+P93 -> D11 [label="Payslip available notification"];
+P93 -> C [label="Finalization result"];
+E -> P94 [label="Payroll history or payslip\nselection"];
+D10 -> P94 [label="Finalized payroll and billing\ndetails"];
+P94 -> E [label="Payslip and payroll history"];
+}

@@ -1,0 +1,86 @@
+%% Gane & Sarson notation. DOT/SVG is the exact open-ended-store version.
+flowchart LR
+  classDef entity fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef process fill:#f4faf5,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef store fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  linkStyle default stroke:#43835b;
+  A["Admin"]:::entity
+  P5("5.0 Manage Clients, Sites and Deployments"):::process
+  H["HR"]:::entity
+  T["Team Lead / Site Supervisor"]:::entity
+  E["Employee"]:::entity
+  P6("6.0 Manage Team Schedules"):::process
+  P7("7.0 Record Attendance and Submit DTR"):::process
+  P8("8.0 Manage Overtime"):::process
+  P14("14.0 Review Attendance Add Back"):::process
+  C["Accounting Staff"]:::entity
+  P4("4.0 Manage Employee Records and Separation"):::process
+  D4[["D4 - Clients and Agreements"]]:::store
+  D6[["D6 - Sites and Deployments"]]:::store
+  D3[["D3 - Employees and Separation"]]:::store
+  D7[["D7 - Schedules and Holidays"]]:::store
+  D8[["D8 - Attendance and DTR"]]:::store
+  D9[["D9 - Overtime and Existing Leave"]]:::store
+  D14[["D14 - Add Back Requests and Evidence"]]:::store
+  D10[["D10 - Payroll, Billing and Status History"]]:::store
+  D15[["D15 - Uploaded Documents and Evidence Files"]]:::store
+  D11[["D11 - Notifications"]]:::store
+  D13[["D13 - Audit and Configuration"]]:::store
+  A -->|"Client, service agreement, site and Team Lead assignments"| P5
+  P5 -->|"Client, agreement, site and deployment records"| A
+  H -->|"Deployment assignment and end date"| P5
+  P5 -->|"Employee, client and site assignment results"| H
+  T -->|"Worksite registration and company profile inputs"| P5
+  P5 -->|"Assigned sites, geofence and deployed team records"| T
+  P5 -->|"Current worksite and deployment context"| E
+  T -->|"Site-scoped fixed or dated schedules"| P6
+  P6 -->|"Team schedule and validation results"| T
+  P6 -->|"Work schedule and smart calendar"| E
+  E -->|"Clock action, GPS coordinates and attendance evidence"| P7
+  P7 -->|"Validated clock result, attendance and timesheet"| E
+  T -->|"Site and cutoff DTR submission inputs"| P7
+  P7 -->|"Attendance roster, cutoff review and DTR results"| T
+  T -->|"Overtime invitation and completion approval"| P8
+  P8 -->|"Overtime roster, employee responses and status"| T
+  E -->|"Overtime acceptance, rejection and clock evidence"| P8
+  P8 -->|"Overtime invitations and session results"| E
+  E -->|"Attendance add-back claim using recorded evidence"| P14
+  P14 -->|"Add-back status and approved compensation"| E
+  C -->|"Add-back review decision"| P14
+  P14 -->|"Evidence snapshot and server-calculated quote"| C
+  A -->|"Add-back review decision"| P14
+  P14 -->|"Add-back evidence and review results"| A
+  P4 -->|"Hired employee or separation deployment change"| P5
+  D4 -->|"Client and agreement records"| P5
+  P5 -->|"Client profiles and service agreements"| D4
+  D6 -->|"Sites, geofences and assignments"| P5
+  P5 -->|"Site, worksite and deployment changes"| D6
+  D3 -->|"Active employee records"| P5
+  D6 -->|"Assigned site, employee deployment and fixed shift"| P6
+  P6 -->|"Fixed deployment schedule"| D6
+  D7 -->|"Dated schedules and scoped holidays"| P6
+  P6 -->|"Team schedule entries"| D7
+  D6 -->|"Current deployment and worksite geofence"| P7
+  D7 -->|"Effective schedule and holiday classification"| P7
+  D8 -->|"Attendance evidence and cutoff records"| P7
+  P7 -->|"Attendance, daily time records and DTR submissions"| D8
+  D9 -->|"Existing approved leave and overtime context"| P7
+  D6 -->|"Authorized site and employee deployment"| P8
+  D9 -->|"Overtime invitations and sessions"| P8
+  P8 -->|"Responses, actual hours and approval decisions"| D9
+  D14 -->|"Claim and captured evidence snapshots"| P14
+  P14 -->|"Claim, decision and calculated compensation"| D14
+  D8 -->|"Recorded attendance evidence"| P14
+  D7 -->|"Work-date schedule"| P14
+  D3 -->|"Employee pay rates"| P14
+  P14 -->|"Approved compensation adjustment for eligible payroll"| D10
+  D15 -->|"Authorized document or evidence content"| P7
+  P7 -->|"Uploaded document, evidence or proof file"| D15
+  D15 -->|"Authorized document or evidence content"| P8
+  P8 -->|"Uploaded document, evidence or proof file"| D15
+  P5 -->|"Recorded manage clients, sites and deployments notification"| D11
+  P6 -->|"Recorded manage team schedules notification"| D11
+  P7 -->|"Recorded record attendance and submit dtr notification"| D11
+  P8 -->|"Recorded manage overtime notification"| D11
+  P14 -->|"Recorded review attendance add back notification"| D11
+  P5 -->|"Actor and business audit event"| D13

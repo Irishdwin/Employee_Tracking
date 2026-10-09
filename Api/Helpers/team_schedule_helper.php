@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../Common/NotificationHelper.php';
+require_once __DIR__ . '/AuditLogger.php';
 require_once __DIR__.'/work_site_geofence.php';
 
 function team_schedule_table_available(mysqli $conn): bool
@@ -164,7 +165,7 @@ function team_schedule_notify(mysqli $conn, array $deployment, string $event, ar
          WHERE u.Email = ? AND u.IsActive = 1 AND r.RoleName = 'Employee'", 's', [$deployment['Email']]);
     if ($users->num_rows !== 1) throw new DomainException('The employee needs one active linked Employee account.', 409);
     $recipient = (int)$users->fetch_assoc()['UsersID'];
-    $title = 'Schedule ' . ucfirst($event);
+    $title = $schedule['schedule_type'] !== 'Fixed' && $event !== 'removed' ? 'Duty Schedule Changed' : 'Schedule ' . ucfirst($event);
     $label = $schedule['schedule_type'] === 'Fixed'
         ? 'from ' . date('F j, Y', strtotime($schedule['date'])) . ' (' . $schedule['working_days'] . ')'
         : 'for ' . date('F j, Y', strtotime($schedule['date']));
@@ -172,6 +173,7 @@ function team_schedule_notify(mysqli $conn, array $deployment, string $event, ar
     if ($schedule['time_out'] < $schedule['time_in']) $times .= ' (next day)';
     $message = 'Your ' . $schedule['schedule_type'] . ' work schedule ' . $label . ' has been ' . $event . '. '
         . 'Expected: ' . $times . '; break: ' . $schedule['break_duration'] . ' minutes.';
+    if($schedule['schedule_type']!=='Fixed' && $event!=='removed')$message='Your duty schedule has been changed by your Team Lead. Date: '.date('F j, Y',strtotime($schedule['date'])).'. New Duty: '.$times.'. This change applies only to this date.';
     if ($event === 'removed') $message .= ' Your recurring deployment schedule applies again. Please check your updated schedule.';
     if (!insert_system_notification($conn, $recipient, 'schedule_' . $event, $title, $message, 'team_schedule',
         (int)$deployment['DeploymentID'])) throw new RuntimeException('Schedule notification could not be saved.');
@@ -212,6 +214,8 @@ function team_schedule_save(mysqli $conn, int $leadId, int $deploymentId, array 
         $stmt->bind_param('ssiisi', $s['time_in'], $s['time_out'], $s['break_duration'], $s['grace_period'], $s['working_days'], $deploymentId);
         $stmt->execute(); $stmt->close();
     } else {
+        $current=team_schedule_public(team_schedule_resolve($conn,$d,$s['date']),$s['date']);
+        if($current['is_working_day'] && $current['time_in']===$s['time_in'] && $current['time_out']===$s['time_out'] && (int)$current['break_duration']===$s['break_duration'] && (int)$current['grace_period']===$s['grace_period'])return 'unchanged';
         $old = team_schedule_query($conn,
             "SELECT * FROM team_schedule_entries WHERE DeploymentID = ? AND ScheduleDate = ? AND EntryKind = 'Dated'",
             'is', [$deploymentId, $s['date']])->fetch_assoc();
@@ -230,6 +234,7 @@ function team_schedule_save(mysqli $conn, int $leadId, int $deploymentId, array 
         $stmt->execute(); $stmt->close();
     }
     team_schedule_notify($conn, $d, $event, $s);
+    AuditLogger::log($conn,'Team Schedule','Schedule Change','Changed '.$d['EmployeeName'].' duty '.($s['schedule_type']==='Fixed'?'from ':'on ').$s['date'].' from '.(isset($current)?($current['is_working_day']?$current['time_in'].'–'.$current['time_out']:'Rest day'):$d['TimeIn'].'–'.$d['TimeOut']).' to '.$s['time_in'].'–'.$s['time_out'],(string)$deploymentId);
     return $event;
 }
 

@@ -1,0 +1,34 @@
+digraph DFD {
+// Gane & Sarson: rectangular entities, rounded processes, open-right stores.
+graph [rankdir=LR, bgcolor="white", nodesep=0.4, ranksep=1.3, pad=0.35, label="ONAZUL HRIS - Context Diagram\nGane & Sarson notation", labelloc=t, fontsize=22, fontname="Arial"];
+node [fontname="Arial", fontsize=12, margin="0.16,0.10", color="#43835b", fontcolor="#172b20"];
+edge [fontname="Arial", fontsize=10, color="#43835b", fontcolor="#172b20", arrowsize=0.7];
+A [label="Admin", shape=box];
+H [label="HR", shape=box];
+R [label="Applicant", shape=box];
+E [label="Employee", shape=box];
+T [label="Team Lead / Site Supervisor", shape=box];
+C [label="Accounting Staff", shape=box];
+G [label="Google Identity Service", shape=box];
+M [label="Email Delivery Service", shape=box];
+U [label="Portal Users (Admin, HR,\nApplicant, Employee, Team Lead,\nAccounting)", shape=box];
+S [label="ONAZUL HRIS", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+U -> S [label="Credentials, Google token,\naccount/recovery inputs;\nnotification and message inputs"];
+S -> U [label="Session and account results;\nnotifications; permitted\nconversations and contacts"];
+A -> S [label="Account, job order, client/site,\nseparation and add-back\ndecisions; report selections"];
+S -> A [label="Management results; client/site\nrecords; reports and review\nevidence"];
+S -> G [label="Google public signing-key\nrequest"];
+G -> S [label="Public signing keys"];
+S -> M [label="Verification and recovery email\npayloads"];
+M -> S [label="Delivery result"];
+R -> S [label="Applicant profile, applications\nand document/contract files"];
+S -> R [label="Job listings, application status\nand document results"];
+H -> S [label="Recruitment, job order,\nemployee, clearance and\ndeployment inputs; report\nfilters"];
+S -> H [label="Applicant, job order, employee,\nclearance and deployment\nrecords; HR summaries"];
+T -> S [label="Endorsement decisions, staffing\nrequests, site profile,\nschedules, DTR and overtime\ninputs"];
+S -> T [label="Applicant dossiers, job order\nstatus, assigned sites/teams,\nschedule, DTR and overtime\nresults"];
+E -> S [label="Profile, resignation, GPS clock\nevidence, overtime responses and\nadd-back claims"];
+S -> E [label="Profile, deployment, schedule,\nattendance, overtime, payslip,\npayroll and claim status"];
+C -> S [label="Final-pay, DTR review, payroll,\nbilling revision, status/proof\nand add-back inputs"];
+S -> C [label="Final-pay, verified DTR,\npayroll/billing results, status\nhistory, claim evidence and\nsummaries"];
+}

@@ -27,6 +27,10 @@ $raw = file_get_contents('php://input');
 $input = $raw ? (json_decode($raw, true) ?: []) : [];
 require_once __DIR__.'/../Db_connection/db_connect.php';
 require_once __DIR__.'/../Helpers/applicant_profile_validation.php';
+require_once __DIR__.'/../Helpers/applicant_required_documents.php';
+$missingDocuments=applicant_missing_documents($conn,$userId);
+if($missingDocuments){http_response_code(422);echo json_encode(['success'=>false,'message'=>'Upload your résumé and valid ID before saving your profile.','missing_documents'=>$missingDocuments]);exit;}
+
 try{$fieldErrors=applicant_profile_errors($input);}
 catch(Throwable $e){error_log('Profile validation: '.$e->getMessage());http_response_code(503);echo json_encode(['success'=>false,'message'=>'Profile validation is temporarily unavailable. Please retry.']);exit;}
 if($fieldErrors){http_response_code(400);echo json_encode(['success'=>false,'message'=>'Please complete the highlighted required fields.','errors'=>$fieldErrors]);exit;}
@@ -320,6 +324,8 @@ try {
     );
     $stmt->execute();
     $stmt->close();
+
+    $gender=$input['gender'];$sexStmt=$conn->prepare('UPDATE applicants SET Gender=? WHERE UserID=?');$sexStmt->bind_param('si',$gender,$userId);$sexStmt->execute();$sexStmt->close();
 
     $addressStmt=$conn->prepare('UPDATE applicants SET AddressPSGC=? WHERE UserID=?');
     $addressStmt->bind_param('si',$addressPSGC,$userId);$addressStmt->execute();$addressStmt->close();

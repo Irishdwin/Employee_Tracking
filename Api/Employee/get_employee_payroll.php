@@ -89,7 +89,11 @@ try {
     $pdo = attendance_pdo();
     attendance_ensure_table($pdo);
 
-    $payroll = payroll_compute_period(
+    // Finalized payslips use stored amounts even when a newly detected holiday
+    // ambiguity would prevent a fresh computation of the same historical dates.
+    $stored=payroll_query($conn,"SELECT p.* FROM payroll p JOIN status s ON s.StatusID=p.StatusID WHERE p.EmployeeID=? AND p.PayPeriodStart=? AND p.PayPeriodEnd=? AND s.Name='Finalized' ORDER BY p.Payroll_ID DESC LIMIT 1",'iss',[$empId,$period['start'],$period['end']])->get_result()->fetch_assoc();
+    $payroll = $stored ? ['period_start'=>$period['start'],'period_end'=>$period['end'],
+        'earnings'=>['add_back'=>0], 'deductions'=>[], 'attendance_summary'=>null] : payroll_compute_period(
         $conn,
         $pdo,
         $empId,
@@ -120,11 +124,10 @@ try {
             $tracker['proof_url']=$latest['proof_url'];$tracker['history']=$resolved['history'];
         }
     }
-    $stored=payroll_query($conn,"SELECT p.* FROM payroll p JOIN status s ON s.StatusID=p.StatusID WHERE p.EmployeeID=? AND p.PayPeriodStart=? AND p.PayPeriodEnd=? AND s.Name='Finalized' ORDER BY p.Payroll_ID DESC LIMIT 1",'iss',[$empId,$period['start'],$period['end']])->get_result()->fetch_assoc();
     if($stored) {
         $payroll['earnings']['basic_pay']=(float)$stored['BasicSalary'];$payroll['earnings']['allowance']=(float)$stored['Allowances'];
         $payroll['earnings']['regular_overtime']=(float)$stored['OvertimePay'];$payroll['earnings']['sunday_overtime']=0.0;$payroll['earnings']['approved_overtime']=0.0;$payroll['earnings']['holiday_ot_pay']=0.0;
-        $payroll['earnings']['holiday_pay']=(float)$stored['HolidayPay'];$payroll['earnings']['sil_accrual']=null;
+        $payroll['earnings']['holiday_pay']=(float)$stored['HolidayPay'];$payroll['earnings']['sil_accrual']=null;$payroll['earnings']['sunday_allowance']=0.0;
         $payroll['gross_pay']=(float)$stored['GrossPay'];$payroll['total_deductions']=(float)$stored['TotalDeductions'];$payroll['net_pay']=(float)$stored['NetPay'];
         $payroll['deductions']['sss_ee']=(float)$stored['SSSDeduction'];$payroll['deductions']['philhealth_ee']=(float)$stored['PhilHealthDeduction'];$payroll['deductions']['pagibig_ee']=(float)$stored['PagIBIGDeduction'];
         $payroll['deductions']['other']=round((float)$stored['TotalDeductions']-(float)$stored['SSSDeduction']-(float)$stored['PhilHealthDeduction']-(float)$stored['PagIBIGDeduction'],2);
@@ -133,10 +136,12 @@ try {
         $detail=$detail ? json_decode($detail['SnapshotJson'],true) : null;
         $payroll['daily_rate']=$detail['daily_rate'] ?? ((float)$stored['TotalDaysWorked']>0 ? round((float)$stored['BasicSalary']/(float)$stored['TotalDaysWorked'],2) : null);
         if($detail) {
+            $payroll['earnings']['sunday_allowance']=(float)($detail['sunday_allowance']??0);
+            $payroll['earnings']['allowance']=round((float)$stored['Allowances']-$payroll['earnings']['sunday_allowance'],2);
             $payroll['earnings']['add_back']=(float)($detail['addback']??0);
             $payroll['earnings']['sil_accrual']=(float)($detail['sil_accrual']??0);
             $payroll['earnings']['regular_overtime']=(float)($detail['regular_ot_amount']??0);
-            $payroll['earnings']['sunday_overtime']=(float)($detail['sunday_ot_amount']??0);
+            $payroll['earnings']['sunday_overtime']=round((float)($detail['sunday_ot_amount']??0)-(float)($detail['sunday_allowance']??0),2);
             $payroll['earnings']['holiday_ot_pay']=(float)($detail['holiday_ot_amount']??0)+(float)($detail['special_holiday_ot_amount']??0);
             $payroll['earnings']['approved_overtime']=round((float)$stored['OvertimePay']-$payroll['earnings']['regular_overtime']-$payroll['earnings']['sunday_overtime']-$payroll['earnings']['holiday_ot_pay'],2);
         }

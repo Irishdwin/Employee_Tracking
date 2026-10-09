@@ -1,0 +1,11 @@
+{
+    "success": false,
+    "message": "Intentional CLI-only fixture failure to verify finally cleanup.",
+    "stage": "controlled_scenario",
+    "partial_results": [],
+    "fixture_database": "codex_holiday_7533f8a3f897",
+    "fixture_directory": "C:\\Users\\IRISHD~1\\AppData\\Local\\Temp/onazul-holiday-14ef65abd7374702",
+    "intentional_cleanup_test": true,
+    "production_unchanged": true,
+    "cleanup": "PASS: disposable database removed; no test records remain"
+}

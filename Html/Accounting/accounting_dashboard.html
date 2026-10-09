@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="accounting-ui">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -34,6 +34,9 @@
   <link rel="stylesheet" href="../../Css/ow_collapsible_sidebar.css">
   <script src="../../Js/Shared/profile_view_switch.js"></script>
 <link rel="stylesheet" href="../../Css/payroll_run_details.css">
+<link rel="stylesheet" href="../../Css/app_dialog.css">
+<link rel="stylesheet" href="../../Css/accounting_workspace.css">
+<script src="../../Js/Shared/app_dialog.js"></script>
 </head>
 <body class="min-h-screen bg-brand-surface text-slate-800">
   <div id="sidebar-overlay" aria-hidden="true"></div>
@@ -50,13 +53,13 @@
       </button>
       <button data-nav="dtr" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left">
         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        <span class="sidebar-label">DTR Verification (Phase 4.4)</span>
+        <span class="sidebar-label">DTR Verification</span>
         <span id="accountingDtrBadge" class="sidebar-nav-badge badge rounded-pill bg-danger ms-auto d-none" aria-label="DTRs awaiting verification"></span>
       </button>
-      <button data-nav="addback" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left"><i class="bi bi-file-earmark-plus"></i><span>Add Back Requests</span></button>
+      <button data-nav="addback" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left"><i class="bi bi-file-earmark-plus"></i><span class="flex-1">Add Back Requests</span><span id="accountingAddBackBadge" class="hidden rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white" aria-label="Unsettled Add Back requests"></span></button>
       <button data-nav="payroll" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left">
         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>
-        <span class="sidebar-label">Kinsenas Payroll Run (Phase 5)</span>
+        <span class="sidebar-label">Kinsenas Payroll Run</span>
       </button>
       <button data-nav="payroll-history" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left">
         <i class="bi bi-clock-history h-5 w-5 shrink-0 text-center leading-5"></i>
@@ -205,7 +208,7 @@
       <section class="view-panel hidden" data-view="addback"><h2 class="text-2xl font-bold text-brand-navy">Add Back Requests</h2><p class="mt-1 text-slate-600">Verify omitted duty using recorded evidence. Original attendance and DTR remain unchanged.</p><div id="accountingAddBack" class="mt-6 rounded-xl bg-white p-5 shadow-card"></div></section>
       <section id="section-payroll" class="view-panel hidden" data-view="payroll">
         <h1 class="text-2xl font-bold text-brand-navy">Payroll Processing &amp; Client Billing</h1>
-        <p class="mt-1 text-sm text-slate-600">Generate kinsenas payroll runs and export client billing spreadsheets (49-column format).</p>
+        <p class="mt-1 text-sm text-slate-600">Prepare payroll from verified DTRs, review employee pay, and export client billing spreadsheets.</p>
 
         <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
           <button type="button" id="btn-generate-payroll-run" class="rounded-lg bg-brand-orange px-5 py-3 text-sm font-bold text-white shadow-card hover:bg-brand-orange-dark">
@@ -334,19 +337,7 @@
       </section>
 
 
-      <section class="view-panel hidden" data-view="quitclaim">
-        <h1 class="text-2xl font-bold text-brand-navy">Resigned Employee Settlements (30-Day Rule)</h1>
-        <div class="mt-6 overflow-hidden rounded-lg border border-slate-300 bg-white">
-          <table class="w-full min-w-[860px] border-collapse text-sm">
-            <thead class="bg-slate-100 text-xs font-bold uppercase text-slate-600"><tr class="border-b-2 border-slate-300"><th class="border-r border-slate-200 px-4 py-3 text-left">Employee</th><th class="border-r border-slate-200 px-4 py-3 text-left">Resignation Date</th><th class="border-r border-slate-200 px-4 py-3 text-left">30-Day Completion</th><th class="border-r border-slate-200 px-4 py-3 text-right">Final Pay Amount</th><th class="px-4 py-3 text-right">Quitclaim Status</th></tr></thead>
-            <tbody>
-              <tr>
-                <td colspan="5" class="px-4 py-8 text-center text-slate-500">No resigned employee settlements on file.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <section class="view-panel hidden" data-view="quitclaim"><h1 class="text-2xl font-bold text-brand-navy">Final Pay & Quitclaims</h1><iframe title="Final pay and quitclaim workflow" src="resignation_final_pay.html?embedded=1" style="width:100%;height:80vh;border:0"></iframe></section>
 
       <section id="view-profile" class="view-panel hidden" data-view="profile" aria-labelledby="profile-title">
         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -360,6 +351,13 @@
         </div>
         <div id="userProfileCard" class="mt-6 rounded-lg bg-white p-4 shadow-card">
           <h2 class="text-sm font-bold uppercase text-slate-500">Account Details</h2>
+          <form id="accountingProfileForm" class="mt-4 max-w-lg">
+            <label for="accountingFullName" class="block text-sm font-semibold mb-2">Full name for billing “Prepared by”</label>
+            <input id="accountingFullName" name="full_name" class="form-control" maxlength="100" required>
+            <p class="small text-slate-500 mt-2">New billing exports use this name. Existing exported files keep their original name.</p>
+            <button type="submit" class="btn btn-primary mt-2">Save Changes</button>
+            <p id="accountingProfileMessage" class="small mt-2" role="status"></p>
+          </form>
           <dl class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-sm">
             <div><dt class="text-xs font-semibold uppercase text-slate-400">Full name</dt><dd id="upcFullName" class="font-medium">—</dd></div>
             <div><dt class="text-xs font-semibold uppercase text-slate-400">Email</dt><dd id="upcEmail" class="font-medium">—</dd></div>
@@ -420,9 +418,9 @@
     </div>
   </div>
 
-  <div id="submitted-dtr-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4">
+  <div id="submitted-dtr-modal" role="dialog" aria-modal="true" aria-labelledby="submitted-dtr-modal-title" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/60 p-4">
     <div class="w-full max-w-3xl max-h-[85vh] overflow-y-auto rounded-xl bg-white shadow-2xl">
-      <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
+      <div class="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-slate-50 px-6 py-4">
         <h2 class="text-lg font-bold text-brand-navy" id="submitted-dtr-modal-title">Submitted DTR Batch</h2>
         <button id="submitted-dtr-modal-close" class="rounded p-2 hover:bg-slate-200">&times;</button>
       </div>
@@ -470,29 +468,6 @@
       <div class="mt-5 flex justify-end gap-2">
         <button type="button" id="logout-cancel" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
         <button type="button" id="logout-confirm" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Logout</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Generic in-app message modal — replaces window.alert() for Verify/Compute/Finalize Payroll results. -->
-  <div id="acc-message-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-900/55 p-4">
-    <div class="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
-      <h3 id="acc-message-title" class="text-lg font-bold text-brand-navy">Notice</h3>
-      <p id="acc-message-body" class="mt-2 whitespace-pre-line text-sm text-slate-600">—</p>
-      <div class="mt-5 flex justify-end">
-        <button type="button" id="acc-message-ok" class="rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent-dark">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Generic in-app confirm modal — replaces window.confirm() for Compute/Finalize Payroll. -->
-  <div id="acc-confirm-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-900/55 p-4">
-    <div class="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">
-      <h3 id="acc-confirm-title" class="text-lg font-bold text-brand-navy">Please Confirm</h3>
-      <p id="acc-confirm-body" class="mt-2 whitespace-pre-line text-sm text-slate-600">—</p>
-      <div class="mt-5 flex justify-end gap-2">
-        <button type="button" id="acc-confirm-cancel" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</button>
-        <button type="button" id="acc-confirm-ok" class="rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent-dark">Confirm</button>
       </div>
     </div>
   </div>
@@ -643,51 +618,19 @@
     });
   </script>
 
+  <script src="../../Js/Accounting/dtr_employee_review.js"></script>
   <script>
     // Shared modal helpers for Verify / Compute Payroll / Finalize Payroll —
     // in-app replacements for window.alert()/window.confirm(), which render
     // as a browser-chrome "localhost says" dialog instead of matching the
     // app's UI.
     function showAccMessage(title, message, isError) {
-      var modal = document.getElementById('acc-message-modal');
-      if (!modal) { window.alert(message); return; }
-      document.getElementById('acc-message-title').textContent = title || (isError ? 'Error' : 'Success');
-      document.getElementById('acc-message-body').textContent = message || '';
-      var okBtn = document.getElementById('acc-message-ok');
-      okBtn.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white ' + (isError ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-
-      function close() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        okBtn.removeEventListener('click', close);
-      }
-      okBtn.addEventListener('click', close);
+      return AppDialog.alert(message || '', title || (isError ? 'Error' : 'Success'));
     }
-
     function showAccConfirm(title, message, confirmLabel, confirmClass, onConfirm) {
-      var modal = document.getElementById('acc-confirm-modal');
-      if (!modal) { if (window.confirm(message)) onConfirm(); return; }
-      document.getElementById('acc-confirm-title').textContent = title || 'Please Confirm';
-      document.getElementById('acc-confirm-body').textContent = message || '';
-      var confirmBtn = document.getElementById('acc-confirm-ok');
-      var cancelBtn = document.getElementById('acc-confirm-cancel');
-      confirmBtn.textContent = confirmLabel || 'Confirm';
-      confirmBtn.className = 'rounded-lg px-4 py-2 text-sm font-semibold text-white ' + (confirmClass || 'bg-brand-accent hover:bg-brand-accent-dark');
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-
-      function cleanup() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        confirmBtn.removeEventListener('click', onConfirmClick);
-        cancelBtn.removeEventListener('click', onCancelClick);
-      }
-      function onConfirmClick() { cleanup(); onConfirm(); }
-      function onCancelClick() { cleanup(); }
-      confirmBtn.addEventListener('click', onConfirmClick);
-      cancelBtn.addEventListener('click', onCancelClick);
+      return AppDialog.confirm(message, title, confirmLabel).then(function (confirmed) {
+        if (confirmed) onConfirm();
+      });
     }
   </script>
 
@@ -980,7 +923,7 @@
             }
             var batch = res.batch || {};
             var emps = Array.isArray(res.employees) ? res.employees : [];
-            var allReviewed = emps.length > 0 && emps.every(function (e) { return e.reviewed; });
+            var allReviewed = emps.length > 0 && emps.every(function (e) { return e.reviewed && !e.requires_review; });
             var payrollStatus = res.payroll_status || null;
             var statusHistory = Array.isArray(res.payroll_status_history) ? res.payroll_status_history : [];
 
@@ -991,14 +934,15 @@
               '<thead class="bg-slate-100 text-xs font-bold uppercase text-slate-600"><tr><th class="border border-slate-200 px-3 py-2 text-left">Employee</th><th class="border border-slate-200 px-3 py-2 text-left">Position</th><th class="border border-slate-200 px-3 py-2 text-left">DTR Status</th><th class="border border-slate-200 px-3 py-2 text-right">Action</th></tr></thead>' +
               '<tbody>' + emps.map(function (e) {
                 return '<tr>' +
-                  '<td class="border border-slate-200 px-3 py-2 font-semibold text-brand-navy">' + escapeHtmlAcc(e.employee_name) + '</td>' +
+                  '<td class="border border-slate-200 px-3 py-2 font-semibold text-brand-navy">' + escapeHtmlAcc(e.employee_name) + '<div class="text-xs mt-1 ' + (Number(e.late_minutes) > 0 ? 'text-amber-700' : 'text-slate-500') + '">Total late: ' + (Number(e.late_minutes) || 0) + ' min</div></td>' +
                   '<td class="border border-slate-200 px-3 py-2 text-slate-600">' + escapeHtmlAcc(e.position || '—') + '</td>' +
                   '<td class="border border-slate-200 px-3 py-2">' +
                   '  <span class="badge bg-success">Submitted</span> ' +
                   '  <span class="badge ' + (e.reviewed ? 'bg-primary' : 'bg-light text-dark border') + '">' + (e.reviewed ? 'Verified' : 'Not Verified') + '</span>' +
+                  (e.requires_review?'<div class="mt-2 text-xs text-amber-700">Accounting review required: '+escapeHtmlAcc(e.review_message||'')+'</div>':'') +
                   '</td>' +
                   '<td class="border border-slate-200 px-3 py-2 text-right">' +
-                  '  <button type="button" class="rounded border border-primary bg-primary text-white px-2.5 py-1 text-xs font-semibold hover:bg-primary-dark" onclick="openSingleEmployeeDtrModal(' + e.employee_id + ', \'' + cutoffStart + '\', \'' + cutoffEnd + '\')">View DTR</button>' +
+                  '  <button type="button" class="rounded border border-primary bg-primary text-white px-2.5 py-1 text-xs font-semibold hover:bg-primary-dark" onclick="openSingleEmployeeDtrModal(' + e.employee_id + ', \'' + cutoffStart + '\', \'' + cutoffEnd + '\', ' + (e.site_id || siteId || 0) + ', ' + e.dtr_submission_id + ')">View DTR</button>' +
                   '</td>' +
                   '</tr>';
               }).join('') + '</tbody></table></div>' :
@@ -1024,7 +968,7 @@
               '</div>' +
               '<div class="mb-3 flex flex-wrap items-center justify-between gap-2">' +
               '  <h3 class="text-sm font-bold uppercase text-slate-600 mb-0">Employees Included (' + emps.length + ')</h3>' +
-              '  <div class="flex gap-2">' +
+              '  <div class="flex flex-wrap gap-2">' +
               '    <button type="button" id="btnVerifyBatchDtr" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">' + (allReviewed ? 'All Verified' : 'Verify DTR (All)') + '</button>' +
               '    <button type="button" id="btnComputePayrollBatch" class="rounded-lg bg-brand-orange px-3 py-1.5 text-xs font-bold text-white hover:bg-brand-orange-dark">Compute Payroll</button>' +
               '    <button type="button" id="btnFinalizePayrollBatch" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Finalize Payroll</button>' +
@@ -1050,7 +994,7 @@
                 fetch('../../Api/Accounting/verify_dtr_submission.php', {
                   method: 'POST',
                   credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: { 'Content-Type': 'application/json', 'X-Payroll-CSRF': payrollCsrf },
                   body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd,site_id:siteId||0 })
                 })
                   .then(function (r) { return r.json(); })
@@ -1074,8 +1018,22 @@
               });
             }
 
+            var workflow = res.payroll_workflow || {};
+            var payrollCsrf = res.payroll_csrf || '';
+            var finalizeControl = document.getElementById('btnFinalizePayrollBatch');
+            if (finalizeControl) {finalizeControl.disabled = !workflow.can_finalize;if(workflow.finalized)finalizeControl.textContent='Payslips Published';}
+            var steps = document.createElement('div');
+            steps.className = 'mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-slate-700';
+            steps.textContent = '1. Compute payroll → 2. Download and review billing export → 3. Finalize payroll to publish payslips. ' + (workflow.message || '');
+            if(workflow.computed && workflow.run_id) {
+              var download = document.createElement('a');download.className='btn btn-sm btn-outline-primary mt-2 d-block';download.textContent='Download Billing Export';
+              download.setAttribute('data-billing-download','');download.href='../../Api/Accounting/export_client_billing.php?run_id='+encodeURIComponent(workflow.run_id);steps.appendChild(download);
+              var refresh=document.createElement('button');refresh.type='button';refresh.className='btn btn-sm btn-outline-secondary mt-2';refresh.textContent='Refresh after export review';refresh.onclick=function(){openBatchEmployeesModal(tlId,cutoffStart,cutoffEnd,siteId);};steps.appendChild(refresh);
+            }
+            bodyEl.insertBefore(steps,document.getElementById('btnVerifyBatchDtr').parentElement.parentElement);
             var computeBtn = document.getElementById('btnComputePayrollBatch');
             if (computeBtn) {
+              computeBtn.disabled = !allReviewed || workflow.finalized === true;
               computeBtn.addEventListener('click', function () {
                 var confirmMsg = 'Compute payroll for ' + emps.length + ' employee(s) for '
                   + (batch.company_name || 'this company') + ' – ' + (batch.cutoff_period || 'this cutoff') + '?';
@@ -1085,7 +1043,7 @@
                   fetch('../../Api/Accounting/compute_payroll_for_batch.php', {
                     method: 'POST',
                     credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-Payroll-CSRF': payrollCsrf },
                     body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd,site_id:siteId||0 })
                   })
                     .then(function (r) { return r.json(); })
@@ -1117,7 +1075,7 @@
             var finalizeBtn = document.getElementById('btnFinalizePayrollBatch');
             if (finalizeBtn) {
               finalizeBtn.addEventListener('click', function () {
-                var confirmMsg = 'Finalize and release payroll for ' + emps.length + ' employee(s) for '
+                var confirmMsg = 'I have reviewed the latest billing export. Finalize payroll for ' + emps.length + ' employee(s) for '
                   + (batch.company_name || 'this company') + ' – ' + (batch.cutoff_period || 'this cutoff') + '?\n\n'
                   + 'This makes each employee\'s payslip visible on their Payroll History.';
                 showAccConfirm('Finalize Payroll', confirmMsg, 'Finalize', 'bg-emerald-600 hover:bg-emerald-700', function () {
@@ -1126,8 +1084,8 @@
                   fetch('../../Api/Accounting/finalize_payroll_batch.php', {
                     method: 'POST',
                     credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd,site_id:siteId||0 })
+                    headers: { 'Content-Type': 'application/json', 'X-Payroll-CSRF': payrollCsrf },
+                    body: JSON.stringify({ tl_id: tlId, cutoff_start: cutoffStart, cutoff_end: cutoffEnd,site_id:siteId||0,export_id:workflow.export_id,billing_reviewed:true })
                   })
                     .then(function (r) { return r.json(); })
                     .then(function (fres) {
@@ -1135,8 +1093,10 @@
                       finalizeBtn.textContent = 'Finalize Payroll';
                       if (!fres || !fres.success) {
                         showAccMessage('Finalize Payroll Failed', (fres && fres.message) || 'Failed to finalize payroll.', true);
+                        openBatchEmployeesModal(tlId,cutoffStart,cutoffEnd,siteId);
                         return;
                       }
+                      openBatchEmployeesModal(tlId,cutoffStart,cutoffEnd,siteId);
                       showAccMessage('Payroll Finalized', fres.message || 'Payroll finalized.', false);
                     })
                     .catch(function () {
@@ -1172,7 +1132,7 @@
       }
       window.openBatchEmployeesModal = openBatchEmployeesModal;
 
-      function openSingleEmployeeDtrModal(employeeId, cutoffStart, cutoffEnd) {
+      function openSingleEmployeeDtrModal(employeeId, cutoffStart, cutoffEnd, siteId, submissionId) {
         var modalEl = document.getElementById('submitted-dtr-modal');
         var titleEl = document.getElementById('submitted-dtr-modal-title');
         var bodyEl = document.getElementById('submitted-dtr-modal-body');
@@ -1181,7 +1141,7 @@
         bodyEl.innerHTML = '<p class="text-center text-slate-500 py-4">Loading employee DTR...</p>';
 
         var url = ACC_SUBMITTED_DTR_API + '?employee_id=' + encodeURIComponent(employeeId) +
-          '&cutoff_start=' + encodeURIComponent(cutoffStart) + '&cutoff_end=' + encodeURIComponent(cutoffEnd);
+          '&cutoff_start=' + encodeURIComponent(cutoffStart) + '&cutoff_end=' + encodeURIComponent(cutoffEnd) + '&site_id=' + encodeURIComponent(siteId || 0) + '&submission_id=' + encodeURIComponent(submissionId || 0);
 
         fetch(url, { credentials: 'include' })
           .then(function (r) { return r.json(); })
@@ -1203,23 +1163,25 @@
                   '<td class="border border-slate-200 px-3 py-2">' + escapeHtmlAcc(d.time_in ? new Date(d.time_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—') + '</td>' +
                   '<td class="border border-slate-200 px-3 py-2">' + escapeHtmlAcc(d.time_out ? new Date(d.time_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—') + '</td>' +
                   '<td class="border border-slate-200 px-3 py-2 text-right">' + (d.rendered_hours != null ? d.rendered_hours : '—') + '</td>' +
-                  '<td class="border border-slate-200 px-3 py-2 text-right">' + (d.late_minutes || 0) + '</td>' +
-                  '<td class="border border-slate-200 px-3 py-2"><span class="badge ' + submittedDtrStatusBadgeClass(d.status) + '">' + escapeHtmlAcc(d.status || '—') + '</span></td>' +
+                  '<td class="border border-slate-200 px-3 py-2 text-right">' + (Number(d.late_minutes) || 0) + ' min</td>' +
+                  '<td class="border border-slate-200 px-3 py-2"><span class="badge ' + submittedDtrStatusBadgeClass(d.status) + '">' + escapeHtmlAcc(d.status || '—') + '</span>' + (Number(d.late_minutes) > 0 ? '<div class="text-xs text-amber-700 mt-1">' + Number(d.late_minutes) + ' min late</div>' : '') + '</td>' +
                   '</tr>';
               }).join('') + '</tbody></table></div>' :
               '<p class="text-center text-slate-500 py-4">No DTR records found for this cutoff.</p>';
 
             bodyEl.innerHTML =
-              '<button type="button" class="mb-3 text-xs font-semibold text-primary underline" onclick="openBatchEmployeesModal(' + sub.site_supervisor_id + ', \'' + cutoffStart + '\', \'' + cutoffEnd + '\')">&larr; Back to Employee List</button>' +
+              (sub.requires_review?'<div class="alert alert-warning">'+escapeHtmlAcc(sub.review_message||'Accounting review required before payroll computation.')+'</div>':'') +
+              '<button type="button" class="mb-3 text-xs font-semibold text-primary underline" onclick="openBatchEmployeesModal(' + sub.site_supervisor_id + ', \'' + cutoffStart + '\', \'' + cutoffEnd + '\', ' + (sub.site_id || 0) + ')">&larr; Back to Employee List</button>' +
               '<div class="mb-4 grid grid-cols-1 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-3">' +
               '  <div><span class="block text-xs text-slate-500">Employee</span><strong>' + escapeHtmlAcc(sub.employee_name || '—') + '</strong></div>' +
               '  <div><span class="block text-xs text-slate-500">Team Lead</span><strong>' + escapeHtmlAcc(sub.team_lead_name || '—') + '</strong></div>' +
               '  <div><span class="block text-xs text-slate-500">Client</span><strong>' + escapeHtmlAcc(sub.company_name || '—') + '</strong></div>' +
               '  <div><span class="block text-xs text-slate-500">Cutoff</span><strong>' + escapeHtmlAcc(sub.cutoff_period || '—') + '</strong></div>' +
               '  <div><span class="block text-xs text-slate-500">Total Hours</span><strong>' + (sub.total_hours != null ? sub.total_hours : '—') + '</strong></div>' +
-              '  <div><span class="block text-xs text-slate-500">Status</span><strong class="text-emerald-700">' + escapeHtmlAcc(sub.status || 'Submitted') + '</strong></div>' +
+              '  <div><span class="block text-xs text-slate-500">Status</span><strong class="text-emerald-700">' + escapeHtmlAcc(sub.reviewed ? 'Verified' : 'Submitted / Not Verified') + '</strong></div>' +
               '</div>' +
-              daysTable;
+              (sub.hired_date ? '<p class="text-sm text-slate-600 mb-3">Payroll starts on the recorded hire date: <strong>' + escapeHtmlAcc(sub.hired_date) + '</strong>. Earlier dates are excluded from attendance and pay totals.</p>' : '') + daysTable + EmployeeDtrReview.render(res);
+            EmployeeDtrReview.mount(res, function () { loadVerifiedSubmittedTimesheets(); openSingleEmployeeDtrModal(employeeId, cutoffStart, cutoffEnd, sub.site_id, sub.dtr_submission_id); });
           })
           .catch(function () {
             bodyEl.innerHTML = '<p class="text-center text-red-600 py-4">Network error while loading employee DTR.</p>';
@@ -1359,5 +1321,6 @@
       OwNotifications.init({ sectionId: 'notifications', showSection: window.profileShowView });
     }
   </script>
+<script src="../../Js/Accounting/accounting_profile.js"></script>
 </body>
 </html>

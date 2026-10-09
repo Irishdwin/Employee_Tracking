@@ -39,6 +39,7 @@ try {
         $db->query($match[0]);
     }
     $db->query('ALTER TABLE users ADD COLUMN LocalPasswordConfigured TINYINT NULL');
+    foreach(explode(';',file_get_contents($source.'/sql/authentication_protection_migration.sql')) as $statement)if(trim($statement)!=='')$db->query($statement);
     $db->query('ALTER TABLE system_logs ADD PRIMARY KEY(log_id), MODIFY log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT');
     function fixture(mysqli $db,string $table,array $values): void {
         foreach($db->query('SHOW COLUMNS FROM `'.$table.'`')->fetch_all(MYSQLI_ASSOC) as $c) {
@@ -51,7 +52,7 @@ try {
     foreach([1,2] as $id)fixture($db,'users',['UsersID'=>$id,'Email'=>'test'.$id.'@synthetic.invalid','RoleID'=>1,'Password'=>password_hash('Synthetic-Test-42!',PASSWORD_DEFAULT),'IsActive'=>$id===1?1:0]);
     fixture($db,'employee',['EmployeeID'=>1,'EmployeeNumber'=>'TEST0001','Email'=>'test1@synthetic.invalid']);
     $source=realpath(__DIR__.'/../..');
-    foreach(['Login/captcha_helper.php','Login/captcha_gen.php','Login/check_captcha.php','Login/login.php','Common/session_init.php','Db_connection/db_connect.php','Helpers/AuditLogger.php','Login/google_login_handler.php'] as $relative) {
+    foreach(['Login/captcha_helper.php','Login/captcha_gen.php','Login/check_captcha.php','Login/login.php','Common/session_init.php','Db_connection/db_connect.php','Helpers/AuditLogger.php','Helpers/auth_password_protection.php','Login/google_login_handler.php'] as $relative) {
         $path=$root.'/Api/'.$relative;if(!is_dir(dirname($path)))mkdir(dirname($path),0700,true);
         $text=file_get_contents($source.'/Api/'.$relative);
         if($relative==='Db_connection/db_connect.php')$text=str_replace("\$dbname = 'onazul_hris_db';","\$dbname = '$database';",$text);
@@ -74,7 +75,7 @@ try {
     foreach([$a,$b] as $c){[, $j]=$http('check_captcha.php',['challenge_id'=>$c['challenge_id'],'answer'=>(string)($c['numerator']+$c['denominator'])]);verify($j['valid'],'HTTP independent tabs');}
     [$status,$j]=$login('test1@synthetic.invalid','wrong');verify($status===401,'Correct CAPTCHA proceeds to wrong password rejection');
     [$status,$j]=$login('absent@synthetic.invalid','wrong');verify($status===401,'Nonexistent account rejected');
-    [$status,$j]=$login('test2@synthetic.invalid','Synthetic-Test-42!');verify($status===403,'Inactive account rejected');
+    [$status,$j]=$login('test2@synthetic.invalid','Synthetic-Test-42!');verify($status===401,'Inactive account receives generic authentication rejection');
     [$status,$j]=$login('test1@synthetic.invalid','Synthetic-Test-42!',201);verify($status===400,'Incorrect CAPTCHA blocks correct password');
     $oldCookies=file_get_contents($cookie);[$status,$j]=$login('TEST0001','Synthetic-Test-42!');
     verify($status===200 && $j['success'] && $j['redirect']==='/Employee_Tracking/Html/Employee/employee_dashboard.html','Employee number, password and RBAC redirect');

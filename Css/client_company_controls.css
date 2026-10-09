@@ -1,0 +1,10 @@
+/* Static UI remains non-editable without disabling form editing or data copying. */
+#dashboard-wrapper,.modal,.swal2-popup { cursor: default; }
+#dashboard-wrapper :is(h1,h2,h3,h4,h5,h6,p,label,th,td),.modal :is(h1,h2,h3,h4,h5,h6,p,label),.swal2-popup :is(h2,p,label) { cursor: default; caret-color: transparent; }
+#dashboard-wrapper :is(h1,h2,h3,h4,h5,h6),.modal label { user-select: none; }
+#dashboard-wrapper :is(a,button),.modal :is(a,button),.swal2-popup :is(a,button) { cursor: pointer; }
+#dashboard-wrapper :is(a,button) *, .modal :is(a,button) *, .swal2-popup :is(a,button) * { cursor: inherit; }
+#dashboard-wrapper :is(input,textarea,[contenteditable="true"]),.modal :is(input,textarea,[contenteditable="true"]),.swal2-popup :is(input,textarea,[contenteditable="true"]) { cursor: text; caret-color: auto; user-select: text; }
+.swal2-popup .site-account-fields { margin-top: 1rem; }
+.swal2-popup .site-account-fields[hidden] { display:none; }
+.client-site-editor .swal2-html-container { max-height: calc(100dvh - 230px); overflow-y: auto; }

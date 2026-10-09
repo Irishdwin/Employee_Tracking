@@ -8,7 +8,8 @@
   var ROSTER_API = '../../Api/TeamLead/get_overtime_roster.php';
   var SAVE_API = '../../Api/TeamLead/save_overtime.php';
 
-  var currentDate = new Date().toISOString().slice(0, 10);
+  var currentDate = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Manila',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  var csrfToken = '';
   var lastRoster = [];
   var editingOvertimeId = null; // null => creating new session(s)
 
@@ -21,6 +22,7 @@
 
   function statusBadgeClass(status) {
     var s = String(status || 'Pending');
+    if (s === 'Accepted') return 'bg-green-100 text-green-800';
     if (s === 'Approved') return 'bg-emerald-100 text-emerald-800';
     if (s === 'Completed') return 'bg-blue-100 text-blue-800';
     if (s === 'Active') return 'bg-amber-100 text-amber-800';
@@ -54,11 +56,11 @@
 
       var actions = '';
       if (s) {
-        actions += '<button type="button" class="ot-edit-btn mr-2 text-xs font-semibold text-brand-accent hover:underline" data-overtime-id="' + s.overtime_id + '" data-ot-start="' + esc(s.ot_start) + '" data-ot-end="' + esc(s.ot_end) + '" data-remarks="' + esc(s.remarks || '') + '">Edit</button>';
-        if (status === 'Pending') {
+        if (status === 'Pending') actions += '<button type="button" class="ot-edit-btn mr-2 text-xs font-semibold text-brand-accent hover:underline" data-overtime-id="' + s.overtime_id + '" data-ot-start="' + esc(s.ot_start) + '" data-ot-end="' + esc(s.ot_end) + '" data-remarks="' + esc(s.remarks || '') + '">Edit</button>';
+        if (status === 'Pending' && !s.response_required) {
           actions += '<button type="button" class="ot-status-btn mr-2 text-xs font-semibold text-blue-700 hover:underline" data-overtime-id="' + s.overtime_id + '" data-status="Active">Mark Active</button>';
         }
-        if (status === 'Active') {
+        if (status === 'Active' && !s.response_required) {
           actions += '<button type="button" class="ot-status-btn mr-2 text-xs font-semibold text-blue-700 hover:underline" data-overtime-id="' + s.overtime_id + '" data-status="Completed">Complete</button>';
         }
         if (status === 'Completed') {
@@ -77,7 +79,7 @@
         '<td class="px-4 py-3">' + otStart + '</td>' +
         '<td class="px-4 py-3">' + otEnd + '</td>' +
         '<td class="px-4 py-3 font-semibold">' + otHours + '</td>' +
-        '<td class="px-4 py-3">' + badge + '</td>' +
+        '<td class="px-4 py-3">' + badge + (s && s.employee_response ? '<div class="text-xs mt-1">Employee: ' + esc(s.employee_response) + '</div>' : '') + (s && s.rejection_reason ? '<div class="text-xs mt-1">Reason: ' + esc(s.rejection_reason) + '</div>' : '') + '</td>' +
         '<td class="px-4 py-3">' + actions + '</td>' +
         '</tr>';
     }).join('');
@@ -148,6 +150,35 @@
     selectAll.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
   }
 
+  function renderSiteViews(rebuild) {
+    var select = document.getElementById('overtimeSiteFilter');
+    if (!select) { renderRoster(lastRoster); return; }
+    if (rebuild) {
+      var previous = select.value, sites = {};
+      lastRoster.forEach(function(emp) {
+        var site = sites[emp.site_id] || (sites[emp.site_id] = {label:(emp.company_name || 'Company') + ' — ' + (emp.site_name || 'Site'),active:0,accepted:0});
+        (emp.overtime_sessions || []).forEach(function(session) {
+          if (session.status === 'Active') site.active++;
+          if (session.employee_response === 'Accepted' || session.status === 'Accepted') site.accepted++;
+        });
+      });
+      select.innerHTML = '<option value="">All assigned sites</option>' + Object.keys(sites).sort(function(a,b){return sites[b].active-sites[a].active || sites[b].accepted-sites[a].accepted;}).map(function(id){
+        var site=sites[id]; return '<option value="' + Number(id) + '">' + esc(site.label + ' · ' + site.active + ' active · ' + site.accepted + ' accepted') + '</option>';
+      }).join('');
+      select.value = sites[previous] ? previous : '';
+    }
+    var roster = lastRoster.filter(function(emp){return !select.value || Number(emp.site_id)===Number(select.value);});
+    renderRoster(roster); updateCounts(roster); updateStartButtonState();
+    var accepted=[], employeeIds=new Set();
+    roster.forEach(function(emp){(emp.overtime_sessions || []).forEach(function(session){
+      if (session.employee_response !== 'Accepted' && session.status !== 'Accepted') return;
+      employeeIds.add(emp.employee_id);
+      accepted.push('<tr><td><strong>' + esc(emp.employee_name) + '</strong><div class="small text-muted">' + esc(emp.employee_number) + '</div></td><td>' + esc(emp.company_name) + '<div class="small text-muted">' + esc(emp.site_name) + '</div></td><td>' + esc(session.ot_start_display) + ' – ' + esc(session.ot_end_display) + '</td><td><span class="rounded-full px-2 py-1 text-xs font-bold ' + statusBadgeClass(session.status) + '">' + esc(session.status) + '</span></td><td>' + (session.actual_time_out ? esc(session.ot_hours == null ? '—' : session.ot_hours) + ' hrs' : session.actual_time_in ? 'In progress' : 'Not clocked in') + '</td></tr>');
+    });});
+    document.getElementById('overtimeAcceptedCount').textContent=employeeIds.size + ' employees';
+    document.getElementById('overtimeAcceptedBody').innerHTML=accepted.join('') || '<tr><td colspan="5" class="text-center text-muted py-4">No accepted overtime requests for this site and date.</td></tr>';
+  }
+
   function loadRoster() {
     var picker = document.getElementById('overtime-date-picker');
     if (picker && !picker.value) picker.value = currentDate;
@@ -166,8 +197,9 @@
           if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-red-600">' + esc((res && res.message) || 'Failed to load overtime roster.') + '</td></tr>';
           return;
         }
+        csrfToken = res.csrf_token || '';
         lastRoster = res.employees || [];
-        renderRoster(lastRoster);
+        renderSiteViews(true);
       })
       .catch(function () {
         if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-red-600">Network error while loading overtime roster.</td></tr>';
@@ -240,11 +272,15 @@
       body = { action: 'create', employee_ids: selected, date: currentDate, ot_start: otStart, ot_end: otEnd, remarks: remarks };
     }
 
+    var saveButton = document.getElementById('overtime-edit-save');
+    if (saveButton && saveButton.disabled) return;
+    if (saveButton) saveButton.disabled = true;
+
     fetch(SAVE_API, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(Object.assign({},body,{csrf_token:csrfToken}))
     })
       .then(function (r) { return r.json(); })
       .then(function (res) {
@@ -254,10 +290,11 @@
         }
         closeEditModal();
         loadRoster();
+        AppDialog.alert(res.message || 'Overtime request saved.');
       })
       .catch(function () {
         showEditError('Network error while saving overtime.');
-      });
+      }).finally(function () { if (saveButton) saveButton.disabled = false; });
   }
 
   function setStatus(overtimeId, status) {
@@ -265,18 +302,18 @@
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'set_status', overtime_id: overtimeId, status: status })
+      body: JSON.stringify({ action: 'set_status', overtime_id: overtimeId, status: status, csrf_token: csrfToken })
     })
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (!res || !res.success) {
-          alert((res && res.message) || 'Failed to update overtime status.');
+          AppDialog.alert((res && res.message) || 'Failed to update overtime status.');
           return;
         }
         loadRoster();
       })
       .catch(function () {
-        alert('Network error while updating overtime status.');
+        AppDialog.alert('Network error while updating overtime status.');
       });
   }
 
@@ -298,6 +335,8 @@
         if (e.target === modal) closeEditModal();
       });
     }
+    var siteFilter = document.getElementById('overtimeSiteFilter');
+    if (siteFilter) siteFilter.addEventListener('change', function(){renderSiteViews(false);});
     var picker = document.getElementById('overtime-date-picker');
     if (picker) {
       picker.addEventListener('change', loadRoster);
@@ -320,6 +359,8 @@
   if (document.readyState === 'interactive' || document.readyState === 'complete') {
     bindStaticControls();
   }
+
+  setInterval(function(){var view=document.getElementById('view-overtime');if(!document.hidden && view && !view.classList.contains('hidden')) loadRoster();},30000);
 
   global.TlOvertime = {
     load: loadRoster

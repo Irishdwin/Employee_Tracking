@@ -26,13 +26,26 @@ if (!in_array($role, ['Accounting', 'Admin'], true)) {
 require_once __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/attendance_pdo.php';
 require_once __DIR__ . '/../Helpers/employee_payroll_helper.php';
+require_once __DIR__ . '/../Helpers/employee_payroll_rates.php';
 require_once __DIR__ . '/../Helpers/payroll_type_helper.php';
 require_once __DIR__ . '/../Helpers/payroll_status_helper.php';
+require_once __DIR__.'/../Helpers/payroll_finalization.php';
 
 payroll_type_ensure_schema($conn);
 payroll_status_ensure_schema($conn);
 
+/** Refresh unresolved display warnings from the same production validation after hire-date boundaries. */
+function accounting_dtr_display_classification(mysqli $db, PDO $pdo, array $row, string $start, string $end): ?array {
+    $c=dtr_classification_decode($row['classification_remarks']??$row['Remarks']??null);
+    if(empty($row['hired_date']) || !empty($row['ReviewDate']) || empty($c['requires_review']))return $c;
+    $emp=payroll_query($db,'SELECT * FROM employee WHERE EmployeeID=?','i',[(int)$row['EmployeeID']])->get_result()->fetch_assoc();
+    $rates=payroll_employee_rates($emp);
+    try{return dtr_classification_from_payroll(payroll_compute_period($db,$pdo,(int)$row['EmployeeID'],$rates['daily_rate'],$rates['hourly_rate'],(float)$emp['allowance'],(float)$emp['monthly_salary_credit'],$start,$end,null,null,(int)$row['DeploymentID']));}
+    catch(InvalidArgumentException $e){return ['requires_review'=>true,'review_message'=>$e->getMessage()];}
+}
+
 try {
+    payroll_require_accounting($conn,false);
     // ---- Detail mode 2: Individual Employee DTR breakdown ----
     if (isset($_GET['employee_id'], $_GET['cutoff_start'], $_GET['cutoff_end'])) {
         $employeeId = (int)$_GET['employee_id'];
@@ -48,22 +61,26 @@ try {
         $subStmt = $conn->prepare("
             SELECT ds.DTR_SubmissionID, ds.EmployeeID, ds.DeploymentID, ds.SiteSupervisorID,
                    ds.CutoffPeriod, ds.CutoffStartDate, ds.CutoffEndDate, ds.TotalHours,
-                   ds.OvertimeHours, ds.TotalOvertimeHours, ds.Remarks AS classification_remarks, ds.CreatedAt,
+                   ds.OvertimeHours, ds.TotalOvertimeHours, ds.Remarks AS classification_remarks, ds.CreatedAt, ds.ReviewedBy, ds.ReviewDate, verifier.FullName AS verifier_name,
                    CONCAT(e.FirstName, ' ', e.LastName) AS employee_name,
                    e.EmployeeNumber AS employee_number,
+                   e.HiredDate AS hired_date,
                    e.Position AS position,
                    tl.FullName AS tl_full_name,
-                   ds.SiteID AS site_id,ws.Name AS site_name,cc.Name AS company_name
+                   ds.SiteID AS site_id,ws.Name AS site_name,cc.Name AS company_name,d.CompanyID AS company_id
             FROM dtr_submissions ds
             INNER JOIN employee e ON e.EmployeeID = ds.EmployeeID
             LEFT JOIN users tl ON tl.UsersID = ds.SiteSupervisorID
+            LEFT JOIN users verifier ON verifier.UsersID=ds.ReviewedBy
             LEFT JOIN deployment d ON d.DeploymentID = ds.DeploymentID
             LEFT JOIN deployment_sites ws ON ws.SiteID=ds.SiteID
             LEFT JOIN clientcompany cc ON cc.CompanyID = d.CompanyID
             WHERE ds.EmployeeID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ?
+            AND (?=0 OR ds.DTR_SubmissionID=?) AND (?=0 OR ds.SiteID=?)
             LIMIT 1
         ");
-        $subStmt->bind_param('iss', $employeeId, $cutoffStart, $cutoffEnd);
+        $sid=(int)($_GET['submission_id']??0);$site=(int)($_GET['site_id']??0);
+        $subStmt->bind_param('issiiii', $employeeId, $cutoffStart, $cutoffEnd,$sid,$sid,$site,$site);
         $subStmt->execute();
         $submission = $subStmt->get_result()->fetch_assoc();
         $subStmt->close();
@@ -150,14 +167,25 @@ try {
             $otStmt->close();
         }
 
+        $displayClassification=accounting_dtr_display_classification($conn,$pdo,$submission,$cutoffStart,$cutoffEnd);
+        $locked=payroll_query($conn,'SELECT Payroll_ID FROM payroll WHERE EmployeeID=? AND PayPeriodStart=? AND PayPeriodEnd=? LIMIT 1','iss',[$employeeId,$cutoffStart,$cutoffEnd])->get_result()->num_rows>0;
+        $lockedRun=payroll_query($conn,"SELECT PayrollRunID FROM payroll_runs WHERE CompanyID=? AND PeriodStart=? AND PeriodEnd=? AND (ApprovedAt IS NOT NULL OR LOWER(CurrentStatus) IN ('approved','released','finalized','payroll released','client approved')) LIMIT 1",'iss',[(int)$submission['company_id'],$cutoffStart,$cutoffEnd])->get_result()->num_rows>0;
+        $locked=$locked||$lockedRun;
         echo json_encode([
             'success' => true,
             'overtime_sessions' => $otSessions,
+            'payroll_csrf'=>payroll_csrf_token(),
+            'holiday_reviews'=>dtr_holiday_reviews($conn,$pdo,$submission),
             'submission' => [
                 'dtr_submission_id' => (int)$submission['DTR_SubmissionID'],
+                'site_id'=>(int)$submission['site_id'],'site_name'=>$submission['site_name'],
+                'reviewed'=>!empty($submission['ReviewedBy'])&&!empty($submission['ReviewDate']),
+                'reviewed_by'=>$submission['verifier_name'],'reviewed_at'=>$submission['ReviewDate'],
+                'verification_blocked'=>$locked?'Saved payroll is locked; this DTR cannot be changed.':null,
                 'employee_id' => (int)$submission['EmployeeID'],
                 'employee_name' => $submission['employee_name'],
                 'employee_number' => $submission['employee_number'],
+                'hired_date' => $submission['hired_date'],
                 'position' => $submission['position'],
                 'site_supervisor_id' => (int)$submission['SiteSupervisorID'],
                 'team_lead_name' => trim((string)($submission['tl_full_name'] ?? '')),
@@ -168,7 +196,9 @@ try {
                 'total_hours' => $submission['TotalHours'] !== null ? (float)$submission['TotalHours'] : null,
                 'overtime_hours' => $submission['OvertimeHours'] !== null ? (float)$submission['OvertimeHours'] : null,
                 'total_overtime_hours' => $submission['TotalOvertimeHours'] !== null ? (float)$submission['TotalOvertimeHours'] : null,
-                'classification' => dtr_classification_decode($submission['classification_remarks'] ?? null),
+                'requires_review' => !empty($displayClassification['requires_review']),
+                'review_message' => $displayClassification['review_message']??null,
+                'classification' => $displayClassification,
                 'submitted_at' => $submission['CreatedAt'],
                 'status' => 'Submitted',
             ],
@@ -185,7 +215,7 @@ try {
 
         $siteId=(int)($_GET['site_id']??0);
         $empListStmt = $conn->prepare("
-            SELECT ds.DTR_SubmissionID, ds.EmployeeID,
+            SELECT ds.DTR_SubmissionID, ds.EmployeeID, ds.DeploymentID, e.HiredDate AS hired_date,
                    CONCAT(e.FirstName, ' ', e.LastName) AS employee_name,
                    e.EmployeeNumber AS employee_number,
                    e.Position AS position,
@@ -277,6 +307,7 @@ try {
             }
             $attendanceStatus = $hasAbsent ? 'Absent' : ($hasLate ? 'Late' : 'Present');
 
+            $displayClass=accounting_dtr_display_classification($conn,$pdo,$row,$cutoffStart,$cutoffEnd);
             $employees[] = [
                 'dtr_submission_id' => (int)$row['DTR_SubmissionID'],
                 'employee_id' => $empId,
@@ -286,11 +317,13 @@ try {
                 'total_hours' => $row['TotalHours'] !== null ? (float)$row['TotalHours'] : null,
                 'late_minutes' => $totalLateMinutes,
                 'undertime_minutes' => $totalUndertimeMinutes,
-                'approved_ot_hours' => (float)($row['TotalOvertimeHours'] ?? $row['OvertimeHours'] ?? 0),
-                'classification' => dtr_classification_decode($row['Remarks'] ?? null),
+                'approved_ot_hours' => !empty($displayClass['requires_review']) ? null : (float)($row['TotalOvertimeHours'] ?? $row['OvertimeHours'] ?? 0),
+                'requires_review' => !empty($displayClass['requires_review']),
+                'review_message' => $displayClass['review_message']??null,
+                'classification' => $displayClass,
                 'attendance_status' => $attendanceStatus,
                 'status' => 'Submitted',
-                'reviewed' => $row['ReviewedBy'] !== null,
+                'reviewed' => $row['ReviewedBy'] !== null && $row['ReviewDate'] !== null,
                 'reviewed_at' => $row['ReviewDate'],
             ];
         }
@@ -322,6 +355,8 @@ try {
             'employees' => $employees,
             'payroll_status' => $payrollStatus,
             'payroll_status_history' => $payrollStatusHistory,
+            'payroll_csrf' => payroll_csrf_token(),
+            'payroll_workflow' => array_diff_key(payroll_batch_review($conn,$tlId,$cutoffStart,$cutoffEnd,$siteId),['snapshot'=>true]),
         ]);
         exit();
     }
@@ -363,7 +398,7 @@ try {
                ds.CutoffPeriod, ds.CutoffStartDate, ds.CutoffEndDate,
                MIN(ds.CreatedAt) AS submitted_at,
                COUNT(ds.EmployeeID) AS employee_count,
-               SUM(CASE WHEN ds.ReviewedBy IS NOT NULL THEN 1 ELSE 0 END) AS reviewed_count,
+               SUM(CASE WHEN ds.ReviewedBy IS NOT NULL AND ds.ReviewDate IS NOT NULL THEN 1 ELSE 0 END) AS reviewed_count,
                tl.FullName AS tl_full_name,
                cc.CompanyID AS company_id,
                ds.SiteID AS site_id,ws.Name AS site_name,
@@ -443,10 +478,9 @@ try {
     ]);
 } catch (Throwable $e) {
     error_log('get_submitted_dtrs: ' . $e->getMessage());
-    http_response_code(500);
+    $code=in_array($e->getCode(),[400,403,404,409],true)?$e->getCode():500;http_response_code($code);
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to load submitted DTRs.',
-        'error_details' => $e->getMessage(),
+        'message' => $code===500?'Failed to load submitted DTRs.':$e->getMessage(),
     ]);
 }

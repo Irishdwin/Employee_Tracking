@@ -8,6 +8,8 @@
     var pollTimer = null;
     var pollMs = 10000;
     var lastPayload = null;
+    var logRange = null;
+    var requestSequence = 0;
   
     function esc(s) {
       if (s == null) return '';
@@ -89,7 +91,7 @@
         '<td class="fw-semibold">' + (hours != null ? esc(hours) + ' hrs' : '—') + '</td>';
       if (includeLateCol) {
         var badges = '';
-        if (log.is_late) badges += '<span class="text-warning-emphasis small fw-semibold">Late</span>';
+        if (log.is_late) badges += '<span class="text-warning-emphasis small fw-semibold">Late' + (log.late_minutes != null ? ' ' + esc(log.late_minutes) + 'm' : '') + '</span>';
         if (log.undertime_minutes != null && log.undertime_minutes > 0) {
           if (badges) badges += ' ';
           badges += '<span class="text-amber-700 small fw-semibold">Undertime ' + esc(log.undertime_minutes) + 'm</span>';
@@ -142,10 +144,13 @@
     }
 
     function loadEmployeeAttendance() {
-      return fetch(API, { credentials: 'same-origin' })
+      var sequence=++requestSequence;
+      var url=API+(logRange?'?start='+encodeURIComponent(logRange.start)+'&end='+encodeURIComponent(logRange.end):'');
+      return fetch(url, { credentials: 'same-origin', cache: 'no-store' })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          if (!data || !data.success) return;
+          if(sequence!==requestSequence)return;
+          if (!data || !data.success) throw new Error((data && data.message) || 'Unable to load attendance.');
           var card = document.getElementById('empAttendanceCard');
           if (card && data.has_employee === false) {
             card.classList.add('d-none');
@@ -159,11 +164,13 @@
           if (sync) sync.textContent = 'Updated ' + new Date().toLocaleTimeString();
           lastPayload = data;
           try {
-            global.dispatchEvent(new CustomEvent('employee-attendance-updated', { detail: data }));
+            document.dispatchEvent(new CustomEvent('employee-attendance-updated', { detail: data, bubbles: true }));
           } catch (e) {}
           return data;
         })
         .catch(function (err) {
+          if(sequence!==requestSequence)return;
+          ['empAttendanceLogsBody','empTimesheetLogsBody'].forEach(function(id){var body=document.getElementById(id);if(body)body.innerHTML='<tr><td colspan="8" class="text-danger py-3">'+esc(err.message||'Unable to load attendance. Please refresh.')+'</td></tr>';});
           console.warn('employee attendance error:', err);
         });
     }
@@ -176,6 +183,8 @@
   
     global.EmployeeAttendanceSync = {
       load: loadEmployeeAttendance,
+      setRange: function(start,end){logRange={start:start,end:end};++requestSequence;},
+      showLogs: renderLogs,
       startPolling: startPolling,
       getLastPayload: function () { return lastPayload; }
     };
@@ -197,6 +206,7 @@
 
   var currentGpsLocation = null;
   var currentAction = null;
+  var currentOvertimeId = null; var overtimeCsrf = null;
   var cameraStream = null;
   var selfieBase64Data = null;
   var hudIntervalTimer = null;
@@ -260,8 +270,8 @@
   function setAttendanceButtons(enabled) {
       var btnIn = document.getElementById('btnClockIn');
       var btnOut = document.getElementById('btnClockOut');
-      if (btnIn) btnIn.disabled = !enabled;
-      if (btnOut) btnOut.disabled = !enabled;
+      if (btnIn) btnIn.disabled = !enabled || !!(window.employeePunchContext && !window.employeePunchContext.can_in);
+      if (btnOut) btnOut.disabled = !enabled || !!(window.employeePunchContext && !window.employeePunchContext.can_out);
   }
 
   function getDistanceFromSite() {
@@ -637,21 +647,22 @@
 
       if (actionStatusEl) {
           var isOut = currentAction === 'clock_out';
-          actionStatusEl.textContent = isOut ? 'CLOCK OUT' : 'CLOCK IN';
+          actionStatusEl.textContent = (currentOvertimeId ? 'OVERTIME ' : '') + (isOut ? 'CLOCK OUT' : 'CLOCK IN');
           actionStatusEl.className =
               'fw-bold px-1.5 py-0.5 rounded text-white ' +
               (isOut ? 'bg-danger' : 'bg-success');
       }
   }
 
-  function openSelfieModal(action) {
+  function openSelfieModal(action, overtimeId, csrf) {
+      currentOvertimeId = overtimeId || null; overtimeCsrf = csrf || null;
       if (gpsStarting) return;
       return Promise.resolve(initEmployeeGeolocation(true)).then(function () { openSelfieModalWithPosition(action); });
   }
 
   function openSelfieModalWithPosition(action) {
       if (!currentGpsLocation) {
-          alert('Your live GPS location has not been acquired yet. Please wait or retry GPS.');
+          AppDialog.alert('Your live GPS location has not been acquired yet. Please wait or retry GPS.');
           initEmployeeGeolocation();
           return;
       }
@@ -662,15 +673,15 @@
           : null;
 
       if (dist === null || !window.employeeWorkSite || !window.employeeWorkSite.is_registered) {
-          alert('The registered work site is not available. You cannot clock in/out yet.');
+          AppDialog.alert('The registered work site is not available. You cannot clock in/out yet.');
           return;
       }
 
       if (currentGpsLocation.accuracy === null || currentGpsLocation.accuracy > radius) {
-          alert('Location accuracy is too low for this work-site radius. Refresh GPS Location and try again.'); return;
+          AppDialog.alert('Location accuracy is too low for this work-site radius. Refresh GPS Location and try again.'); return;
       }
       if (dist > radius) {
-          alert(
+          AppDialog.alert(
               'You are outside the allowed work site.\n\n' +
               'Distance: ' + Math.round(dist) + ' meters\n' +
               'Allowed radius: ' + Math.round(radius) + ' meters'
@@ -692,6 +703,7 @@
       updateLiveCameraHud();
   }
   window.openSelfieModal = openSelfieModal;
+  window.addEventListener('employee:punch-context', updateGpsUi);
 
   function startCamera() {
       var video = document.getElementById('selfieVideo');
@@ -709,7 +721,7 @@
       if (btnSubmit) btnSubmit.style.display = 'none';
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          alert('This browser does not support camera access.');
+          AppDialog.alert('This browser does not support camera access.');
           return;
       }
 
@@ -729,7 +741,7 @@
       })
       .catch(function (err) {
           console.error('[Camera] getUserMedia failed:', err);
-          alert('Camera access denied or unavailable. Please grant camera permission to verify your selfie.');
+          AppDialog.alert('Camera access denied or unavailable. Please grant camera permission to verify your selfie.');
       });
   }
   window.startCamera = startCamera;
@@ -746,7 +758,7 @@
       if (!video || !canvas) return;
 
       if (!currentGpsLocation) {
-          alert('Live GPS is not ready. Please wait for the coordinates to appear and try again.');
+          AppDialog.alert('Live GPS is not ready. Please wait for the coordinates to appear and try again.');
           initEmployeeGeolocation();
           return;
       }
@@ -757,13 +769,13 @@
           : null;
 
       if (dist === null || !window.employeeWorkSite || !window.employeeWorkSite.is_registered || dist > radius) {
-          alert('Attendance cannot be captured because you are not verified inside the registered work-site geofence.');
+          AppDialog.alert('Attendance cannot be captured because you are not verified inside the registered work-site geofence.');
           updateGpsUi();
           return;
       }
 
       if (!video.videoWidth || !video.videoHeight) {
-          alert('Camera is still starting. Please wait a moment and try again.');
+          AppDialog.alert('Camera is still starting. Please wait a moment and try again.');
           return;
       }
 
@@ -878,13 +890,13 @@
 
   function submitGeofenceAttendance() {
       if (!currentGpsLocation) {
-          alert('A valid live GPS location is required.');
+          AppDialog.alert('A valid live GPS location is required.');
           initEmployeeGeolocation();
           return;
       }
 
       if (!selfieBase64Data) {
-          alert('A live selfie photo is required.');
+          AppDialog.alert('A live selfie photo is required.');
           return;
       }
 
@@ -894,15 +906,15 @@
           : null;
 
       if (dist === null || !window.employeeWorkSite || !window.employeeWorkSite.is_registered) {
-          alert('The registered work site could not be verified.');
+          AppDialog.alert('The registered work site could not be verified.');
           return;
       }
 
       if (currentGpsLocation.accuracy === null || currentGpsLocation.accuracy > radius) {
-          alert('Location accuracy is too low for this work-site radius. Refresh GPS Location and try again.'); return;
+          AppDialog.alert('Location accuracy is too low for this work-site radius. Refresh GPS Location and try again.'); return;
       }
       if (dist > radius) {
-          alert('Attendance rejected: you are outside the registered work-site geofence.');
+          AppDialog.alert('Attendance rejected: you are outside the registered work-site geofence.');
           updateGpsUi();
           return;
       }
@@ -915,6 +927,7 @@
           selfie: selfieBase64Data
       };
 
+      payload.csrf_token = window.employeePunchCsrf || overtimeCsrf;
       fetch('../../Api/Employee/clock_in_out_geofence.php', {
           method: 'POST',
           headers: {
@@ -933,14 +946,11 @@
           });
       })
       .then(function (data) {
-          alert(data.message || 'Attendance submitted.');
-          if (data.success) {
-              location.reload();
-          }
+          AppDialog.alert(data.message || 'Attendance submitted.').then(function(){if (data.success) location.reload();});
       })
       .catch(function (error) {
           console.error('[Attendance] Submission error:', error);
-          alert(error.message || 'Error submitting attendance.');
+          AppDialog.alert(error.message || 'Error submitting attendance.');
       });
   }
   window.submitGeofenceAttendance = submitGeofenceAttendance;

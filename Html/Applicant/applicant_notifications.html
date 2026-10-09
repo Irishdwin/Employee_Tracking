@@ -230,7 +230,6 @@
           <a class="nav-link" href="#agency-contact" data-applicant-info="contact">Contact the Agency</a>
         </nav>
         <div class="d-flex align-items-center gap-3">
-          <a href="../../index.html" class="employer-link d-none d-md-inline" id="employerSiteLink">Employer site</a>
           
           <!-- Notification Bell Dropdown -->
           <div class="dropdown" id="notificationMenuWrap">
@@ -273,7 +272,6 @@
                   <span class="badge bg-danger rounded-pill d-none" id="accountJobOrdersBadge">0</span>
                 </a>
                 <a class="account-dropdown-item" role="menuitem" href="saved_jobs.html">Saved jobs</a>
-                <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
                 <a class="account-dropdown-item" role="menuitem" href="applicant_notifications.html">Notifications</a>
                 <div class="account-dropdown-divider" role="presentation"></div>
                 <button type="button" class="account-dropdown-item account-dropdown-signout w-100" role="menuitem" id="btnSignOut">Logout</button>
@@ -387,6 +385,7 @@
       if (btnOut) {
         btnOut.addEventListener('click', function () {
           closeMenu();
+          window.showLogoutConfirm(function () {
           fetch('../../Api/Login/logout.php', {
             method: 'GET',
             credentials: 'include',
@@ -394,6 +393,7 @@
           }).then(function () {
             window.location.href = 'applicant_landing.html';
           });
+        });
         });
       }
     }
@@ -436,5 +436,6 @@
 
 <script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
 <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
 </body>
 </html>

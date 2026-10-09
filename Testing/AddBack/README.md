@@ -40,3 +40,5 @@ Results:
 At ₱1,000/day, missing two hours yielded ₱250 normal duty, ₱500 regular holiday and ₱650 regular holiday plus rest day. An incomplete record with only Clock In evidence was accepted and reconstructed using the same engine. Rejection produced no adjustment; absent historical rate prevented approval. Approved adjustments appeared once in payroll, historical payslip and selected-context export. Original attendance/DTR and production checksums remained unchanged throughout testing.
 
 The pre-existing Clock Out SQL parameter binding treated the image filename as a number. It is corrected to a string and verified through the actual isolated clock endpoint. Previously corrupted/missing photos cannot be reconstructed by this feature.
+
+Image upload verification (2026-10-09): run.php now includes upload_cases.php and follows the existing reviewed payroll finalization sequence. Run upload_ui.cjs and accounting_upload_ui.cjs for mocked desktop/mobile validation. See docs/ADD_BACK_IMAGE_EVIDENCE.md.

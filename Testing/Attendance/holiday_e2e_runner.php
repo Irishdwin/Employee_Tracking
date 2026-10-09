@@ -32,11 +32,11 @@ function fixture_insert(mysqli $db, string $table, array $values): int {
 function fixture_session(string $directory, int $uid, string $role): string {
     ini_set('session.save_path',$directory); ini_set('session.use_cookies','0'); ini_set('session.cache_limiter','');
     $id=bin2hex(random_bytes(16)); session_id($id);session_start();
-    $_SESSION=['user_id'=>$uid,'role'=>$role,'last_activity'=>time()];session_write_close(); return $id;
+    $_SESSION=['user_id'=>$uid,'role'=>$role,'last_activity'=>time(),'payroll_csrf'=>'fixture-holiday-csrf'];session_write_close(); return $id;
 }
 function fixture_request(string $url, string $session, ?array $body=null): array {
     $context=stream_context_create(['http'=>['method'=>$body===null?'GET':'POST','timeout'=>30,'ignore_errors'=>true,
-        'header'=>"Cookie: PHPSESSID=$session\r\nContent-Type: application/json\r\n",'content'=>$body===null?'':json_encode($body)]]);
+        'header'=>"Cookie: PHPSESSID=$session\r\nContent-Type: application/json\r\nX-Payroll-CSRF: fixture-holiday-csrf\r\n",'content'=>$body===null?'':json_encode($body)]]);
     $text=@file_get_contents($url,false,$context);
     if($text===false)throw new RuntimeException('Fixture HTTP request failed: '.$url.'; '.(error_get_last()['message']??'No HTTP response.'));
     $data=json_decode((string)$text,true);
@@ -75,7 +75,7 @@ try {
     file_put_contents($root.'/Api/Db_connection/db_connect.php',str_replace("\$dbname = '$sourceDb';","\$dbname = '$testDb';",$fixtureConfig));
     foreach (['attendance_pdo.php','hris_pdo.php'] as $file) {
         $path=$root.'/Api/Helpers/'.$file;
-        file_put_contents($path,str_replace('dbname='.$sourceDb.';','dbname='.$testDb.';',file_get_contents($path)));
+        file_put_contents($path,str_replace(['dbname='.$sourceDb.';',"'".$sourceDb."'"],['dbname='.$testDb.';',"'".$testDb."'"],file_get_contents($path)));
     }
     // All computation below loads the copied current production helpers with isolated connections.
     require $root.'/Api/Helpers/employee_payroll_helper.php';
@@ -87,10 +87,12 @@ try {
     $sourceContext=null;$daily=1000.0;$hourly=125.0;$rawRates=['daily_rate'=>1000,'hourly_rate'=>125,'BasicSalary'=>26000,'monthly_salary_credit'=>26000];
     if($employeeInput){
         require $root.'/Api/Helpers/employee_payroll_rates.php';
-        $sourceSite=site_for_lead($live,(int)$employeeInput['team_lead_id'],(int)$employeeInput['site_id']);
-        $sourceDeployment=site_owned_employee($live,(int)$employeeInput['team_lead_id'],(int)$employeeInput['employee_id'],(int)$employeeInput['site_id']);
+        require_once __DIR__.'/Api/_selection_context.php';
+        $sourceSite=testing_lead_site($live,$employeeInput);
+        require_once __DIR__.'/Api/_selection_context.php';
+        $sourceDeployment=testing_employee_context($live,$employeeInput,(int)$employeeInput['employee_id'],$employeeInput['date']);
         if(!$sourceDeployment||(int)$sourceDeployment['DeploymentID']!==(int)$employeeInput['deployment_id']||(int)$sourceSite['CompanyID']!==(int)$employeeInput['company_id'])throw new RuntimeException('The selected production deployment context has changed. Reload the rate card.');
-        $rawRates=site_query($live,'SELECT daily_rate,hourly_rate,BasicSalary,monthly_salary_credit FROM employee WHERE EmployeeID=? AND IsActive=1','i',[(int)$employeeInput['employee_id']])->fetch_assoc();
+        $rawRates=site_query($live,'SELECT daily_rate,hourly_rate,BasicSalary,monthly_salary_credit FROM employee WHERE EmployeeID=?','i',[(int)$employeeInput['employee_id']])->fetch_assoc();
         $resolvedRates=payroll_employee_rates($rawRates?:[],true);
         if(!$resolvedRates['valid'])throw new RuntimeException('No valid payroll rate was found for this employee. Check employee.daily_rate, hourly_rate and BasicSalary.');
         $daily=$resolvedRates['daily_rate'];$hourly=$resolvedRates['hourly_rate'];
@@ -120,6 +122,7 @@ try {
         ['J','Unworked Regular Holiday Ineligible','Regular Holiday',0,0,false,false,0],
         ['K','Unworked Special Holiday','Special Non-working Day',0,0,false,null,0],
         ['L','Eligibility skips preceding holiday and rest days','Regular Holiday',0,0,false,'skip',1000],
+        ['M','Unworked Double Regular Holiday Eligible','double',0,0,false,true,2000],
     ];
     $rows=[];$date='2026-10-01';$start='2026-10-01';$end='2026-10-15';
     if($employeeInput){$cases=array_values(array_filter($cases,static fn($case)=>$case[0]===$employeeInput['scenario']));$date=$employeeInput['date'];$start=$sourcePeriod['start'];$end=$sourcePeriod['end'];}
@@ -187,6 +190,7 @@ try {
             if ($eligible==='skip') holidays_create($db,['name'=>'TEST preceding non-working holiday','date'=>'2026-09-29','type'=>'Regular Holiday','pay_multiplier'=>2,'is_nationwide'=>true]);
             fixture_request($base.'/Testing/Attendance/Api/save_attendance.php',$adminSession,['company_id'=>$company,'site_id'=>$site,'team_lead_id'=>$lead,'deployment_id'=>$deployment,'employee_id'=>$employee,'date'=>$previous,'time_in'=>'08:00','time_out'=>'17:00','remarks'=>'TEST preceding attendance']);
         }
+        if ($eligible===false) fixture_insert($db,'daily_time_records',['employee_id'=>$employee,'date'=>'2026-09-30','status'=>'Absent']);
         if ($hours) fixture_request($base.'/Testing/Attendance/Api/save_attendance.php',$adminSession,['company_id'=>$company,'site_id'=>$site,'team_lead_id'=>$lead,'deployment_id'=>$deployment,'employee_id'=>$employee,'date'=>$date,'time_in'=>$normalIn,'time_out'=>$ot?$otOut:$normalOut,'remarks'=>'TEST '.$id.' controlled attendance']);
         if ($ot) fixture_request($base.'/Testing/Attendance/Api/save_test_overtime.php',$adminSession,['action'=>'create','company_id'=>$company,'site_id'=>$site,'team_lead_id'=>$lead,'deployment_id'=>$deployment,'employee_id'=>$employee,'date'=>$date,'ot_start'=>$normalOut,'ot_end'=>$otOut]);
         $payroll=payroll_compute_period($db,$pdo,$employee,$daily,$hourly,0,(float)$rawRates['monthly_salary_credit'],$start,$end,null,null,$deployment);
@@ -196,16 +200,17 @@ try {
         fixture_request($base.'/Api/TeamLead/submit_dtr.php',$leadSession,['employee_ids'=>[$employee],'site_id'=>$site,'cutoff_start'=>$start,'cutoff_end'=>$end]);
         $account=fixture_request($base.'/Api/Accounting/get_submitted_dtrs.php?employee_id='.$employee.'&cutoff_start='.$start.'&cutoff_end='.$end,$accountingSession);
         $verification=fixture_request($base.'/Api/Accounting/verify_dtr_submission.php',$accountingSession,['tl_id'=>$lead,'site_id'=>$site,'cutoff_start'=>$start,'cutoff_end'=>$end]);
-        $run=fixture_request($base.'/Api/Accounting/compute_payroll_for_batch.php',$accountingSession,['tl_id'=>$lead,'cutoff_start'=>$start,'cutoff_end'=>$end]);
+        $run=fixture_request($base.'/Api/Accounting/compute_payroll_for_batch.php',$accountingSession,['tl_id'=>$lead,'site_id'=>$site,'cutoff_start'=>$start,'cutoff_end'=>$end]);
         $billing=client_billing_build_export($db,$run['run_id']);
         $billingRow=$billing['rows'][0]??[];
-        $finalized=fixture_request($base.'/Api/Accounting/finalize_payroll_batch.php',$accountingSession,['tl_id'=>$lead,'cutoff_start'=>$start,'cutoff_end'=>$end]);
+        $exportRow=fixture_insert($db,'payroll_billing_exports',['PayrollRunID'=>$billing['run']['PayrollRunID'],'ExportToken'=>bin2hex(random_bytes(32)),'BaselineHash'=>hash('sha256',json_encode($billing)),'SnapshotJson'=>json_encode($billing),'FilePath'=>'fixture-reviewed.xlsx','CreatedBy'=>$accounting]);
+        $finalized=fixture_request($base.'/Api/Accounting/finalize_payroll_batch.php',$accountingSession,['tl_id'=>$lead,'site_id'=>$site,'cutoff_start'=>$start,'cutoff_end'=>$end,'export_id'=>$exportRow,'billing_reviewed'=>true]);
         $storedPayroll=$db->query("SELECT BasicSalary,HolidayPay,OvertimePay,GrossPay FROM payroll WHERE EmployeeID=$employee AND PayPeriodStart='$start' AND PayPeriodEnd='$end'")->fetch_assoc();
         $employeeResponse=fixture_request($base.'/Api/Employee/get_employee_payroll.php',$employeeSession);
         $payslipPeriodMatches=($employeeResponse['period']['start']??null)===$start && ($employeeResponse['period']['end']??null)===$end;
         $e=$payroll['earnings'];$actual=(float)$payroll['gross_pay'];
         $wantedDuty=$type && $hours?8:0;
-        $expectedPremium=['A'=>0,'B'=>1000,'C'=>1000,'D'=>300,'E'=>300,'F'=>1600,'G'=>500,'H'=>2000,'I'=>1000,'J'=>0,'K'=>0,'L'=>1000][$id];
+        $expectedPremium=['A'=>0,'B'=>1000,'C'=>1000,'D'=>300,'E'=>300,'F'=>1600,'G'=>500,'H'=>2000,'I'=>1000,'J'=>0,'K'=>0,'L'=>1000,'M'=>2000][$id];
         $expectedOt=['C'=>650,'E'=>422.50][$id]??0;
         if($sourceContext){
             // Independent normalized A-K acceptance references; never fed into the payroll engine.
@@ -242,11 +247,53 @@ try {
         ];
         $rows[]=['id'=>$id,'scenario'=>$label,'holiday_type'=>$type,'daily_rate'=>$daily,'hourly_rate'=>$hourly,'reference_earnings'=>['basic_pay'=>$hours?$daily:0,'holiday_pay'=>$expectedPremium,'holiday_ot_pay'=>$expectedOt],'hours_worked'=>$hours,'holiday_ot_hours'=>$ot,'rest_day'=>$rest,'eligibility'=>$eligible,'expected'=>$expected,'actual'=>$actual,'difference'=>round($actual-$expected,2),'status'=>in_array(false,$checks,true)?'FAIL':'PASS','checks'=>$checks,'earnings'=>$e,'classification'=>$classification,'attendance'=>$attendance,'team_lead'=>$reviewEmployee,'accounting_submission'=>$account['submission'],'accounting_payroll'=>$billingRow,'stored_payroll'=>$storedPayroll,'payslip_status'=>$payslipPeriodMatches?'VERIFIED current cutoff':'NOT VERIFIED: employee endpoint serves a different current cutoff','payslip'=>$payslipPeriodMatches?($employeeResponse['payslip']??null):null,'run'=>$run];
     }
+    $guardChecks=[];
+    if (!$sourceContext) {
+        $compute=static fn()=>payroll_compute_period($db,$pdo,$employee,$daily,$hourly,0,(float)$rawRates['monthly_salary_credit'],$start,$end,null,null,$deployment);
+        $mustReview=static function(callable $operation,string $message): bool {
+            try {$operation();return false;} catch(InvalidArgumentException $error) {return str_contains($error->getMessage(),$message);}
+        };
+        $db->query("DELETE FROM daily_time_records WHERE employee_id=$employee");
+        $guardChecks['missing_preceding_attendance_requires_review']=$mustReview($compute,'verify attendance');
+        $approved=(int)$db->query("SELECT StatusID FROM status WHERE Name='Approved' LIMIT 1")->fetch_row()[0];
+        fixture_insert($db,'leaves',['EmployeeID'=>$employee,'StartDate'=>'2026-09-30','EndDate'=>'2026-09-30','LeaveType'=>'Paid leave','StatusID'=>$approved]);
+        $guardChecks['approved_leave_needs_paid_status_review']=$mustReview($compute,'confirm whether approved leave');
+        $db->query("DELETE FROM leaves WHERE EmployeeID=$employee");
+        // CLI-only invalid-evidence fixtures after finalization: public testing APIs correctly reject these locked writes.
+        fixture_insert($db,'daily_time_records',['employee_id'=>$employee,'date'=>$date,'time_in'=>$date.' 08:00:00','time_out'=>$date.' 17:00:00','status'=>'Clocked Out']);
+        $db->query("UPDATE daily_time_records SET time_out=NULL WHERE employee_id=$employee AND date='$date'");
+        $guardChecks['incomplete_holiday_attendance_requires_review']=$mustReview($compute,'clock-out');
+        $db->query("UPDATE daily_time_records SET time_out='$date 17:00:00' WHERE employee_id=$employee AND date='$date'");
+        fixture_insert($db,'overtime',['EmployeeID'=>$employee,'DeploymentID'=>$deployment,'OvertimeDate'=>$date,'OTStartTime'=>'17:00','OTEndTime'=>'19:00','OvertimeHours'=>2,'RequestedBy'=>$admin,'ApprovedBy'=>$admin,'StatusID'=>$approved,'Remarks'=>'CLI-only disposable review guard fixture']);
+        $guardChecks['unconfirmed_double_holiday_overtime_requires_review']=$mustReview($compute,'not confirmed');
+        $db->query("UPDATE overtime SET StatusID=(SELECT StatusID FROM status WHERE Name='Pending' LIMIT 1) WHERE EmployeeID=$employee");
+        $unapproved=$compute();
+        $guardChecks['unapproved_holiday_overtime_not_paid']=(float)$unapproved['earnings']['holiday_ot_pay']===0.0;
+        $db->query("UPDATE daily_time_records SET time_in='$date 18:00:00',time_out='2026-10-02 03:00:00' WHERE employee_id=$employee AND date='$date'");
+        $guardChecks['overnight_holiday_requires_date_allocation_review']=$mustReview($compute,'Overnight holiday');
+        $db->query("UPDATE daily_time_records SET time_in='$date 08:00:00',time_out='$date 12:00:00' WHERE employee_id=$employee AND date='$date'");
+        $partial=$compute();
+        $guardChecks['partial_double_holiday_premium']=abs((float)$partial['earnings']['holiday_pay']-750.0)<0.005;
+        $guardChecks['partial_double_holiday_total']=abs((float)$partial['earnings']['basic_pay']+(float)$partial['earnings']['holiday_pay']-(float)$partial['late_undertime_deduction']-1125.0)<0.02;
+        $differentRate=payroll_compute_period($db,$pdo,$employee,800,100,0,20800,$start,$end,null,null,$deployment);
+        $guardChecks['different_salary_rate_not_hardcoded']=abs((float)$differentRate['earnings']['holiday_pay']-600.0)<0.005;
+        $db->query("UPDATE deployment SET WorkingDays='Mon,Tue,Wed,Fri' WHERE DeploymentID=$deployment");
+        $guardChecks['double_holiday_rest_day_requires_confirmation']=$mustReview($compute,'confirmation of the client pay rule');
+        $lockedPayslip=fixture_request($base.'/Api/Employee/get_employee_payroll.php',$employeeSession);
+        $guardChecks['finalized_payslip_uses_stored_amount_after_review_guard']=!empty($lockedPayslip['payslip']['is_finalized']) && abs((float)$lockedPayslip['payslip']['gross_pay']-2000.0)<0.005;
+        $db->query('DELETE FROM holidays ORDER BY HolidayID DESC LIMIT 1');
+        $db->query("UPDATE overtime SET StatusID=$approved WHERE EmployeeID=$employee");
+        $guardChecks['unconfirmed_rest_day_overtime_requires_review']=$mustReview($compute,'not confirmed');
+        $db->query("UPDATE holidays SET HolidayType='Unclassified'");
+        $guardChecks['ambiguous_holiday_type_requires_review']=$mustReview($compute,'classification');
+        if(in_array(false,$guardChecks,true))throw new RuntimeException('Holiday review guards failed: '.json_encode($guardChecks));
+    }
     $after=fixture_snapshot($live);
     $result=['success'=>true,'employee_context'=>$sourceContext,'mode'=>$sourceContext?'selected_employee':'synthetic','source'=>'Current production PHP helpers and HTTP endpoints; disposable schema only','fixture_database'=>$testDb,'fixture_directory'=>$root,'scenario_date'=>$date,'cutoff'=>[$start,$end],'selection_checks'=>$selectionChecks??[],'production_unchanged'=>$before===$after,'production_before'=>$before,'production_after'=>$after,'results'=>$rows,'production_files_sha256'=>[
         'employee_payroll_helper.php'=>hash_file('sha256',__DIR__.'/../../Api/Helpers/employee_payroll_helper.php'),
         'submit_dtr.php'=>hash_file('sha256',__DIR__.'/../../Api/TeamLead/submit_dtr.php'),
         'compute_payroll_for_batch.php'=>hash_file('sha256',__DIR__.'/../../Api/Accounting/compute_payroll_for_batch.php')]];
+    $result['review_guard_checks']=$guardChecks;
 } catch (Throwable $e) {
     error_log('[Holiday Testing] '.$e->getMessage());
     $result=['success'=>false,'message'=>$e->getMessage(),'stage'=>'controlled_scenario','partial_results'=>$rows??[],'fixture_database'=>$testDb,'fixture_directory'=>$root,'intentional_cleanup_test'=>$verifyFailureCleanup];

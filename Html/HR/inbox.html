@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hr-ui">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -28,6 +28,8 @@
     </style>
     <script>window.REQUIRED_ROLES = 'Admin,HR';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
+<link rel="stylesheet" href="../../Css/hr_workspace.css">
+<script src="../../Js/Shared/hr_dialog.js"></script>
 </head>
 <body>
 <div class="page-wrap">
@@ -180,7 +182,7 @@ async function sendMessage() {
   });
   const d = await r.json();
   if (!d.success) {
-    alert(d.message || 'Failed to send message');
+    HRDialog.alert(d.message || 'Failed to send message');
     return;
   }
   state.activeThreadId = d.thread_id || state.activeThreadId;

@@ -180,17 +180,25 @@
       '<div class="border rounded p-3 bg-light" style="white-space:pre-wrap;">' + esc(n.message || '') + '</div>' +
       '<p class="small text-muted mt-3 mb-0">Related: ' + related + '</p>';
     if(n.messenger_user_id && global.OwMessenger){var chatButton=document.createElement('button');chatButton.type='button';chatButton.className='btn btn-primary mt-3';chatButton.textContent='Open Conversation';chatButton.onclick=function(){global.OwMessenger.openContact(n.messenger_user_id);};el.appendChild(chatButton);}
-    if (n.type === 'payroll_billing_updated' || n.type === 'payroll_status_updated' || n.type === 'leave_pay_policy') {
+    if (n.type === 'employee_exit') {
+      var exitLinks = {Admin:'../../Html/Admin/admin_dashboard.html#section-resignations',HR:'../../Html/HR/hr_dashboard.html#section-resignations',Accounting:'../../Html/Accounting/resignation_final_pay.html',TeamLead:'../../Html/TeamLead/clearance.html',Employee:'../../Html/Employee/resignation_request.html'};
+      var exitFolder=(location.pathname.split('/Html/')[1]||'').split('/')[0];
+      if(exitLinks[exitFolder]){var exitButton=document.createElement('a');exitButton.className='btn btn-primary mt-3';exitButton.textContent='View employee exit progress';exitButton.href=exitLinks[exitFolder];if(exitFolder==='HR'||exitFolder==='Admin'){var exitShow=exitFolder==='HR'?global.hrShowSection:global.adminShowSection;if(typeof exitShow==='function')exitButton.addEventListener('click',function(event){event.preventDefault();exitShow('section-resignations');});}el.appendChild(exitButton);}
+    }
+    if ((n.type === 'payroll_billing_updated' || n.type === 'payroll_finalized') || n.type === 'payroll_status_updated' || n.type === 'leave_pay_policy') {
       var payrollButton = document.createElement('a'); payrollButton.className = 'btn btn-primary mt-3'; payrollButton.textContent = 'View Payroll'; payrollButton.href = '../../Html/Employee/employee_dashboard.html#section-emp-payroll';
-      if (n.type === 'payroll_billing_updated') payrollButton.href = '../../Html/Employee/employee_dashboard.html#section-emp-payroll-history';
+      if ((n.type === 'payroll_billing_updated' || n.type === 'payroll_finalized')) payrollButton.href = '../../Html/Employee/employee_dashboard.html#section-emp-payroll-history';
       if (global.showEmpTab) payrollButton.addEventListener('click', function (event) {
         event.preventDefault();
-        if (n.type === 'payroll_billing_updated') {
+        if ((n.type === 'payroll_billing_updated' || n.type === 'payroll_finalized')) {
           global.showEmpTab('section-emp-payroll-history');
           if (global.EmployeePayrollHistory && Number(n.related_record)>0) global.EmployeePayrollHistory.open(Number(n.related_record));
         } else global.showEmpTab('section-emp-payroll');
       });
       el.appendChild(payrollButton);
+    }
+    if (n.related_module === 'overtime' || /^overtime_/.test(n.type || '')) {
+      var overtimeButton=document.createElement('button');overtimeButton.type='button';overtimeButton.className='btn btn-primary mt-3';overtimeButton.textContent='View Overtime';overtimeButton.onclick=function(){if(global.EmployeeOvertime)global.EmployeeOvertime.open();else if(global.showView)global.showView('overtime');};el.appendChild(overtimeButton);
     }
     if (n.type === 'employee_password_setup' && global.EmployeeSecurity) {
       var settingsButton = document.createElement('button');
@@ -257,7 +265,12 @@
     if (pollTimer) clearInterval(pollTimer);
     pollUnreadBadge();
     if (interval > 0) {
-      pollTimer = setInterval(pollUnreadBadge, interval);
+      var polling = false;
+      pollTimer = setInterval(function () {
+        if (polling || (cfg.pauseWhenHidden && document.hidden)) return;
+        polling = true;
+        Promise.resolve(pollUnreadBadge()).finally(function () { polling = false; });
+      }, interval);
     }
   }
 
@@ -375,6 +388,8 @@
               executeMarkAllRead();
             }
           });
+        } else if (global.AppDialog) {
+          global.AppDialog.confirm('Mark all notifications as read?').then(function (confirmed) { if (confirmed) executeMarkAllRead(); });
         } else {
           if (!global.confirm('Mark all notifications as read?')) return;
           executeMarkAllRead();

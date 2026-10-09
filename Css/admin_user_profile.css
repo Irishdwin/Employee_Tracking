@@ -1,0 +1,36 @@
+/* Profile viewer: restrained dashboard palette and readable field groups. */
+#viewProfileModal .modal-dialog { max-width:1120px; margin:1.5rem auto; height:calc(100% - 3rem); }
+#viewProfileModal .modal-content { border-radius:18px; overflow:hidden; color:#172b4d; }
+#viewProfileModal .modal-header { background:#fff!important; color:#102c54!important; border-bottom:1px solid #e4ebf3; padding:20px 24px; }
+#viewProfileModal .modal-title { font-size:1.15rem; }
+#viewProfileModal .modal-header .btn-close { filter:none; opacity:.65; }
+#viewProfileModal .modal-body { background:#f5f8fc!important; padding:24px; }
+#viewProfileModal #profileContent > .card { border:1px solid #e3eaf3!important; box-shadow:none!important; border-radius:14px; }
+#viewProfileModal #profileContent > .card .card-body { padding:20px; }
+#viewProfileModal #pf_picture { width:64px!important; height:64px!important; padding:3px; border-color:#e3eaf3; }
+#viewProfileModal #pf_full_name { font-size:1.4rem; color:#102c54; overflow-wrap:anywhere; }
+#viewProfileModal #profileContent > .card .card-body > div { min-width:0; }
+#viewProfileModal #profileContent > .card .d-flex { flex-wrap:wrap; }
+#viewProfileModal #pf_sys_role { background:#e8f0fb!important; color:#184b85; padding:6px 9px; }
+#viewProfileModal .row .card { border:1px solid #e3eaf3!important; box-shadow:none!important; border-radius:12px; overflow:hidden; }
+#viewProfileModal .card-header { border-bottom:1px solid #edf1f6; padding:14px 18px; color:#17375e; font-size:.94rem; }
+#viewProfileModal .card-header i { color:#47719d!important; }
+#viewProfileModal .row .card-body { padding:10px 18px; }
+#viewProfileModal .table { --bs-table-bg:transparent; font-size:.9rem; }
+#viewProfileModal .table tr { display:grid; grid-template-columns:minmax(120px,38%) minmax(0,1fr); gap:14px; padding:9px 0; border-bottom:1px solid #edf1f6; }
+#viewProfileModal .table tr:last-child { border-bottom:0; }
+#viewProfileModal .table td { width:auto!important; padding:0; line-height:1.55; overflow-wrap:anywhere; }
+#viewProfileModal .table .fw-semibold { font-weight:500!important; color:#203753; }
+#viewProfileModal .modal-footer { border-top:1px solid #e3eaf3!important; padding:16px 24px; gap:8px; }
+#viewProfileModal .modal-footer .btn { margin:0; padding:9px 14px; border-radius:8px; font-weight:500; }
+body.profile-view-open > .modal-backdrop { background:#102c54; --bs-backdrop-opacity:.18; }
+html.embedded-modal-open, html.embedded-modal-open body { background:transparent!important; }
+html.embedded-modal-open .layout-wrapper { visibility:hidden; }
+html.embedded-modal-open .modal-backdrop { opacity:0!important; }
+@media(max-width:767px) {
+ #viewProfileModal .modal-dialog { margin:12px; height:calc(100% - 24px); }
+ #viewProfileModal .modal-header,#viewProfileModal .modal-body,#viewProfileModal .modal-footer { padding:16px; }
+ #viewProfileModal .table tr { grid-template-columns:minmax(100px,36%) minmax(0,1fr); gap:10px; }
+ #viewProfileModal .modal-footer .btn { flex:1 1 calc(50% - 8px); font-size:.82rem; }
+ #viewProfileModal #pf_full_name { font-size:1.2rem; }
+}

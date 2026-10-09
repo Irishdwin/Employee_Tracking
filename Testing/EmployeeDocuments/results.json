@@ -1,0 +1,15 @@
+{
+    "success": true,
+    "checks": {
+        "Cross-account replacement rejected": "PASS",
+        "CSRF replacement rejected": "PASS",
+        "Invalid upload preserves original": "PASS",
+        "Replace succeeds": "PASS",
+        "Document identity type and category preserved": "PASS",
+        "Replacement requires fresh verification": "PASS",
+        "Replacement creates no duplicate record": "PASS",
+        "Updated document stored": "PASS",
+        "New uploads remain supported": "PASS",
+        "Production data unchanged": "PASS"
+    }
+}

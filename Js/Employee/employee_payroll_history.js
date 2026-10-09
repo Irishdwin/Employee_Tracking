@@ -84,7 +84,7 @@
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (!res || !res.success || !res.payslip) {
-          alert((res && res.message) || 'Failed to load this payslip.');
+          AppDialog.alert((res && res.message) || 'Failed to load this payslip.');
           return;
         }
         var modalEl = document.getElementById('payslipModal');
@@ -93,7 +93,7 @@
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
       })
       .catch(function () {
-        alert('Network error while loading this payslip.');
+        AppDialog.alert('Network error while loading this payslip.');
       });
   }
 

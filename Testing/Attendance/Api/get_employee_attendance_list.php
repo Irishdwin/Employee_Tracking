@@ -20,8 +20,8 @@ if ($employeeId <= 0) {
 }
 
 try {
-    $selectedDeployment=testing_employee_context($conn,$_GET,$employeeId,null);
-    $today = date('Y-m-d');
+    $today = (string)($_GET['date']??date('Y-m-d'));
+    $selectedDeployment=testing_employee_context($conn,$_GET,$employeeId,$today);
     $schedule = payroll_resolve_deployment_schedule($conn, $employeeId, $today);
 
     // Read-only display rates use the same production precedence. Actual

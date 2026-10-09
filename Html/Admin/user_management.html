@@ -165,6 +165,9 @@
     </script>
     <script>window.REQUIRED_ROLE = 'Admin';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
+<link rel="stylesheet" href="../../Css/admin_user_profile.css">
+<link rel="stylesheet" href="../../Css/admin_workspace.css">
+<script>try { if(window.parent!==window && /\/Admin\/admin_dashboard\.html$/.test(window.parent.location.pathname)) { document.documentElement.classList.add("admin-ui"); document.documentElement.dataset.adminModule="users"; } } catch(e) {}</script>
 </head>
 <body>
 <div class="layout-wrapper">
@@ -446,13 +449,13 @@
 </div>
 
 <!-- View / Edit Employee Profile Modal -->
-<!-- View Complete User Profile Modal -->
-<div class="modal fade" id="viewProfileModal" tabindex="-1" aria-hidden="true">
+<!-- View User Profile Modal -->
+<div class="modal fade" id="viewProfileModal" tabindex="-1" aria-labelledby="profileViewerTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold">
-                    <i class="bi bi-person-lines-fill me-2"></i>Complete User Profile
+                <h5 class="modal-title fw-bold" id="profileViewerTitle">
+                    <i class="bi bi-person-lines-fill me-2"></i>User Profile
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -485,10 +488,10 @@
                     </div>
 
                     <div class="row g-3">
-                        <!-- 1. Basic Information -->
+                        <!-- Personal information -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-person me-2 text-primary"></i>1. Basic Information</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-person me-2 text-primary"></i>Personal information</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">Phone:</td><td id="pf_phone" class="fw-semibold">N/A</td></tr>
@@ -502,10 +505,10 @@
                             </div>
                         </div>
 
-                        <!-- 2. Address Information -->
+                        <!-- Address -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-geo-alt me-2 text-primary"></i>2. Address Information</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-geo-alt me-2 text-primary"></i>Address</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">Complete Address:</td><td id="pf_address" class="fw-semibold">N/A</td></tr>
@@ -518,10 +521,10 @@
                             </div>
                         </div>
 
-                        <!-- 3. Employment Information -->
+                        <!-- Employment -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-briefcase me-2 text-primary"></i>3. Employment Information</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-briefcase me-2 text-primary"></i>Employment</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">Employee ID:</td><td id="pf_emp_id" class="fw-semibold">N/A</td></tr>
@@ -535,10 +538,10 @@
                             </div>
                         </div>
 
-                        <!-- 4. Deployment Information -->
+                        <!-- Deployment -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-building me-2 text-primary"></i>4. Deployment Information</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-building me-2 text-primary"></i>Deployment</div>
                                 <div class="card-body">
                                     <div id="deploymentContainer">
                                         <table class="table table-sm table-borderless mb-0">
@@ -559,10 +562,10 @@
                             </div>
                         </div>
 
-                        <!-- 5. Salary Information -->
+                        <!-- Pay rates -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-cash-stack me-2 text-primary"></i>5. Salary Information</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-cash-stack me-2 text-primary"></i>Pay rates</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">Daily Rate:</td><td id="pf_daily_rate" class="fw-semibold">N/A</td></tr>
@@ -577,7 +580,7 @@
                         <!-- 6. Government Information -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-card-heading me-2 text-primary"></i>6. Government Identification</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-card-heading me-2 text-primary"></i>Government identification</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">SSS #:</td><td id="pf_sss" class="fw-semibold">N/A</td></tr>
@@ -589,10 +592,10 @@
                             </div>
                         </div>
 
-                        <!-- 7. Recruitment Information -->
+                        <!-- Recruitment -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i>7. Recruitment Information</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i>Recruitment</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">Applied Position:</td><td id="pf_applied_pos" class="fw-semibold">N/A</td></tr>
@@ -608,7 +611,7 @@
                         <!-- 8. Uploaded Documents -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>8. Uploaded Documents</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>Uploaded documents</div>
                                 <div class="card-body d-flex flex-column gap-2 justify-content-center">
                                     <a id="btn_resume" href="#" target="_blank" class="btn btn-outline-primary btn-sm disabled"><i class="bi bi-file-pdf me-1"></i>View Resume</a>
                                     <a id="btn_valid_id" href="#" target="_blank" class="btn btn-outline-primary btn-sm disabled"><i class="bi bi-card-image me-1"></i>View Valid ID</a>
@@ -620,7 +623,7 @@
                         <!-- 9. System Information -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-gear me-2 text-primary"></i>9. System Information</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-gear me-2 text-primary"></i>Account information</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">Account Status:</td><td id="pf_account_status" class="fw-semibold">N/A</td></tr>
@@ -635,7 +638,7 @@
                         <!-- 10. Payroll Summary -->
                         <div class="col-md-6">
                             <div class="card border-0 shadow-sm h-100">
-                                <div class="card-header bg-white fw-bold"><i class="bi bi-journal-check me-2 text-primary"></i>10. Latest Payroll Summary</div>
+                                <div class="card-header bg-white fw-bold"><i class="bi bi-journal-check me-2 text-primary"></i>Latest payroll summary</div>
                                 <div class="card-body">
                                     <table class="table table-sm table-borderless mb-0">
                                         <tr><td class="text-muted" style="width: 40%;">Latest Payroll Date:</td><td id="pf_pay_date" class="fw-semibold">N/A</td></tr>
@@ -653,9 +656,9 @@
 
             <!-- 11. Action Buttons -->
             <div class="modal-footer bg-white border-top-0">
-                <button type="button" class="btn btn-warning btn-sm" id="btn_modal_edit_user"><i class="bi bi-pencil-square me-1"></i>Edit User</button>
-                <button type="button" class="btn btn-danger btn-sm" id="btn_modal_deactivate_user"><i class="bi bi-person-x me-1"></i>Deactivate Account</button>
-                <button type="button" class="btn btn-secondary btn-sm" id="btn_modal_reset_pwd"><i class="bi bi-key me-1"></i>Reset Password</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn_modal_edit_user"><i class="bi bi-pencil-square me-1"></i>Edit User</button>
+                <button type="button" class="btn btn-outline-danger btn-sm" id="btn_modal_deactivate_user"><i class="bi bi-person-x me-1"></i>Deactivate Account</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="btn_modal_reset_pwd"><i class="bi bi-key me-1"></i>Reset Password</button>
                 <button type="button" class="btn btn-outline-dark btn-sm" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
@@ -666,6 +669,7 @@
 <link rel="stylesheet" href="../../Css/password_strength.css">
 <script src="../../Js/Shared/password_strength.js"></script>
 <script src="../../Js/Shared/pagination_ui.js"></script>
+<script src="../../Js/Admin/user_profile_modal.js"></script>
 <script>
     /**
  * User Management Module - Complete Profile Viewer & User Actions
@@ -1078,7 +1082,7 @@
                         const docs = res.documents || [];
                         const pay = res.payroll || {};
 
-                        // 1. Basic Information
+                        // Personal information
                         setText('pf_full_name', emp.FirstName ? `${emp.FirstName} ${emp.LastName}` : (app.FullName || u.full_name || 'N/A'));
                         setText('pf_username', u.username || 'N/A');
                         setText('pf_email', u.email || 'N/A');
@@ -1096,14 +1100,14 @@
                             photoImg.src = app.ProfilePhotoPath ? app.ProfilePhotoPath : '../../Images/images.jpg';
                         }
 
-                        // 2. Address Information
+                        // Address
                         setText('pf_address', app.Address || app.HomeLocation || 'N/A');
                         setText('pf_barangay', 'N/A');
                         setText('pf_city', app.HomeLocation || 'N/A');
                         setText('pf_province', 'N/A');
                         setText('pf_zip', 'N/A');
 
-                        // 3. Employment Information
+                        // Employment
                         setText('pf_emp_id', emp.EmployeeNumber || 'N/A');
                         setText('pf_emp_status', emp.IsActive === 1 ? 'Active' : (emp.EmployeeID ? 'Inactive' : 'N/A'));
                         setText('pf_position', emp.Position || 'N/A');
@@ -1112,7 +1116,7 @@
                         setText('pf_date_hired', formatDate(emp.HiredDate));
                         setText('pf_emp_type', emp.EmployeeType || 'N/A');
 
-                        // 4. Deployment Information
+                        // Deployment
                         const depContainer = document.getElementById('deploymentContainer');
                         const notDepAlert = document.getElementById('notDeployedAlert');
 
@@ -1132,7 +1136,7 @@
                             if (notDepAlert) notDepAlert.classList.remove('d-none');
                         }
 
-                        // 5. Salary Information
+                        // Pay rates
                         const basicSal = parseFloat(sal.BasicRate || emp.BasicSalary || 0);
                         const dailyRate = basicSal > 0 ? (basicSal > 1000 ? basicSal / 26 : basicSal) : 0;
                         setText('pf_daily_rate', formatCurrency(dailyRate));
@@ -1146,7 +1150,7 @@
                         setText('pf_pagibig', emp.PagIBIGNumber || 'N/A');
                         setText('pf_tin', emp.TINNumber || 'N/A');
 
-                        // 7. Recruitment Information
+                        // Recruitment
                         setText('pf_applied_pos', rec.job_position || app.JobTitle || 'N/A');
                         setText('pf_date_applied', formatDate(rec.ApplicationDate));
                         setText('pf_rec_status', rec.ClientApprovalStatus || 'N/A');

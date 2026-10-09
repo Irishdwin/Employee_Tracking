@@ -39,6 +39,7 @@ require_once __DIR__ . '/../Helpers/employee_payroll_helper.php'; // payroll_res
 require_once __DIR__ . '/../Helpers/work_site_geofence.php';
 $current=site_current_deployment_sql();
 $teamLeadUserId = (int)$_SESSION['user_id'];
+require_once __DIR__.'/../Helpers/overtime_workflow.php';
 
 $date = isset($_GET['date']) ? trim((string)$_GET['date']) : date('Y-m-d');
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
@@ -46,6 +47,7 @@ if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
 }
 
 try {
+    otw_authorize($conn,$teamLeadUserId,['TeamLead','Team Lead']);
     // Same deployed-team base query as get_dtr_cutoff_review.php / get_tl_attendance_roster.php.
     $sql = "
         SELECT
@@ -55,6 +57,7 @@ try {
             COALESCE(d.Position, e.Position, 'Staff') AS position,
             d.DeploymentID AS deployment_id,
             d.CompanyID AS company_id,
+            s.SiteID AS site_id, s.Name AS site_name,
             cc.Name AS company_name
         FROM deployment d
         INNER JOIN deployment_sites s ON s.SiteID=d.SiteID AND s.IsActive=1
@@ -76,12 +79,12 @@ try {
     $otByEmployee = [];
     $otStmt = $conn->prepare("
         SELECT ot.OvertimeID, ot.EmployeeID, ot.OTStartTime, ot.OTEndTime, ot.OvertimeHours,
-               ot.OvertimeType, ot.OvertimeRate, ot.Remarks, ot.RequestedBy, ot.ApprovedBy,
+               ot.OvertimeType, ot.OvertimeRate, ot.Remarks, ot.RequestedBy, ot.ApprovedBy, ot.EmployeeResponseRequired, ot.EmployeeResponse, ot.EmployeeRejectionReason, ot.EmployeeRespondedAt, ot.ActualTimeIn, ot.ActualTimeOut,
                s.Name AS status_name
         FROM overtime ot
         LEFT JOIN status s ON s.StatusID = ot.StatusID
         WHERE ot.DeploymentID IN (
-            SELECT DeploymentID FROM deployment WHERE SiteSuperVisorID = ?
+            SELECT d.DeploymentID FROM deployment d JOIN deployment_sites ds ON ds.SiteID=d.SiteID AND ds.IsActive=1 WHERE ds.TeamLeadID = ?
         )
         AND ot.OvertimeDate = ?
         ORDER BY ot.OTStartTime ASC
@@ -105,6 +108,7 @@ try {
             'overtime_rate' => $otRow['OvertimeRate'] !== null ? (float)$otRow['OvertimeRate'] : null,
             'remarks' => $otRow['Remarks'],
             'status' => $otRow['status_name'] ?? 'Pending',
+            'response_required'=>(bool)$otRow['EmployeeResponseRequired'], 'employee_response'=>$otRow['EmployeeResponse'], 'rejection_reason'=>$otRow['EmployeeRejectionReason'], 'responded_at'=>$otRow['EmployeeRespondedAt'], 'actual_time_in'=>$otRow['ActualTimeIn'], 'actual_time_out'=>$otRow['ActualTimeOut'],
         ];
     }
     $otStmt->close();
@@ -120,6 +124,7 @@ try {
             'employee_name' => $row['employee_name'],
             'position' => $row['position'],
             'company_id' => (int)$row['company_id'],
+            'site_id' => (int)$row['site_id'], 'site_name' => $row['site_name'],
             'company_name' => $row['company_name'],
             'deployment_id' => (int)$row['deployment_id'],
             'regular_schedule' => date('h:i A', strtotime($schedule['time_in'])) . ' - ' . date('h:i A', strtotime($schedule['time_out'])),
@@ -131,15 +136,18 @@ try {
 
     echo json_encode([
         'success' => true,
-        'date' => $date,
+        'date' => $date, 'csrf_token'=>otw_csrf(),
         'employees' => $employees,
     ]);
+} catch (DomainException $e) {
+    http_response_code($e->getCode() ?: 403);
+    echo json_encode(['success'=>false,'message'=>$e->getMessage()]);
 } catch (Throwable $e) {
     error_log('get_overtime_roster: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Failed to load overtime roster.',
-        'error_details' => $e->getMessage(),
+
     ]);
 }

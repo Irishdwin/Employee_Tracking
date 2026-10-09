@@ -38,9 +38,12 @@ function add_back_fingerprint(array $source): string {
 }
 function add_back_rates(PDO $pdo,array $employee,int $deployment,int $company,string $date): ?array {
     // Explicit rate fields avoid interpreting the previously unused BasicRate/RateType.
-    $q=$pdo->prepare('SELECT SalaryRatesID,DailyRate,HourlyRate FROM salary_rates WHERE EmployeeID=? AND DeploymentID=? AND CompanyID=? AND EffectiveDate<=? AND (EndDate IS NULL OR EndDate>=?) AND DailyRate>0 AND HourlyRate>0 ORDER BY EffectiveDate DESC,SalaryRatesID DESC LIMIT 1');
+    $q=$pdo->prepare("SELECT sr.SalaryRatesID,sr.DailyRate,sr.HourlyRate,sr.EffectiveDate,sr.EndDate,role.RoleName FROM salary_rates sr LEFT JOIN users u ON u.UsersID=sr.CreatedBy LEFT JOIN roles role ON role.RolesID=u.RoleID WHERE sr.EmployeeID=? AND (sr.DeploymentID=? OR sr.DeploymentID IS NULL) AND (sr.CompanyID=? OR sr.CompanyID IS NULL) AND sr.EffectiveDate<=? AND (sr.EndDate IS NULL OR sr.EndDate>=?) AND sr.IsActive=1 ORDER BY sr.EffectiveDate DESC,(sr.DeploymentID IS NOT NULL) DESC,(sr.CompanyID IS NOT NULL) DESC,sr.SalaryRatesID DESC LIMIT 1");
     $q->execute([$employee['EmployeeID'],$deployment,$company,$date,$date]); $history=$q->fetch();
-    if ($history) return ['daily_rate'=>(float)$history['DailyRate'],'hourly_rate'=>(float)$history['HourlyRate'],'source'=>'salary_rates #'.$history['SalaryRatesID'],'effective_dated'=>true,'work_date'=>$date];
+    if ($history) {
+        if(!in_array($history['RoleName'],['HR','Admin'],true) || (float)$history['DailyRate']<=0 || (float)$history['HourlyRate']<=0 || abs(round((float)$history['DailyRate']/8,2)-(float)$history['HourlyRate'])>=0.001) return null;
+        return ['daily_rate'=>(float)$history['DailyRate'],'hourly_rate'=>(float)$history['HourlyRate'],'source'=>'salary_rates #'.$history['SalaryRatesID'],'effective_dated'=>true,'effective_date'=>$history['EffectiveDate'],'end_date'=>$history['EndDate'],'work_date'=>$date];
+    }
     // An authoritative current snapshot proves today's rate only, not a past rate.
     if ($date!==date('Y-m-d')) return null;
     $rate=payroll_employee_rates($employee);
@@ -71,11 +74,12 @@ function add_back_notify(PDO $pdo,int $user,string $type,string $title,string $m
     $q=$pdo->prepare("INSERT INTO notifications(UserID,NotificationType,Title,Message,RelateedModule,RelatedRecord,IsRead,Priority) VALUES(?,?,?,?, 'add_back',?,0,'Normal')");
     $q->execute([$user,$type,$title,$message,$id]);
 }
-function add_back_submit(PDO $pdo,mysqli $conn,int $user,array $body): int {
+function add_back_submit(PDO $pdo,mysqli $conn,int $user,array $body,array $uploads=[]): int {
     foreach (['approved_amount','amount','rate','employee_id','company_id','team_lead_id'] as $key) if (isset($body[$key])) throw new DomainException('Employee, rate and approved amount are controlled by the server.',400);
     $date=add_back_date((string)($body['work_date']??''));
     if ($date>date('Y-m-d')) throw new DomainException('Future duty cannot be requested.',422);
     $reason=trim((string)($body['reason']??'')); if (strlen($reason)<10 || strlen($reason)>2000) throw new DomainException('Explain the missing duty in 10â€“2,000 characters.',422);
+    $uploaded=evidence_uploads($uploads);
     $pdo->beginTransaction(); $copies=[];
     try {
         $employee=evidence_employee($pdo,$user); $emp=(int)$employee['EmployeeID'];
@@ -97,23 +101,25 @@ function add_back_submit(PDO $pdo,mysqli $conn,int $user,array $body): int {
                 }
             }
         }
-        if (!$photos) throw new DomainException('No recorded clock photo is available. Ask Accounting to verify the evidence source before requesting Add Back.',422);
+        foreach($uploaded as $i=>$file)$photos['upload'.($i+1)]=$file;
+        if (!$photos) throw new DomainException('Please upload at least one image as evidence.',422);
         $dep=$source['deployment']; $rates=add_back_rates($pdo,$employee,(int)$dep['DeploymentID'],(int)$dep['CompanyID'],$date);
         $q=$pdo->prepare('INSERT INTO add_back_requests(EmployeeID,SubmittedBy,DeploymentID,CompanyID,AttendanceID,WorkDate,DutyStart,DutyEnd,RequestedHours,OriginalHours,Reason,SourceSnapshot,RateSnapshot,StatusID) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
         $q->execute([$emp,$user,$dep['DeploymentID'],$dep['CompanyID'],$source['attendance']['AttendanceID']??null,$date,$duty['row']['time_in'],$duty['row']['time_out'],$duty['hours'],$source['original_hours'],$reason,json_encode($source),$rates?json_encode($rates):null,add_back_status($pdo,'Pending')]); $id=(int)$pdo->lastInsertId();
         foreach ($photos as $kind=>$file) {
-            $name=bin2hex(random_bytes(24)).($file['mime']==='image/png'?'.png':'.jpg');
+            $name=bin2hex(random_bytes(24)).(['image/png'=>'.png','image/jpeg'=>'.jpg','image/webp'=>'.webp'][$file['mime']]);
             $path=__DIR__.'/../../uploads/add_back_evidence/'.$name;
-            if (!copy($file['path'],$path)) throw new RuntimeException('Could not preserve evidence.'); $copies[]=$path;
+            if (!is_dir(dirname($path)))throw new RuntimeException('Private evidence storage is unavailable.');
+            $copies[]=$path;if (!copy($file['path'],$path)) throw new RuntimeException('Could not preserve evidence.');
             $q=$pdo->prepare('INSERT INTO add_back_evidence(RequestID,EvidenceType,StorageName,MimeType,ByteSize,Sha256,CapturedAt) VALUES(?,?,?,?,?,?,?)');
-            $q->execute([$id,$kind,$name,$file['mime'],$file['size'],$file['sha256'],$source['attendance'][$kind==='clockin'?'TimeIn':'TimeOut']??null]);
+            $q->execute([$id,$kind,$name,$file['mime'],$file['size'],$file['sha256'],str_starts_with($kind,'upload')?null:($source['attendance'][$kind==='clockin'?'TimeIn':'TimeOut']??null)]);
         }
-        $users=$pdo->query("SELECT u.UsersID FROM users u JOIN roles r ON r.RolesID=u.RoleID WHERE r.RoleName='Accounting'")->fetchAll(PDO::FETCH_COLUMN);
-        foreach ($users as $to) add_back_notify($pdo,(int)$to,'add_back_submitted','Add Back needs verification','Request #'.$id.' for '.$date.' restores '.$duty['hours'].' duty hours.',$id);
         if (!AuditLogger::log($pdo,'Add Back','Submitted','Missing duty request submitted', (string)$id)) throw new RuntimeException('Audit write failed.');
-        $pdo->commit(); return $id;
+        $pdo->commit();
+        try{add_back_notify_accounting($pdo,$id);}catch(Throwable $e){error_log('Add Back notification retry required for request '.$id.': '.$e->getMessage());}
+        return $id;
     } catch (Throwable $e) {
-        if ($pdo->inTransaction()) $pdo->rollBack(); foreach ($copies as $path) unlink($path); throw $e;
+        if ($pdo->inTransaction()) $pdo->rollBack(); foreach ($copies as $path) if(is_file($path))unlink($path); throw $e;
     }
 }
 /** Default is the current, or next unfinalized cutoff; original deployment must still cover it. */
@@ -145,7 +151,7 @@ function add_back_quote(PDO $pdo,mysqli $conn,array $request): array {
         $q=$pdo->prepare('SELECT * FROM employee WHERE EmployeeID=?'); $q->execute([$request['EmployeeID']]);
         $rates=add_back_rates($pdo,$q->fetch(),(int)$request['DeploymentID'],(int)$request['CompanyID'],$request['WorkDate']);
     }
-    if (!$rates) throw new DomainException('A verified effective-dated DailyRate and HourlyRate is required in salary_rates for this historical work date. Approval is blocked until that rate is recorded.',422);
+    if (!$rates) throw new DomainException('No active HR/Admin-recorded salary history covers employee #'.$request['EmployeeID'].', deployment #'.$request['DeploymentID'].' on '.$request['WorkDate'].'. HR/Admin must record the documented effective date, daily rate and its corresponding hourly rate. Current salary is not proof of a historical rate.',422);
     $duty=add_back_duty($source,$request['DutyStart'],$request['DutyEnd']);
     $p=payroll_kinsenas_period($request['WorkDate']);
     $args=[$conn,$pdo,(int)$request['EmployeeID'],(float)$rates['daily_rate'],(float)$rates['hourly_rate'],0.0,0.0,$p['start'],$p['end'],null,null,(int)$request['DeploymentID']];
@@ -172,7 +178,7 @@ function add_back_review(PDO $pdo,mysqli $conn,int $user,string $role,int $id,ar
         $quote=null; $period=null;
         if ($decision==='approve') {
             $q=$pdo->prepare('SELECT * FROM add_back_evidence WHERE RequestID=?'); $q->execute([$id]); $evidence=$q->fetchAll();
-            if (!$evidence) throw new DomainException('Recorded evidence is required.',422);
+            if (!$evidence) throw new DomainException('Image evidence is required.',422);
             foreach ($evidence as $ev) if (!hash_equals($ev['Sha256'],evidence_file($ev['StorageName'],'add_back_evidence')['sha256'])) throw new DomainException('Evidence integrity check failed.',409);
             $quote=add_back_quote($pdo,$conn,$r); $period=add_back_target($pdo,$r,$body['target_date']??null);
             $q=$pdo->prepare("INSERT INTO payroll_adjustments(Payroll_ID,EmployeeID,AdjustmentType,Amount,IsAddition,Reason,ApprovedBy,CreatedBy,AddBackRequestID) VALUES(NULL,?,'Add Back',?,1,?,?,?,?)");
@@ -184,4 +190,17 @@ function add_back_review(PDO $pdo,mysqli $conn,int $user,string $role,int $id,ar
         if (!AuditLogger::log($pdo,'Add Back',ucfirst($decision),'Request #'.$id.'; '.($quote?'approved amount '.$quote['amount']:$remarks),(string)$id)) throw new RuntimeException('Audit write failed.');
         $pdo->commit(); return ['amount'=>$quote['amount']??null,'target'=>$period];
     } catch (Throwable $e) { if ($pdo->inTransaction()) $pdo->rollBack(); throw $e; }
+}
+
+/** Called after submission commit; the request lock makes notification retries idempotent. */
+function add_back_notify_accounting(PDO $pdo,int $id): void {
+    $pdo->beginTransaction();
+    try{
+        $q=$pdo->prepare('SELECT r.*,e.FirstName,e.LastName,d.Location FROM add_back_requests r JOIN employee e ON e.EmployeeID=r.EmployeeID JOIN deployment d ON d.DeploymentID=r.DeploymentID WHERE r.RequestID=? FOR UPDATE');$q->execute([$id]);$r=$q->fetch();if(!$r)throw new RuntimeException('Notification request not found.');
+        $users=$pdo->query("SELECT u.UsersID FROM users u JOIN roles r ON r.RolesID=u.RoleID WHERE r.RoleName='Accounting' AND u.IsActive=1")->fetchAll(PDO::FETCH_COLUMN);
+        foreach($users as $to){$q=$pdo->prepare("SELECT NotificationID FROM notifications WHERE UserID=? AND NotificationType='add_back_submitted' AND RelateedModule='add_back' AND RelatedRecord=? LIMIT 1");$q->execute([$to,$id]);if($q->fetch())continue;
+            add_back_notify($pdo,(int)$to,'add_back_submitted','New Add Back Request',trim($r['FirstName'].' '.$r['LastName']).' submitted Add Back request #'.$id.' for '.$r['WorkDate'].' at '.$r['Location'].'. Image evidence is attached. Review the request in Add Back Requests.',$id);
+        }
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }

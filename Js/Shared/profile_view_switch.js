@@ -198,6 +198,8 @@
     var inactiveNavClass = options.inactiveNavClass || '';
     var onShow = options.onShowView || null;
     var previousViewId = defaultViewId;
+    var returnViewId = defaultViewId;
+    var returnFromViews = options.returnFromViews || [];
     var baseShowView = options.existingShowView || null;
 
     function clearNavHighlight() {
@@ -211,6 +213,8 @@
     function showView(viewId, opts) {
       var skipHash = opts && opts.skipHash;
       if (!viewId) return;
+      if (!Array.prototype.some.call(panels, function (panel) { return panel.getAttribute('data-view') === viewId; })) return;
+      if (returnFromViews.indexOf(viewId) === -1) returnViewId = viewId;
 
       if (viewId !== profileViewId) {
         previousViewId = viewId;
@@ -253,9 +257,15 @@
 
       if (!skipHash && history.replaceState) {
         try {
-          history.replaceState(null, '', '#section-profile');
+          history.replaceState(null, '', options.trackViewHash && viewId !== profileViewId ? '#view-' + viewId : '#section-profile');
         } catch (e) {}
       }
+    }
+
+    if (options.returnButtonSelector) {
+      document.querySelectorAll(options.returnButtonSelector).forEach(function (button) {
+        button.addEventListener('click', function () { showView(returnViewId); });
+      });
     }
 
     wireProfileTriggers(function (target) {
@@ -269,6 +279,8 @@
     var hash = (global.location.hash || '').replace(/^#/, '');
     if (hash === DEFAULT_PROFILE_ID || hash === profileViewId) {
       showView(profileViewId, { skipHash: true });
+    } else if (options.trackViewHash && hash.indexOf('view-') === 0) {
+      showView(hash.slice(5), { skipHash: true });
     }
 
     global.addEventListener('hashchange', function () {
@@ -277,6 +289,8 @@
         showView(profileViewId, { skipHash: true });
       } else if (h === defaultViewId) {
         showView(defaultViewId, { skipHash: true });
+      } else if (options.trackViewHash && h.indexOf('view-') === 0) {
+        showView(h.slice(5), { skipHash: true });
       }
     });
 

@@ -290,8 +290,8 @@
                 e.preventDefault();
                 var doLogout = function () {
                     fetch('../../Api/Login/logout.php', { method: 'GET', credentials: 'same-origin' })
-                        .then(function () { window.location.href = '/Employee_Tracking/index.html'; })
-                        .catch(function () { window.location.href = '/Employee_Tracking/index.html'; });
+                        .then(function () { window.location.href = 'applicant_landing.html'; })
+                        .catch(function () { window.location.href = 'applicant_landing.html'; });
                 };
                 if (typeof window.showLogoutConfirm === 'function') window.showLogoutConfirm(doLogout);
                 else doLogout();

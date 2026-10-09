@@ -19,17 +19,6 @@
  *     configured Payroll Type A/B — same function the real payroll flow
  *     uses (see Api/Employee/get_employee_payroll.php).
  *
- * IMPORTANT — Double Holiday: the `holidays` table enforces at most ONE
- * holiday per calendar date (holidays_create()/holidays_update() reject a
- * second holiday on a date already used — see holidays_helper.php), and
- * payroll_compute_period() itself reads holidays via a date-keyed map
- * (one entry per date — a second same-date row would simply overwrite the
- * first, never stack). So "two Regular/Legal holidays on the same date" is
- * not a producible state in the current system at all — this is a real,
- * pre-existing gap reported to the developer, not something this testing
- * tool works around or invents a fix for. This endpoint reports that
- * limitation explicitly (`double_holiday_supported: false`) rather than
- * pretending to detect a state the schema cannot hold.
  */
 declare(strict_types=1);
 
@@ -38,6 +27,12 @@ require_once __DIR__ . '/_selection_context.php';
 require_once __DIR__ . '/../../../Api/Helpers/employee_payroll_helper.php'; // schedule + rest-day helpers, holidays_helper.php (included by it)
 require_once __DIR__ . '/../../../Api/Helpers/client_billing_helper.php';   // client_billing_ensure_schema()
 require_once __DIR__ . '/../../../Api/Helpers/payroll_type_helper.php';    // payroll_type_period_for_company()
+
+if (($_GET['list'] ?? '') === 'registered') {
+    try { echo json_encode(['success'=>true,'holidays'=>holidays_fetch_all($conn)]); }
+    catch (Throwable $e) { http_response_code(500); echo json_encode(['success'=>false,'message'=>'Unable to read registered Admin holidays.']); }
+    exit;
+}
 
 $employeeId = isset($_GET['employee_id']) ? (int)$_GET['employee_id'] : 0;
 $date = trim((string)($_GET['date'] ?? ''));
@@ -56,10 +51,12 @@ try {
     // payroll_compute_period()'s own rest-day check, never re-derived here.
     $schedule = payroll_resolve_deployment_schedule($conn, $employeeId, $date);
     $weekdays = payroll_scheduled_weekdays($schedule['working_days']);
-    $isScheduledDay = payroll_is_scheduled_day($date, $weekdays);
+    $isScheduledDay = isset($schedule['is_working_day']) ? (bool)$schedule['is_working_day'] : payroll_is_scheduled_day($date, $weekdays);
 
     // Real holiday lookup — same `holidays` table payroll reads.
-    $holiday = holidays_find_by_date($conn, $date);
+    $applicable = holidays_fetch_for_range($conn,$date,$date,$employeeId,(int)$selectedDeployment['DeploymentID']);
+    $holidayRows = $applicable[$date] ?? [];
+    $holiday = $holidayRows ? holidays_find_by_id($conn,(int)$holidayRows[0]['id']) : null;
 
     // Real deployment company (for the correct Payroll Type A/B cutoff).
     $depRow=$selectedDeployment;
@@ -72,6 +69,8 @@ try {
     echo json_encode([
         'success' => true,
         'date' => $date,
+        'holidays' => $holidayRows,
+        'schedule' => $schedule,
         'holiday' => $holiday, // null => Normal Workday for payroll purposes
         'scheduled' => $isScheduledDay ? 'Scheduled Workday' : 'Scheduled Rest Day',
         'is_rest_day' => !$isScheduledDay,

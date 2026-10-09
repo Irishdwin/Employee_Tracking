@@ -1,0 +1,44 @@
+%% Gane & Sarson notation. DOT/SVG is the exact open-ended-store version.
+flowchart LR
+  classDef entity fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef process fill:#f4faf5,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef store fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  linkStyle default stroke:#43835b;
+  C["Accounting Staff"]:::entity
+  E["Employee"]:::entity
+  D3[["D3 - Employees and Separation"]]:::store
+  D7[["D7 - Schedules and Holidays"]]:::store
+  D8[["D8 - Attendance and DTR"]]:::store
+  D9[["D9 - Overtime and Existing Leave"]]:::store
+  D10[["D10 - Payroll, Billing and Status History"]]:::store
+  D13[["D13 - Audit and Configuration"]]:::store
+  D11[["D11 - Notifications"]]:::store
+  P91("9.1 Verify Submitted DTR"):::process
+  P92("9.2 Compute Payroll Preview"):::process
+  P93("9.3 Finalize Reviewed Billing Snapshot"):::process
+  P94("9.4 Retrieve Finalized Payslip"):::process
+  P10("10.0 Manage Billing Revisions and Payroll Status"):::process
+  C -->|"DTR verification decision"| P91
+  D8 -->|"Submitted site and cutoff DTR"| P91
+  P91 -->|"Reviewed DTR"| D8
+  P91 -->|"Verification result"| C
+  C -->|"Site-scoped computation inputs"| P92
+  D8 -->|"Verified employee DTR"| P92
+  D3 -->|"Employee salary configuration"| P92
+  D7 -->|"Schedules and holiday rules"| P92
+  D9 -->|"Approved overtime and existing leave"| P92
+  D13 -->|"Government deduction rates"| P92
+  D10 -->|"Existing runs and adjustments"| P92
+  P92 -->|"Computed run and computation history"| D10
+  P92 -->|"Computed billing rows"| P10
+  P92 -->|"Payroll preview and computation result"| C
+  P10 -->|"Persisted billing export snapshot"| D10
+  C -->|"Latest export ID and billing-reviewed confirmation"| P93
+  D10 -->|"Latest post-computation export and roster snapshot"| P93
+  D8 -->|"Verified site-scoped DTR membership"| P93
+  P93 -->|"Finalized payroll and frozen run-member snapshots"| D10
+  P93 -->|"Payslip available notification"| D11
+  P93 -->|"Finalization result"| C
+  E -->|"Payroll history or payslip selection"| P94
+  D10 -->|"Finalized payroll and billing details"| P94
+  P94 -->|"Payslip and payroll history"| E

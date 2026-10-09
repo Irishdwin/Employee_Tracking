@@ -492,6 +492,25 @@
       .app-track-connector{ flex-basis:20px; margin:0 6px; }
     }
 
+    /* Fit all application stages within the detail panel. */
+    .app-col-detail { container-type:inline-size; }
+    .app-track { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:start;gap:12px;overflow:visible; }
+    .app-track-step { min-width:0;flex-direction:column;align-items:center;text-align:center;gap:10px; }
+    .app-track-step { position:relative; }
+    .app-track-step:not(:last-child)::after { content:"";position:absolute;left:calc(50% + 25px);top:19px;width:calc(100% - 38px);height:3px;border-radius:2px;background:rgba(15,23,42,.12); }
+    .app-track-step.is-complete::after { background:var(--onazul-primary); }
+    .app-track-text { min-width:0;white-space:normal;overflow-wrap:anywhere; }
+    .app-track-label { line-height:1.4; }
+    .app-track-desc { display:block;line-height:1.4;margin-top:4px; }
+    .app-track-connector { display:none; }
+    @container (max-width:600px) {
+      .app-track { grid-template-columns:minmax(0,1fr);gap:0; }
+      .app-track-step { flex-direction:row;align-items:flex-start;text-align:left;padding:10px 0;position:relative; }
+      .app-track-step:not(:last-child)::after { content:'';position:absolute;left:19px;top:50px;bottom:-10px;width:2px;height:auto;background:rgba(15,23,42,.12); }
+      .app-track-step.is-complete::after { background:var(--onazul-primary); }
+      .app-track-text { padding-top:3px; }
+    }
+
     /* Agency contact widget */
     .app-contact-card{
       margin-top: 14px;
@@ -584,7 +603,6 @@
                 <a class="account-dropdown-item" role="menuitem" href="applicant_profile_master.html#documents">My documents</a>
                 <a class="account-dropdown-item" role="menuitem" href="my_applications.html" id="accountLinkApplications">Job applications</a>
                 <a class="account-dropdown-item" role="menuitem" href="saved_jobs.html">Saved jobs</a>
-                <a class="account-dropdown-item" role="menuitem" href="inbox.html">Messenger</a>
                 <a class="account-dropdown-item" role="menuitem" href="../notifications.html">Notifications</a>
                 <div class="account-dropdown-divider"></div>
                 <button type="button" class="account-dropdown-item account-dropdown-signout" id="btnSignOut">Logout</button>
@@ -704,13 +722,15 @@
       if (btnOut) {
         btnOut.addEventListener('click', function () {
           closeMenu();
+          window.showLogoutConfirm(function () {
           fetch('../../Api/Login/logout.php', {
             method: 'GET',
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
           })
           .catch(function(){})
-          .then(function () { window.location.href = '/Employee_Tracking/index.html'; });
+          .then(function () { window.location.href = 'applicant_landing.html'; });
+        });
         });
       }
 
@@ -1193,5 +1213,6 @@
 
 <script src="../../Js/Shared/messenger_rbac.js?v=20261006-presence1"></script>
 <script src="../../Js/Shared/ow_messenger.js?v=20261007-unread2"></script>
+<script src="../../Js/Shared/common_logout_confirm.js"></script>
 </body>
 </html>

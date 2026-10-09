@@ -157,6 +157,7 @@
     }
 
     function uploadXHR(file, docType, docCategory, progressInner, done) {
+        if(/^(resume|cv|resume\s*\/\s*cv)$/i.test(docType) && (!/\.pdf$/i.test(file.name) || (file.type && file.type!=='application/pdf') || file.size>5*1024*1024)){done(file.size>5*1024*1024?'Resume/CV must not exceed 5 MB.':'Only PDF files are allowed for Resume/CV.');return;}
         var fd = new FormData();
         fd.append('document', file);
         fd.append('doc_type', docType);
@@ -292,6 +293,7 @@
             '<h2 class="apm-detail-title">' + esc(catLabel) + '</h2>' +
             '<p class="apm-detail-sub">Files in this category. Drag files here or click to upload.</p>' +
             '</div>' +
+            (state.selectedCat==='employment'?'<label for="apmEmploymentType" class="small">Document type</label><select id="apmEmploymentType" class="form-select mb-2"><option value="Resume">Resume/CV (PDF Only)</option><option value="Employment Document">Other employment document</option></select><p class="small text-muted">Upload your updated Resume or CV in PDF format. Maximum file size: 5 MB.</p>':'') +
             '<label class="apm-dropzone" id="apmDropzone">' +
             '<input type="file" id="apmDropInput" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple class="d-none">' +
             '<div class="apm-drop-inner">' +
@@ -304,6 +306,8 @@
 
         var dz = document.getElementById('apmDropzone');
         var di = document.getElementById('apmDropInput');
+        var employmentType=document.getElementById('apmEmploymentType');
+        if(employmentType){var updateAccept=function(){di.accept=employmentType.value==='Resume'?'.pdf,application/pdf':'.pdf,.doc,.docx,.jpg,.jpeg,.png';};employmentType.addEventListener('change',updateAccept);updateAccept();}
         var pb = document.getElementById('apmDropProgressBar');
         var pr = document.getElementById('apmDropProgress');
 
@@ -331,7 +335,8 @@
                 var f = fileList[i];
                 i += 1;
                 var base = (f.name || 'document').replace(/\.[^.]+$/, '');
-                var docType = base.slice(0, 80) || 'Document';
+                var employmentType=document.getElementById('apmEmploymentType');
+                var docType = employmentType?employmentType.value:(base.slice(0,80)||'Document');
                 if (pr) {
                     pr.setAttribute('aria-hidden', 'false');
                 }

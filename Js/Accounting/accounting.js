@@ -4,6 +4,18 @@
 (function (global) {
   'use strict';
 
+  document.addEventListener('click', async function(event){
+    var link=event.target.closest('a[data-billing-download]');if(!link)return;event.preventDefault();if(link.dataset.downloading)return;link.dataset.downloading='1';link.setAttribute('aria-busy','true');
+    try {
+      var response=await fetch(link.href,{credentials:'same-origin'});
+      if(!response.ok)throw new Error(await response.text());
+      var blob=await response.blob();var bytes=new Uint8Array(await blob.slice(0,4).arrayBuffer());
+      if(!(response.headers.get('Content-Type')||'').includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')||bytes[0]!==80||bytes[1]!==75)throw new Error('The server did not return a valid Excel workbook. Retry the export.');
+      var match=(response.headers.get('Content-Disposition')||'').match(/filename="([^"]+)"/);var url=URL.createObjectURL(blob);var download=document.createElement('a');download.href=url;download.download=match?match[1].replace(/[\\/:*?<>|]/g,'_'):'Client_Billing.xlsx';document.body.appendChild(download);download.click();download.remove();setTimeout(function(){URL.revokeObjectURL(url);},30000);
+    }catch(error){if(typeof global.showAccAlert==='function')global.showAccAlert('Billing export unavailable',error.message);else if(global.AppDialog)global.AppDialog.alert(error.message);else alert(error.message);}
+    finally{delete link.dataset.downloading;link.removeAttribute('aria-busy');}
+  });
+
   var API = '../../Api/Accounting/get_payroll_runs.php';
   var exportBase = '../../Api/Accounting/export_client_billing.php';
 
@@ -61,7 +73,7 @@
 
   function exportButton(ref, label, extraClass) {
     var cls = 'btn btn-sm btn-outline-success' + (extraClass ? ' ' + extraClass : '');
-    return '<a href="' + esc(exportUrl(ref)) + '" class="' + cls + '">'
+    return '<a data-billing-download href="' + esc(exportUrl(ref)) + '" class="' + cls + '">'
       + '<i class="bi bi-file-earmark-excel me-1"></i> ' + esc(label)
       + '</a>';
   }
@@ -117,7 +129,7 @@
       var ref = run.billing_ref_no || run.run_id;
       var exportBtn = canExport(run)
         ? exportButton(ref, 'Export Client Billing (.xlsx)')
-        : '<span class="text-muted small">Choose a site-specific run</span>';
+        : '<span class="text-muted small">'+esc(run.export_block_reason || 'Verify the DTRs for this cutoff first.')+'</span>';
       var isHighlighted = global.__highlightPayrollRun
         && (run.run_id === global.__highlightPayrollRun || ref === global.__highlightPayrollRun);
       var rowCls = 'border-b border-slate-200' + (isHighlighted ? ' table-warning' : '');

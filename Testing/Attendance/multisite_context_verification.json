@@ -1,0 +1,132 @@
+{
+  "holiday": {
+    "success": true,
+    "date": "2026-10-06",
+    "holiday": null,
+    "scheduled": "Scheduled Workday",
+    "is_rest_day": false,
+    "payroll_period": {
+      "start": "2026-09-26",
+      "end": "2026-10-10",
+      "payday": "2026-10-15",
+      "payday_display": "Oct 15, 2026",
+      "label": "Sep 26, 2026 – Oct 10, 2026",
+      "half": "2nd",
+      "type": "B",
+      "company_id": 4
+    },
+    "double_holiday_supported": true,
+    "double_holiday_note": "The current schema and production engine support two distinct Regular Holidays on one date. Use the controlled suite to verify this without adding a test holiday to the official calendar."
+  },
+  "verification": {
+    "success": true,
+    "employee": {
+      "employee_id": 77,
+      "employee_number": "EMP2026000009",
+      "name": "Jhonel Tuling",
+      "company": "SM Uptown",
+      "daily_rate": 700,
+      "hourly_rate": 87.5
+    },
+    "period": {
+      "start": "2026-09-26",
+      "end": "2026-10-10",
+      "payday": "2026-10-15",
+      "payday_display": "Oct 15, 2026",
+      "label": "Sep 26, 2026 – Oct 10, 2026",
+      "half": "2nd",
+      "type": "B",
+      "company_id": 4
+    },
+    "payroll": {
+      "period_start": "2026-09-26",
+      "period_end": "2026-10-10",
+      "days_worked": 7,
+      "daily_rate": 700,
+      "hourly_rate": 87.5,
+      "monthly_allowance": 0,
+      "monthly_salary_credit": 18200,
+      "earnings": {
+        "basic_pay": 4900,
+        "sunday_overtime": 0,
+        "regular_overtime": 0,
+        "approved_overtime": 875.04,
+        "holiday_pay": 0,
+        "holiday_ot_pay": 0,
+        "sil_accrual": 145.83,
+        "allowance": 0
+      },
+      "holiday_id": null,
+      "holiday_breakdown": [],
+      "holiday_ot_breakdown": [],
+      "late_undertime": {
+        "late_minutes": 0,
+        "undertime_minutes": 0,
+        "total_minutes": 0,
+        "per_minute_rate": 1.4583,
+        "amount": 0
+      },
+      "late_undertime_deduction": 0,
+      "deductions": {
+        "sss_ee": 0,
+        "sss_regular_ee": 0,
+        "sss_mpf_ee": 0,
+        "philhealth_ee": 227.5,
+        "pagibig_ee": 100,
+        "applied": {
+          "sss": false,
+          "philhealth": true,
+          "pagibig": true
+        }
+      },
+      "gross_pay": 5775.04,
+      "total_deductions": 327.5,
+      "net_pay": 5447.54,
+      "ot_detail": {
+        "sunday_hours": 0,
+        "regular_ot_hours": 0,
+        "holiday_ot_hours": 0,
+        "holiday_ot_pay": 0,
+        "approved_overtime_hours": 8,
+        "approved_overtime_pay": 875.04,
+        "approved_overtime_sessions": 4,
+        "approved_overtime_breakdown": [
+          {
+            "overtime_id": 11,
+            "deployment_id": 47,
+            "date": "2026-10-01",
+            "hours": 2,
+            "holiday_type": null
+          },
+          {
+            "overtime_id": 12,
+            "deployment_id": 47,
+            "date": "2026-10-05",
+            "hours": 2,
+            "holiday_type": null
+          },
+          {
+            "overtime_id": 13,
+            "deployment_id": 47,
+            "date": "2026-10-06",
+            "hours": 2,
+            "holiday_type": null
+          },
+          {
+            "overtime_id": 14,
+            "deployment_id": 47,
+            "date": "2026-10-09",
+            "hours": 2,
+            "holiday_type": null
+          }
+        ]
+      },
+      "attendance_summary": {
+        "present": 7,
+        "late": 0,
+        "absent": 3
+      }
+    },
+    "source": "payroll_compute_period() — the same production function used by Accounting payroll computation and the Employee payslip. This is the real, actual result, not a re-derived estimate."
+  }
+}

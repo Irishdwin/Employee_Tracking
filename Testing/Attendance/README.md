@@ -176,3 +176,12 @@ depend on the selected employee or rate card. Both controlled modes clean up the
 disposable database and check production table checksums.
 
 See `EMPLOYEE_RATE_TEST_REPORT.md` for the implementation and Tests 1–12 evidence.
+
+## Setting late minutes
+
+In Attendance Details, enter whole-number Late minutes to set Time In that many minutes after the employee’s scheduled start for the selected date. Leave the field blank to use manual Time In. Changing Time In manually clears the late override. The server resolves the schedule again and uses the existing production attendance/payroll calculator; values within the grace period still produce zero recorded late minutes. Negative, fractional and next-day clock-in offsets are rejected. The field works for both creating and updating unlocked test attendance.
+
+
+## Historical attendance
+
+Select an employee and date to resolve the actual deployment/site and effective schedule. Ended deployments and archived historical records are available in testing history selectors. The date must be covered by an existing deployment. Submitted DTR/approved or finalized payroll periods stay locked; use Add Back/correction or isolated fixtures. Create never silently replaces attendance. See `C:/xampp/htdocs/Employee_Tracking/docs/HISTORICAL_ATTENDANCE_FIX.md` for implementation and verification evidence.

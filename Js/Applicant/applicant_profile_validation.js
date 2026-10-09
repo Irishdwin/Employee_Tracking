@@ -1,7 +1,7 @@
 (function (global) {
     'use strict';
     var fields = {
-        first_name:'firstNameInput', middle_name:'middleNameInput', last_name:'lastNameInput', birth_date:'birthDateInput',
+        gender:'sexInput', first_name:'firstNameInput', middle_name:'middleNameInput', last_name:'lastNameInput', birth_date:'birthDateInput',
         region:'addressRegionSelect', state_province:'addressProvinceSelect', city:'addressCitySelect', barangay:'addressBarangaySelect',
         postal_code:'postalCodeInput', street_address:'streetAddressInput', category_id:'job-category',
         job_title:'jobTitleInput', company_name:'companyNameInput', experience_start_month:'startMonthSelect', experience_start_year:'startYearSelect',
@@ -14,6 +14,7 @@
             if (!p[key] && key !== 'middle_name') errors[key] = label + ' is required.';
             else if (p[key] && (!names.test(p[key]) || (key !== 'middle_name' && p[key].length < 2))) errors[key] = label + ' must contain at least two letters and only letters, spaces, periods, apostrophes or hyphens.';
         });
+        if (!['Male','Female','Other','Prefer not to say'].includes(p.gender)) errors.gender = 'Please select your sex.';
         if (!p.birth_date) errors.birth_date = 'Date of Birth is required.';
         else {
             var parts = String(p.birth_date).split('-'), y=Number(parts[0]), m=Number(parts[1]), d=Number(parts[2]);

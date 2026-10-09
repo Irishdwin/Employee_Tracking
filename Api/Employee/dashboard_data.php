@@ -41,6 +41,10 @@ $profileStmt = $conn->prepare(
         work_site.site_registered_at AS site_registered_at,
         work_site.registered_by_tl_id AS registered_by_tl_id,
         tl.FullName AS team_lead_name,
+        tl.UsersID AS team_lead_user_id,
+        (SELECT cc.ContactNumber FROM clientcompany cc
+         WHERE cc.UserID = tl.UsersID AND NULLIF(TRIM(cc.ContactNumber), '') IS NOT NULL
+         ORDER BY (cc.CompanyID = dep.CompanyID) DESC, cc.CompanyID DESC LIMIT 1) AS team_lead_registered_phone,
         a.FirstName AS applicant_first_name,
         a.LastName AS applicant_last_name,
         a.BirthDate AS applicant_birth_date,
@@ -72,6 +76,18 @@ $profileStmt->bind_param('i', $userId);
 $profileStmt->execute();
 $profileRow = $profileStmt->get_result()->fetch_assoc();
 $profileStmt->close();
+$teamLeadPhone = '';
+if (!empty($profileRow['team_lead_user_id'])) {
+    $teamLeadProfile = $conn->prepare('SELECT ProfileJSON FROM teamlead_personal_profiles WHERE UserID = ?');
+    $teamLeadProfile->bind_param('i', $profileRow['team_lead_user_id']);
+    $teamLeadProfile->execute();
+    $teamLeadDetails = $teamLeadProfile->get_result()->fetch_assoc();
+    $teamLeadProfile->close();
+    $teamLeadPersonal = json_decode($teamLeadDetails['ProfileJSON'] ?? '{}', true);
+    $teamLeadPhone = trim((string)($teamLeadPersonal['MobileNumber'] ?? ''));
+    if ($teamLeadPhone === '') $teamLeadPhone = trim((string)($profileRow['team_lead_registered_phone'] ?? ''));
+}
+
 
 if (!$profileRow) {
     echo json_encode(['success' => false, 'message' => 'Profile not found']);
@@ -169,7 +185,7 @@ if ($applicantId) {
                     'doc_id' => isset($r['DocID']) ? (int)$r['DocID'] : null,
                     'name' => (string)($r['doc_name'] ?? 'Document'),
                     'type' => (string)($r['DocType'] ?? ''),
-                    'path' => (string)($r['FilePath'] ?? ''),
+                    'path' => preg_match('/^(resume|cv|resume\s*\/\s*cv)$/i',$r['DocType']) ? '../../Api/Applicant/view_document.php?id='.(int)$r['DocID'] : (string)($r['FilePath'] ?? ''),
                     'uploaded_at' => !empty($r['UploadedAt']) ? date('M d, Y', strtotime((string)$r['UploadedAt'])) : null,
                 ];
             }
@@ -192,6 +208,8 @@ echo json_encode([
         'subtitle' => $profileSubtitle,
         'work_schedule' => $workSchedule,
         'team_lead_name' => (string)($profileRow['team_lead_name'] ?? '—'),
+        'team_lead_user_id' => isset($profileRow['team_lead_user_id']) ? (int)$profileRow['team_lead_user_id'] : null,
+        'team_lead_phone' => $teamLeadPhone,
         'assigned_date' => (string)($profileRow['deployment_start_date'] ?? '—'),
         'deployment_status' => !empty($profileRow['deployment_company']) ? 'Active' : 'Unassigned',
         'duty_days' => (string)($profileRow['duty_working_days'] ?? 'Mon-Fri'),

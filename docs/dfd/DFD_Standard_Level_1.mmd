@@ -1,0 +1,48 @@
+%% Consolidated standard DFD. Exact Gane & Sarson store symbols are in SVG.
+flowchart LR
+ E0["All six portal roles"] -->|"Credentials and account inputs"| P0("1.0 Manage Accounts")
+ P0 -->|"Session and account results"| E0
+ D1[["D1 Accounts and Security"]] -->|"Account identity and roles"| P0
+ P0 -->|"Account changes"| D1
+ E1["Applicant / HR / Team Lead"] -->|"Profile, application and review inputs"| P1("2.0 Manage Recruitment")
+ P1 -->|"Application and hiring results"| E1
+ D2[["D2 Recruitment Records"]] -->|"Applicant and job records"| P1
+ P1 -->|"Applications and decisions"| D2
+ E2["Admin / HR / Team Lead"] -->|"Job orders, sites and assignments"| P2("3.0 Manage Staffing and Deployment")
+ P2 -->|"Staffing and deployment results"| E2
+ D3[["D3 Staffing and Deployment Records"]] -->|"Clients, orders and sites"| P2
+ P2 -->|"Orders and deployments"| D3
+ E3["Employee / HR / Accounting / Admin"] -->|"Profile, resignation and clearance inputs"| P3("4.0 Manage Employee Records")
+ P3 -->|"Employee and final-pay results"| E3
+ D4[["D4 Employee Records"]] -->|"Employee and clearance records"| P3
+ P3 -->|"Profile and separation changes"| D4
+ E4["Employee / Team Lead / Accounting"] -->|"Clock evidence, schedules, OT and DTR inputs"| P4("5.0 Manage Work Time")
+ P4 -->|"Attendance, OT and DTR results"| E4
+ D5[["D5 Work Time Records"]] -->|"Schedules, attendance and DTR"| P4
+ P4 -->|"Schedules, clock and review records"| D5
+ E5["Accounting / Employee"] -->|"Payroll review, revision and status inputs"| P5("6.0 Process Payroll and Billing")
+ P5 -->|"Billing, payslip and payroll status"| E5
+ D6[["D6 Payroll and Billing Records"]] -->|"Runs, rates and billing snapshots"| P5
+ P5 -->|"Finalized payroll and status"| D6
+ E6["All six portal roles"] -->|"Authorized messages and read inputs"| P6("7.0 Manage Communications")
+ P6 -->|"Messages and notifications"| E6
+ D7[["D7 Communication Records"]] -->|"Messages and notifications"| P6
+ P6 -->|"Messages and read states"| D7
+ E7["Admin / HR / Accounting"] -->|"Report filters and export selection"| P7("8.0 Produce Reports")
+ P7 -->|"Audit, workforce and payroll summaries"| E7
+ D8[["D8 Audit and Reference Records"]] -->|"Audit and configuration records"| P7
+ D2 -->|"Approved hiring record"| P3
+ D3 -->|"Deployment and worksite"| P4
+ D5 -->|"Verified DTR, schedule and overtime"| P5
+ D4 -->|"Employee rates"| P5
+ D8 -->|"Deduction rules"| P5
+ D2 -->|"Report records"| P7
+ D3 -->|"Report records"| P7
+ D4 -->|"Report records"| P7
+ D5 -->|"Report records"| P7
+ D6 -->|"Report records"| P7
+ P0 -->|"Event notifications"| D7
+ P1 -->|"Event notifications"| D7
+ P2 -->|"Event notifications"| D7
+ P4 -->|"Event notifications"| D7
+ P5 -->|"Event notifications"| D7

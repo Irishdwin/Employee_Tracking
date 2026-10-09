@@ -1,0 +1,29 @@
+/* Shared Applicant Contracts workspace for Admin and HR. */
+body.embedded-mode { background:#f7f9fc; }
+body.embedded-mode .main-content { padding:16px; min-height:0; }
+.main-content > .card { border:1px solid #dce5f0; border-radius:16px; box-shadow:0 4px 18px rgba(22,47,80,.04); overflow:hidden; }
+.main-content > .card > .card-body { padding:20px; }
+.table { margin-bottom:0; vertical-align:middle; }
+.table th { background:#f3f7fc; color:#61758e; font-size:12px; padding:14px 16px; }
+.table td { padding:16px; border-color:#edf1f6; }
+#contractUploadModal .modal-dialog { max-width:560px; margin:12px auto; min-height:0; }
+#contractUploadModal .modal-content { max-height:calc(100dvh - 24px); border:0; border-radius:18px; box-shadow:0 20px 60px rgba(15,35,65,.2); overflow:hidden; }
+#contractUploadModal .modal-header { padding:18px 24px; background:#f4f8fd; border-color:#e1e9f3; }
+#contractUploadModal .modal-title { color:#15375a; font-size:19px; font-weight:700; }
+#contractUploadModal .modal-body { padding:22px 24px; }
+#contractUploadModal .form-label { font-weight:600; font-size:14px; }
+#contractUploadModal .form-control,#contractUploadModal .form-select { border-color:#d7e2ef; border-radius:9px; min-height:42px; }
+#contractUploadModal .modal-footer { padding:16px 24px; background:#f8fafd; border-color:#e1e9f3; }
+#contractUploadModal .modal-footer .btn { min-width:100px; border-radius:9px; }
+.contract-duration-note { padding:12px 14px; background:#edf4fc; color:#526c88; border-radius:9px; font-size:13px; line-height:1.5; margin-bottom:18px; }
+@media(max-width:600px) {
+ body.embedded-mode .main-content { padding:8px; }
+ .main-content > .card > .card-body { padding:14px; }
+ #contractUploadModal .modal-dialog { margin:12px; min-height:0; }
+ #contractUploadModal .modal-content { max-height:calc(100dvh - 24px); }
+ #contractUploadModal .modal-body,#contractUploadModal .modal-header,#contractUploadModal .modal-footer { padding:16px; }
+}
+
+html:has(body.contract-modal-overlay),body.contract-modal-overlay { background:transparent!important; }
+body.contract-modal-overlay > .layout-wrapper { background:transparent; }
+body.contract-modal-overlay .main-content { background:transparent!important; }

@@ -6,6 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     echo json_encode(['success'=>false]); exit;
 }
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__ . '/../Helpers/agency_landing_content.php';
 try {
     $result = $conn->query("SELECT SettingKey,SettingValue FROM systemsettings WHERE Category='agency_contact' AND SettingKey IN ('agency_contact_name','agency_contact_email','agency_contact_phone')");
     $contact = ['name'=>'','email'=>'','phone'=>''];
@@ -16,7 +17,7 @@ try {
         if ($value === 'talent@onazul.example' || $value === '+63 (000) 000-0000') $value = '';
         $contact[$field] = $value;
     }
-    echo json_encode(['success'=>true,'contact'=>$contact]);
+    echo json_encode(['success'=>true,'contact'=>$contact,'landing'=>agency_landing_read($conn)]);
 } catch (Throwable $e) {
     error_log('Public agency contact: '.$e->getMessage());
     http_response_code(500);

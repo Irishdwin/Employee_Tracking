@@ -292,7 +292,7 @@ function site_dtr_obligations(mysqli $conn,int $lead,?string $today=null): array
         if(!$min)continue;
         $period=payroll_type_period($site['PayrollType'],$min);
         while($period['start']<=$today){
-            $remind=(new DateTimeImmutable($period['payday']))->modify('-5 days')->format('Y-m-d');
+            $remind=(new DateTimeImmutable($period['end']))->modify('+1 day')->format('Y-m-d');
             if($remind<=$today && site_dtr_pending($conn,$lead,(int)$site['SiteID'],$period)){
                 $items[]=['site_id'=>(int)$site['SiteID'],'site_name'=>$site['Name'],'company_name'=>$site['CompanyName'],
                   'period'=>$period,'reminder_date'=>$remind];
@@ -315,7 +315,7 @@ function site_dtr_sync_notifications(mysqli $conn,int $lead): array {
             $conn->begin_transaction();
             try {
                 $module='dtr_cutoff:'.$p['start'];
-                $message=$item['company_name'].' — '.$item['site_name']."\nCutoff: ".$p['label']."\nPayroll release: ".$p['payday_display']."\nPlease review and submit this site's employee DTRs.";
+                $message=$item['company_name'].' — '.$item['site_name']."\nCutoff: ".$p['label']."\nPayroll release: ".$p['payday_display']."\nPlease submit this site's employee DTRs as soon as possible so Accounting can process payroll. Late submission is still allowed.";
                 if(!insert_system_notification($conn,$lead,'dtr_submission_reminder','DTR Submission Reminder',$message,$module,$item['site_id']))throw new RuntimeException('Reminder could not be saved.');
                 $id=(int)$conn->insert_id;
                 $st=$conn->prepare('UPDATE notifications SET DTRReminderKey=? WHERE NotificationID=?');$st->bind_param('si',$key,$id);$st->execute();$st->close();$conn->commit();

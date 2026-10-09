@@ -1,0 +1,10 @@
+#conversionModal .modal-dialog,
+#hireApplicantModal .modal-dialog { min-height: calc(100% - 2 * var(--bs-modal-margin)); }
+#conversionModal .modal-content,
+#hireApplicantModal .modal-content { max-height: calc(100dvh - 2 * var(--bs-modal-margin)); }
+#conversionModal .modal-body,
+#hireApplicantModal .modal-body { min-height: 0; overflow-y: auto; }
+#conversionModal .modal-header,
+#conversionModal .modal-footer,
+#hireApplicantModal .modal-header,
+#hireApplicantModal .modal-footer { flex-shrink: 0; }

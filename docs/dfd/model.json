@@ -1,0 +1,830 @@
+{
+  "entities": {
+    "A": "Admin",
+    "H": "HR",
+    "R": "Applicant",
+    "E": "Employee",
+    "T": "Team Lead / Site Supervisor",
+    "C": "Accounting Staff",
+    "G": "Google Identity Service",
+    "M": "Email Delivery Service",
+    "U": "Portal Users (Admin, HR, Applicant, Employee, Team Lead, Accounting)"
+  },
+  "processes": {
+    "P1": "1.0 Authenticate and Manage Accounts",
+    "P2": "2.0 Manage Recruitment and Hiring",
+    "P3": "3.0 Manage Job Orders",
+    "P4": "4.0 Manage Employee Records and Separation",
+    "P5": "5.0 Manage Clients, Sites and Deployments",
+    "P6": "6.0 Manage Team Schedules",
+    "P7": "7.0 Record Attendance and Submit DTR",
+    "P8": "8.0 Manage Overtime",
+    "P9": "9.0 Compute and Finalize Payroll",
+    "P10": "10.0 Manage Billing Revisions and Payroll Status",
+    "P11": "11.0 Deliver Notifications",
+    "P12": "12.0 Exchange Authorized Messages",
+    "P13": "13.0 Produce Reports and Audit Views",
+    "P14": "14.0 Review Attendance Add Back"
+  },
+  "stores": {
+    "D1": "Accounts and Security",
+    "D2": "Applicants and Applications",
+    "D3": "Employees and Separation",
+    "D4": "Clients and Agreements",
+    "D5": "Job Orders and Classifications",
+    "D6": "Sites and Deployments",
+    "D7": "Schedules and Holidays",
+    "D8": "Attendance and DTR",
+    "D9": "Overtime and Existing Leave",
+    "D10": "Payroll, Billing and Status History",
+    "D11": "Notifications",
+    "D12": "Messenger",
+    "D13": "Audit and Configuration",
+    "D14": "Add Back Requests and Evidence",
+    "D15": "Uploaded Documents and Evidence Files"
+  },
+  "external": [
+    [
+      "U",
+      "P1",
+      "Credentials, Google ID token, account profile and recovery inputs"
+    ],
+    [
+      "P1",
+      "U",
+      "Session, role access, profile and account recovery results"
+    ],
+    [
+      "A",
+      "P1",
+      "Account creation and activation changes"
+    ],
+    [
+      "P1",
+      "A",
+      "Account directory and management results"
+    ],
+    [
+      "P1",
+      "G",
+      "Google public signing-key request"
+    ],
+    [
+      "G",
+      "P1",
+      "Public signing keys"
+    ],
+    [
+      "P1",
+      "M",
+      "Verification and password recovery email payloads"
+    ],
+    [
+      "M",
+      "P1",
+      "Delivery result"
+    ],
+    [
+      "R",
+      "P2",
+      "Applicant profile, documents, application and contract files"
+    ],
+    [
+      "P2",
+      "R",
+      "Job listings, application status and document results"
+    ],
+    [
+      "H",
+      "P2",
+      "Review, interview, endorsement, contract and hiring inputs"
+    ],
+    [
+      "P2",
+      "H",
+      "Applicant dossiers and recruitment results"
+    ],
+    [
+      "T",
+      "P2",
+      "Endorsed applicant approval or rejection"
+    ],
+    [
+      "P2",
+      "T",
+      "Endorsed applicant dossiers"
+    ],
+    [
+      "T",
+      "P3",
+      "Multi-position job order request"
+    ],
+    [
+      "P3",
+      "T",
+      "Job order status and approved staffing requirements"
+    ],
+    [
+      "H",
+      "P3",
+      "Job order review and maintenance inputs"
+    ],
+    [
+      "P3",
+      "H",
+      "Job order requests and published job records"
+    ],
+    [
+      "A",
+      "P3",
+      "Job order review and classification changes"
+    ],
+    [
+      "P3",
+      "A",
+      "Job order and classification results"
+    ],
+    [
+      "E",
+      "P4",
+      "Employee profile, documents and resignation submission"
+    ],
+    [
+      "P4",
+      "E",
+      "Profile, documents and resignation status"
+    ],
+    [
+      "H",
+      "P4",
+      "Employee changes, clearance decisions and separation completion"
+    ],
+    [
+      "P4",
+      "H",
+      "Employee records and clearance results"
+    ],
+    [
+      "C",
+      "P4",
+      "Final-pay computation and quitclaim upload"
+    ],
+    [
+      "P4",
+      "C",
+      "Clearance-ready cases and final-pay results"
+    ],
+    [
+      "A",
+      "P4",
+      "Separation completion decision"
+    ],
+    [
+      "P4",
+      "A",
+      "Separation result"
+    ],
+    [
+      "A",
+      "P5",
+      "Client, service agreement, site and Team Lead assignments"
+    ],
+    [
+      "P5",
+      "A",
+      "Client, agreement, site and deployment records"
+    ],
+    [
+      "H",
+      "P5",
+      "Deployment assignment and end date"
+    ],
+    [
+      "P5",
+      "H",
+      "Employee, client and site assignment results"
+    ],
+    [
+      "T",
+      "P5",
+      "Worksite registration and company profile inputs"
+    ],
+    [
+      "P5",
+      "T",
+      "Assigned sites, geofence and deployed team records"
+    ],
+    [
+      "P5",
+      "E",
+      "Current worksite and deployment context"
+    ],
+    [
+      "T",
+      "P6",
+      "Site-scoped fixed or dated schedules"
+    ],
+    [
+      "P6",
+      "T",
+      "Team schedule and validation results"
+    ],
+    [
+      "P6",
+      "E",
+      "Work schedule and smart calendar"
+    ],
+    [
+      "E",
+      "P7",
+      "Clock action, GPS coordinates and attendance evidence"
+    ],
+    [
+      "P7",
+      "E",
+      "Validated clock result, attendance and timesheet"
+    ],
+    [
+      "T",
+      "P7",
+      "Site and cutoff DTR submission inputs"
+    ],
+    [
+      "P7",
+      "T",
+      "Attendance roster, cutoff review and DTR results"
+    ],
+    [
+      "T",
+      "P8",
+      "Overtime invitation and completion approval"
+    ],
+    [
+      "P8",
+      "T",
+      "Overtime roster, employee responses and status"
+    ],
+    [
+      "E",
+      "P8",
+      "Overtime acceptance, rejection and clock evidence"
+    ],
+    [
+      "P8",
+      "E",
+      "Overtime invitations and session results"
+    ],
+    [
+      "C",
+      "P9",
+      "DTR verification, payroll computation and billing-reviewed finalization"
+    ],
+    [
+      "P9",
+      "C",
+      "Verified DTR, computation preview and finalized payroll results"
+    ],
+    [
+      "E",
+      "P9",
+      "Payroll history or payslip selection"
+    ],
+    [
+      "P9",
+      "E",
+      "Finalized payroll history and payslip details"
+    ],
+    [
+      "C",
+      "P10",
+      "Billing export selection, revised workbook, confirmation, status and proof"
+    ],
+    [
+      "P10",
+      "C",
+      "Billing workbook, revision preview and payroll status timeline"
+    ],
+    [
+      "P10",
+      "E",
+      "Payroll status and authorized proof view"
+    ],
+    [
+      "U",
+      "P11",
+      "Notification query and read acknowledgment"
+    ],
+    [
+      "P11",
+      "U",
+      "Authorized event notifications and unread counts"
+    ],
+    [
+      "U",
+      "P12",
+      "Contact search, message content and read cursor"
+    ],
+    [
+      "P12",
+      "U",
+      "Permitted contacts, conversations and recipient messages"
+    ],
+    [
+      "A",
+      "P13",
+      "Report filters and audit export selection"
+    ],
+    [
+      "P13",
+      "A",
+      "Dashboard summaries, payroll billing reports and audit exports"
+    ],
+    [
+      "H",
+      "P13",
+      "HR dashboard filters"
+    ],
+    [
+      "P13",
+      "H",
+      "Recruitment and workforce summaries"
+    ],
+    [
+      "C",
+      "P13",
+      "Accounting dashboard filters"
+    ],
+    [
+      "P13",
+      "C",
+      "DTR and payroll summaries"
+    ],
+    [
+      "E",
+      "P14",
+      "Attendance add-back claim using recorded evidence"
+    ],
+    [
+      "P14",
+      "E",
+      "Add-back status and approved compensation"
+    ],
+    [
+      "C",
+      "P14",
+      "Add-back review decision"
+    ],
+    [
+      "P14",
+      "C",
+      "Evidence snapshot and server-calculated quote"
+    ],
+    [
+      "A",
+      "P14",
+      "Add-back review decision"
+    ],
+    [
+      "P14",
+      "A",
+      "Add-back evidence and review results"
+    ]
+  ],
+  "internal": [
+    [
+      "D1",
+      "P1",
+      "Account identity, role and password history"
+    ],
+    [
+      "P1",
+      "D1",
+      "Account and security changes"
+    ],
+    [
+      "D2",
+      "P2",
+      "Applicant dossiers and application history"
+    ],
+    [
+      "P2",
+      "D2",
+      "Profile, application, review and endorsement records"
+    ],
+    [
+      "D5",
+      "P2",
+      "Published positions and staffing availability"
+    ],
+    [
+      "P2",
+      "P4",
+      "Approved applicant, contract and hiring identity"
+    ],
+    [
+      "P2",
+      "P1",
+      "Applicant-to-Employee account elevation"
+    ],
+    [
+      "D5",
+      "P3",
+      "Job order requests and classifications"
+    ],
+    [
+      "P3",
+      "D5",
+      "Approved orders, position details and classification changes"
+    ],
+    [
+      "D4",
+      "P3",
+      "Client and agreement eligibility"
+    ],
+    [
+      "D3",
+      "P4",
+      "Employee, resignation and clearance records"
+    ],
+    [
+      "P4",
+      "D3",
+      "Employee, clearance, final-pay and resignation changes"
+    ],
+    [
+      "D10",
+      "P4",
+      "Salary, payroll and outstanding advance context"
+    ],
+    [
+      "P4",
+      "P5",
+      "Hired employee or separation deployment change"
+    ],
+    [
+      "D4",
+      "P5",
+      "Client and agreement records"
+    ],
+    [
+      "P5",
+      "D4",
+      "Client profiles and service agreements"
+    ],
+    [
+      "D6",
+      "P5",
+      "Sites, geofences and assignments"
+    ],
+    [
+      "P5",
+      "D6",
+      "Site, worksite and deployment changes"
+    ],
+    [
+      "D3",
+      "P5",
+      "Active employee records"
+    ],
+    [
+      "D6",
+      "P6",
+      "Assigned site, employee deployment and fixed shift"
+    ],
+    [
+      "P6",
+      "D6",
+      "Fixed deployment schedule"
+    ],
+    [
+      "D7",
+      "P6",
+      "Dated schedules and scoped holidays"
+    ],
+    [
+      "P6",
+      "D7",
+      "Team schedule entries"
+    ],
+    [
+      "D6",
+      "P7",
+      "Current deployment and worksite geofence"
+    ],
+    [
+      "D7",
+      "P7",
+      "Effective schedule and holiday classification"
+    ],
+    [
+      "D8",
+      "P7",
+      "Attendance evidence and cutoff records"
+    ],
+    [
+      "P7",
+      "D8",
+      "Attendance, daily time records and DTR submissions"
+    ],
+    [
+      "D9",
+      "P7",
+      "Existing approved leave and overtime context"
+    ],
+    [
+      "D6",
+      "P8",
+      "Authorized site and employee deployment"
+    ],
+    [
+      "D9",
+      "P8",
+      "Overtime invitations and sessions"
+    ],
+    [
+      "P8",
+      "D9",
+      "Responses, actual hours and approval decisions"
+    ],
+    [
+      "D8",
+      "P9",
+      "Submitted DTR and attendance"
+    ],
+    [
+      "P9",
+      "D8",
+      "DTR review decisions"
+    ],
+    [
+      "D3",
+      "P9",
+      "Employee salary configuration"
+    ],
+    [
+      "D7",
+      "P9",
+      "Effective shifts and holiday rules"
+    ],
+    [
+      "D9",
+      "P9",
+      "Approved overtime and existing leave"
+    ],
+    [
+      "D13",
+      "P9",
+      "Government deduction rate configuration"
+    ],
+    [
+      "D10",
+      "P9",
+      "Payroll runs, billing snapshots and adjustments"
+    ],
+    [
+      "P9",
+      "D10",
+      "Computed runs, finalized payroll and member snapshots"
+    ],
+    [
+      "P9",
+      "P10",
+      "Computed billing rows and finalized run membership"
+    ],
+    [
+      "D4",
+      "P10",
+      "Payroll type and service agreement billing terms"
+    ],
+    [
+      "D10",
+      "P10",
+      "Export baseline, finalized payroll and status history"
+    ],
+    [
+      "P10",
+      "D10",
+      "Billing exports, confirmed revisions, adjustments and status history"
+    ],
+    [
+      "D11",
+      "P11",
+      "Authorized notifications"
+    ],
+    [
+      "P11",
+      "D11",
+      "Read acknowledgments and reminder notifications"
+    ],
+    [
+      "D12",
+      "P12",
+      "Permitted threads and message history"
+    ],
+    [
+      "P12",
+      "D12",
+      "Messages, participants and read cursors"
+    ],
+    [
+      "D1",
+      "P12",
+      "Active identities and roles"
+    ],
+    [
+      "D6",
+      "P12",
+      "Recipient company and Team Lead scope"
+    ],
+    [
+      "D13",
+      "P13",
+      "System audit events and configuration"
+    ],
+    [
+      "D10",
+      "P13",
+      "Payroll and billing summaries"
+    ],
+    [
+      "D2",
+      "P13",
+      "Recruitment summary records"
+    ],
+    [
+      "D3",
+      "P13",
+      "Workforce summary records"
+    ],
+    [
+      "D8",
+      "P13",
+      "DTR submission summaries"
+    ],
+    [
+      "D14",
+      "P14",
+      "Claim and captured evidence snapshots"
+    ],
+    [
+      "P14",
+      "D14",
+      "Claim, decision and calculated compensation"
+    ],
+    [
+      "D8",
+      "P14",
+      "Recorded attendance evidence"
+    ],
+    [
+      "D7",
+      "P14",
+      "Work-date schedule"
+    ],
+    [
+      "D3",
+      "P14",
+      "Employee pay rates"
+    ],
+    [
+      "P14",
+      "D10",
+      "Approved compensation adjustment for eligible payroll"
+    ],
+    [
+      "D15",
+      "P2",
+      "Authorized document or evidence content"
+    ],
+    [
+      "P2",
+      "D15",
+      "Uploaded document, evidence or proof file"
+    ],
+    [
+      "D15",
+      "P4",
+      "Authorized document or evidence content"
+    ],
+    [
+      "P4",
+      "D15",
+      "Uploaded document, evidence or proof file"
+    ],
+    [
+      "D15",
+      "P7",
+      "Authorized document or evidence content"
+    ],
+    [
+      "P7",
+      "D15",
+      "Uploaded document, evidence or proof file"
+    ],
+    [
+      "D15",
+      "P8",
+      "Authorized document or evidence content"
+    ],
+    [
+      "P8",
+      "D15",
+      "Uploaded document, evidence or proof file"
+    ],
+    [
+      "D15",
+      "P10",
+      "Authorized document or evidence content"
+    ],
+    [
+      "P10",
+      "D15",
+      "Uploaded document, evidence or proof file"
+    ],
+    [
+      "P1",
+      "D11",
+      "Recorded authenticate and manage accounts notification"
+    ],
+    [
+      "P2",
+      "D11",
+      "Recorded manage recruitment and hiring notification"
+    ],
+    [
+      "P3",
+      "D11",
+      "Recorded manage job orders notification"
+    ],
+    [
+      "P5",
+      "D11",
+      "Recorded manage clients, sites and deployments notification"
+    ],
+    [
+      "P6",
+      "D11",
+      "Recorded manage team schedules notification"
+    ],
+    [
+      "P7",
+      "D11",
+      "Recorded record attendance and submit dtr notification"
+    ],
+    [
+      "P8",
+      "D11",
+      "Recorded manage overtime notification"
+    ],
+    [
+      "P9",
+      "D11",
+      "Recorded compute and finalize payroll notification"
+    ],
+    [
+      "P10",
+      "D11",
+      "Recorded manage billing revisions and payroll status notification"
+    ],
+    [
+      "P12",
+      "D11",
+      "Recorded exchange authorized messages notification"
+    ],
+    [
+      "P14",
+      "D11",
+      "Recorded review attendance add back notification"
+    ],
+    [
+      "P1",
+      "D13",
+      "Actor and business audit event"
+    ],
+    [
+      "P2",
+      "D13",
+      "Actor and business audit event"
+    ],
+    [
+      "P4",
+      "D13",
+      "Actor and business audit event"
+    ],
+    [
+      "P5",
+      "D13",
+      "Actor and business audit event"
+    ],
+    [
+      "P9",
+      "D13",
+      "Actor and business audit event"
+    ],
+    [
+      "P10",
+      "D13",
+      "Actor and business audit event"
+    ]
+  ]
+}

@@ -15,12 +15,20 @@ function payroll_status_notify(mysqli $db,array $employees,string $status,string
     }
     return count($recipients);
 }
+/** A payment status cannot substitute for actual payroll finalization. */
+function payroll_status_require_finalized(mysqli $db,array $members,string $start,string $end): void {
+    foreach($members as $member){
+        $p=payroll_query($db,"SELECT p.Payroll_ID FROM payroll p JOIN status s ON s.StatusID=p.StatusID WHERE p.EmployeeID=? AND p.DTR_SubmissionID=? AND p.PayPeriodStart=? AND p.PayPeriodEnd=? AND s.Name='Finalized' FOR UPDATE",'iiss',[(int)$member['EmployeeID'],(int)$member['DTR_SubmissionID'],$start,$end])->get_result()->fetch_all(MYSQLI_ASSOC);
+        if(count($p)!==1)throw new RuntimeException('Finalize every employee payroll before marking this group Payroll Released.',409);
+    }
+}
 function payroll_status_update_group(mysqli $db,int $lead,int $company,string $start,string $end,string $status,string $remarks,?string $proof,int $actor): array {
     if (!in_array($status,payroll_status_allowed_values(),true)) throw new InvalidArgumentException('Invalid payroll status.');
     $db->begin_transaction();
     try {
         $rows=payroll_query($db,'SELECT ds.DTR_SubmissionID,ds.EmployeeID FROM dtr_submissions ds JOIN deployment d ON d.DeploymentID=ds.DeploymentID AND d.EmployeeID=ds.EmployeeID WHERE ds.SiteSupervisorID=? AND d.CompanyID=? AND ds.CutoffStartDate=? AND ds.CutoffEndDate=? ORDER BY ds.DTR_SubmissionID FOR UPDATE','iiss',[$lead,$company,$start,$end])->get_result()->fetch_all(MYSQLI_ASSOC);
         if (!$rows) throw new RuntimeException('Payroll group not found.',404);
+        if($status==='Payroll Released')payroll_status_require_finalized($db,$rows,$start,$end);
         $current=payroll_status_get_current($db,$lead,$company,$start,$end);
         $unchanged=true;
         foreach($rows as $row) {

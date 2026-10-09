@@ -81,6 +81,7 @@ try {
         }
 
         testing_employee_context($conn,$body,(int)$found['EmployeeID'],$found['OvertimeDate']);
+        testing_assert_unlocked($conn,(int)$found['EmployeeID'],$found['OvertimeDate']);
         $del = $conn->prepare("DELETE FROM overtime WHERE OvertimeID = ?");
         $del->bind_param('i', $overtimeId);
         $del->execute();
@@ -112,6 +113,7 @@ try {
         exit();
     }
     $selectedDeployment=testing_employee_context($conn,$body,$employeeId,$date);
+    testing_assert_unlocked($conn,$employeeId,$date);
     $hours = tot_hours_between($date, $otStart, $otEnd);
     if ($hours === null) {
         http_response_code(400);
@@ -124,7 +126,7 @@ try {
         exit();
     }
 
-    $empCheck = $conn->prepare("SELECT EmployeeID FROM employee WHERE EmployeeID = ? AND IsActive = 1 LIMIT 1");
+    $empCheck = $conn->prepare("SELECT EmployeeID FROM employee WHERE EmployeeID = ? LIMIT 1");
     $empCheck->bind_param('i', $employeeId);
     $empCheck->execute();
     if (!$empCheck->get_result()->fetch_assoc()) {
@@ -199,6 +201,6 @@ try {
     ]);
 } catch (Throwable $e) {
     error_log('[Testing/Attendance] save_test_overtime: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Failed to save test overtime record.', 'error_details' => $e->getMessage()]);
+    http_response_code($e instanceof DomainException ? ($e->getCode()?:422) : 500);
+    echo json_encode(['success' => false, 'message' => $e instanceof DomainException ? $e->getMessage() : 'Failed to save test overtime record.', 'error_details' => $e->getMessage()]);
 }

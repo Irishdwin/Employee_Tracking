@@ -1,0 +1,41 @@
+/* Accounting workspace: shared spacing and hierarchy across every view. */
+html.accounting-ui #main-content-area{padding:28px;background:#f5f8fc;min-width:0}
+html.accounting-ui .view-panel{min-width:0;padding-bottom:24px}
+html.accounting-ui .view-panel>h1,html.accounting-ui .view-panel>h2{font-size:1.5rem;font-weight:700;line-height:1.35;color:#123459;margin-bottom:6px}
+html.accounting-ui .view-panel>p{font-size:.9rem;line-height:1.6;color:#647890;max-width:900px}
+html.accounting-ui .view-panel :is(.bg-white,details){border-color:#e1e8f1;border-radius:12px;box-shadow:0 3px 14px #102c5408}
+html.accounting-ui .view-panel table{margin:0;width:100%;font-size:.88rem}
+html.accounting-ui .view-panel th{background:#f1f6fb;color:#617793;font-size:.7rem;letter-spacing:.035em;line-height:1.5;padding:13px 16px;border:0;border-bottom:1px solid #dae5f0}
+html.accounting-ui .view-panel td{padding:14px 16px;border:0;border-bottom:1px solid #e8eef6;vertical-align:middle;line-height:1.55;color:#2b425e}
+html.accounting-ui .view-panel td[colspan]{padding:30px 18px;color:#75879c}
+html.accounting-ui .view-panel :is(button,.btn){border-radius:8px;font-size:.84rem;font-weight:600;line-height:1.45}
+html.accounting-ui .view-panel :is(.form-control,.form-select){border-color:#dbe4ef;min-height:40px;border-radius:8px;font-size:.88rem}
+html.accounting-ui .view-panel :is(.form-control,.form-select):focus{border-color:#739bcf;box-shadow:0 0 0 3px #1d64bc1a}
+html.accounting-ui .view-panel label{font-size:.76rem;color:#596f8b;letter-spacing:.025em}
+html.accounting-ui .view-panel>.overflow-hidden:has(>table){overflow-x:auto}
+html.accounting-ui .view-panel .overflow-x-auto{overscroll-behavior-x:contain}
+html.accounting-ui #btn-generate-payroll-run{background:#0867b4;box-shadow:none;padding:11px 18px}
+html.accounting-ui #btn-generate-payroll-run:hover{background:#054e8b}
+html.accounting-ui .view-panel .border-b{border-color:#e3ebf5}
+html.accounting-ui .view-panel>.mt-6.flex[role=tablist]{flex-wrap:wrap}
+html.accounting-ui :is(#dtr-modal,#submitted-dtr-modal,#logout-modal,#payroll-status-update-modal){background:rgba(12,30,54,.32)}
+html.accounting-ui :is(#dtr-modal,#submitted-dtr-modal,#logout-modal,#payroll-status-update-modal)>div{border-radius:16px;border:1px solid #dfe7f1;max-height:calc(100dvh - 32px);overflow-y:auto}
+html.accounting-ui .modal-content{border:1px solid #dfe7f1;border-radius:14px;box-shadow:0 18px 55px #102c5426}
+html.accounting-ui .modal-header{padding:18px 22px;background:#f7faff;border-bottom:1px solid #e3ebf5}
+html.accounting-ui .modal-title{color:#15365e;font-weight:650;font-size:1.15rem}
+html.accounting-ui .modal-footer{background:#fbfcfe;border-top:1px solid #e3ebf5;padding:14px 22px}
+html.accounting-ui .modal-backdrop{background:#102c54}
+html.accounting-ui .main-content{background:#f5f8fc;min-width:0}
+html.accounting-ui .main-content .card{border:1px solid #e1e8f1;border-radius:12px;overflow-x:auto}
+@media(max-width:767px){
+ html.accounting-ui #main-content-area{padding:18px 14px}
+ html.accounting-ui .view-panel>h1,html.accounting-ui .view-panel>h2{font-size:1.3rem}
+ html.accounting-ui .view-panel table td[colspan]{text-align:left}
+ html.accounting-ui #acTypeASection .grid.grid-cols-3,html.accounting-ui #acTypeBSection .grid.grid-cols-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+ html.accounting-ui .view-panel>div.flex{flex-wrap:wrap}
+ html.accounting-ui .modal-dialog{margin:12px}
+}
+@media(max-width:767px){
+ html.accounting-ui .view-panel table td[colspan]{text-align:left!important}
+ html.accounting-ui .view-panel table td[colspan]>span{display:block;max-width:calc(100vw - 70px);white-space:normal}
+}

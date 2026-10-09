@@ -1,0 +1,34 @@
+%% Gane & Sarson notation. DOT/SVG is the exact open-ended-store version.
+flowchart LR
+  classDef entity fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef process fill:#f4faf5,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef store fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  linkStyle default stroke:#43835b;
+  A["Admin"]:::entity
+  H["HR"]:::entity
+  R["Applicant"]:::entity
+  E["Employee"]:::entity
+  T["Team Lead / Site Supervisor"]:::entity
+  C["Accounting Staff"]:::entity
+  G["Google Identity Service"]:::entity
+  M["Email Delivery Service"]:::entity
+  U["Portal Users (Admin, HR, Applicant, Employee, Team Lead, Accounting)"]:::entity
+  S("ONAZUL HRIS"):::process
+  U -->|"Credentials, Google token, account/recovery inputs; notification and message inputs"| S
+  S -->|"Session and account results; notifications; permitted conversations and contacts"| U
+  A -->|"Account, job order, client/site, separation and add-back decisions; report selections"| S
+  S -->|"Management results; client/site records; reports and review evidence"| A
+  S -->|"Google public signing-key request"| G
+  G -->|"Public signing keys"| S
+  S -->|"Verification and recovery email payloads"| M
+  M -->|"Delivery result"| S
+  R -->|"Applicant profile, applications and document/contract files"| S
+  S -->|"Job listings, application status and document results"| R
+  H -->|"Recruitment, job order, employee, clearance and deployment inputs; report filters"| S
+  S -->|"Applicant, job order, employee, clearance and deployment records; HR summaries"| H
+  T -->|"Endorsement decisions, staffing requests, site profile, schedules, DTR and overtime inputs"| S
+  S -->|"Applicant dossiers, job order status, assigned sites/teams, schedule, DTR and overtime results"| T
+  E -->|"Profile, resignation, GPS clock evidence, overtime responses and add-back claims"| S
+  S -->|"Profile, deployment, schedule, attendance, overtime, payslip, payroll and claim status"| E
+  C -->|"Final-pay, DTR review, payroll, billing revision, status/proof and add-back inputs"| S
+  S -->|"Final-pay, verified DTR, payroll/billing results, status history, claim evidence and summaries"| C

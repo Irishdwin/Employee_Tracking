@@ -18,7 +18,8 @@ function hireApplicantFromApplication(
     string $philhealthNumber,
     string $pagibigNumber,
     float $dailyRate = 0,
-    float $allowance = 0
+    float $allowance = 0,
+    $sundayDutyAllowance = '0'
 ): array {
     if ($applicationId <= 0) {
         return ['success' => false, 'message' => 'Invalid application ID'];
@@ -33,6 +34,7 @@ function hireApplicantFromApplication(
         return ['success' => false, 'message' => (string)($salaryConfig['message'] ?? 'Invalid salary configuration.')];
     }
 
+    try {$sundayDutyAllowance=employee_sunday_allowance_input($sundayDutyAllowance);} catch (InvalidArgumentException $e) {return ['success'=>false,'message'=>$e->getMessage()];}
     employee_salary_ensure_schema($conn);
 
     $checkStmt = $conn->prepare("
@@ -163,6 +165,9 @@ function hireApplicantFromApplication(
         }
         $employeeId = (int)$insertEmployee->insert_id;
         $insertEmployee->close();
+        $sundayStmt=$conn->prepare('UPDATE employee SET sunday_duty_allowance=? WHERE EmployeeID=?');$sundayStmt->bind_param('si',$sundayDutyAllowance,$employeeId);$sundayStmt->execute();$sundayStmt->close();
+        $gender=$application['Gender'] ?? null;
+        $sexStmt=$conn->prepare('UPDATE employee SET gender=? WHERE EmployeeID=?');$sexStmt->bind_param('si',$gender,$employeeId);$sexStmt->execute();$sexStmt->close();
 
         $roleStmt = $conn->prepare("SELECT RolesID FROM roles WHERE RoleName = 'Employee' LIMIT 1");
         $roleStmt->execute();

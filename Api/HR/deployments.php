@@ -17,6 +17,8 @@ if (!in_array($_SESSION['role'], $allowedRoles)) {
 }
 
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__ . '/../Helpers/application_endorsement.php';
+try { ae_authorize($conn,(int)$_SESSION['user_id'],['Admin','HR']); } catch (DomainException $e) { http_response_code(403); header('Content-Type: application/json'); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
 require_once __DIR__ . '/../Helpers/AuditLogger.php';
 require_once __DIR__ . '/../Helpers/work_site_geofence.php';
 
@@ -56,7 +58,10 @@ if ($method === 'GET') {
     }
 
     $sql = "SELECT d.DeploymentID, d.EmployeeID, d.CompanyID, d.Position, d.StartDate, d.EndDate, d.Location, d.SiteSuperVisorID, d.TimeIn, d.TimeOut, d.BreakDuration, d.GracePeriod, d.WorkingDays, d.ShiftName, c.Name AS CompanyName, CONCAT(e.FirstName, ' ', e.LastName) AS EmployeeName, e.EmployeeNumber, u.FullName AS TeamLeadName FROM deployment d INNER JOIN employee e ON d.EmployeeID = e.EmployeeID INNER JOIN clientcompany c ON d.CompanyID = c.CompanyID LEFT JOIN users u ON d.SiteSuperVisorID = u.UsersID ORDER BY d.StartDate DESC";
-    $result = $conn->query($sql);
+    require_once __DIR__ . '/../Helpers/list_query_page.php';
+    $sql = str_replace('d.DeploymentID,', "d.DeploymentID, CASE WHEN d.EndDate IS NULL OR d.EndDate >= CURDATE() THEN 'Active' ELSE 'Ended' END AS DeploymentState,", $sql);
+    [$sql,$types,$values,$pagination]=list_query_page($conn,$sql,['DeploymentID','EmployeeName','EmployeeNumber','CompanyName','Location','Position','TeamLeadName','EmployeeID'],['company'=>'CompanyName','site'=>'Location','team_lead'=>'TeamLeadName','state'=>'DeploymentState']);
+    $stmt=$conn->prepare($sql); if($types!=='')$stmt->bind_param($types,...$values); $stmt->execute(); $result=$stmt->get_result();
     $deployments = [];
     if ($result) {
         while ($row = $result->fetch_assoc()) {
@@ -82,7 +87,7 @@ if ($method === 'GET') {
             ];
         }
     }
-    json_resp(['success' => true, 'deployments' => $deployments]);
+    json_resp(['success' => true, 'deployments' => $deployments, 'pagination'=>$pagination]);
 }
 
 if ($method === 'POST') {

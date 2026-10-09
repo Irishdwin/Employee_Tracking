@@ -1,0 +1,197 @@
+[
+  {
+    "source": "U",
+    "target": "S",
+    "contextLabel": "Credentials, Google token, account/recovery inputs; notification and message inputs",
+    "level1BoundaryLabels": [
+      "Credentials, Google ID token, account profile and recovery inputs",
+      "Notification query and read acknowledgment",
+      "Contact search, message content and read cursor"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "U",
+    "contextLabel": "Session and account results; notifications; permitted conversations and contacts",
+    "level1BoundaryLabels": [
+      "Session, role access, profile and account recovery results",
+      "Authorized event notifications and unread counts",
+      "Permitted contacts, conversations and recipient messages"
+    ]
+  },
+  {
+    "source": "A",
+    "target": "S",
+    "contextLabel": "Account, job order, client/site, separation and add-back decisions; report selections",
+    "level1BoundaryLabels": [
+      "Account creation and activation changes",
+      "Job order review and classification changes",
+      "Separation completion decision",
+      "Client, service agreement, site and Team Lead assignments",
+      "Report filters and audit export selection",
+      "Add-back review decision"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "A",
+    "contextLabel": "Management results; client/site records; reports and review evidence",
+    "level1BoundaryLabels": [
+      "Account directory and management results",
+      "Job order and classification results",
+      "Separation result",
+      "Client, agreement, site and deployment records",
+      "Dashboard summaries, payroll billing reports and audit exports",
+      "Add-back evidence and review results"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "G",
+    "contextLabel": "Google public signing-key request",
+    "level1BoundaryLabels": [
+      "Google public signing-key request"
+    ]
+  },
+  {
+    "source": "G",
+    "target": "S",
+    "contextLabel": "Public signing keys",
+    "level1BoundaryLabels": [
+      "Public signing keys"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "M",
+    "contextLabel": "Verification and recovery email payloads",
+    "level1BoundaryLabels": [
+      "Verification and password recovery email payloads"
+    ]
+  },
+  {
+    "source": "M",
+    "target": "S",
+    "contextLabel": "Delivery result",
+    "level1BoundaryLabels": [
+      "Delivery result"
+    ]
+  },
+  {
+    "source": "R",
+    "target": "S",
+    "contextLabel": "Applicant profile, applications and document/contract files",
+    "level1BoundaryLabels": [
+      "Applicant profile, documents, application and contract files"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "R",
+    "contextLabel": "Job listings, application status and document results",
+    "level1BoundaryLabels": [
+      "Job listings, application status and document results"
+    ]
+  },
+  {
+    "source": "H",
+    "target": "S",
+    "contextLabel": "Recruitment, job order, employee, clearance and deployment inputs; report filters",
+    "level1BoundaryLabels": [
+      "Review, interview, endorsement, contract and hiring inputs",
+      "Job order review and maintenance inputs",
+      "Employee changes, clearance decisions and separation completion",
+      "Deployment assignment and end date",
+      "HR dashboard filters"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "H",
+    "contextLabel": "Applicant, job order, employee, clearance and deployment records; HR summaries",
+    "level1BoundaryLabels": [
+      "Applicant dossiers and recruitment results",
+      "Job order requests and published job records",
+      "Employee records and clearance results",
+      "Employee, client and site assignment results",
+      "Recruitment and workforce summaries"
+    ]
+  },
+  {
+    "source": "T",
+    "target": "S",
+    "contextLabel": "Endorsement decisions, staffing requests, site profile, schedules, DTR and overtime inputs",
+    "level1BoundaryLabels": [
+      "Endorsed applicant approval or rejection",
+      "Multi-position job order request",
+      "Worksite registration and company profile inputs",
+      "Site-scoped fixed or dated schedules",
+      "Site and cutoff DTR submission inputs",
+      "Overtime invitation and completion approval"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "T",
+    "contextLabel": "Applicant dossiers, job order status, assigned sites/teams, schedule, DTR and overtime results",
+    "level1BoundaryLabels": [
+      "Endorsed applicant dossiers",
+      "Job order status and approved staffing requirements",
+      "Assigned sites, geofence and deployed team records",
+      "Team schedule and validation results",
+      "Attendance roster, cutoff review and DTR results",
+      "Overtime roster, employee responses and status"
+    ]
+  },
+  {
+    "source": "E",
+    "target": "S",
+    "contextLabel": "Profile, resignation, GPS clock evidence, overtime responses and add-back claims",
+    "level1BoundaryLabels": [
+      "Employee profile, documents and resignation submission",
+      "Clock action, GPS coordinates and attendance evidence",
+      "Overtime acceptance, rejection and clock evidence",
+      "Payroll history or payslip selection",
+      "Attendance add-back claim using recorded evidence"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "E",
+    "contextLabel": "Profile, deployment, schedule, attendance, overtime, payslip, payroll and claim status",
+    "level1BoundaryLabels": [
+      "Profile, documents and resignation status",
+      "Current worksite and deployment context",
+      "Work schedule and smart calendar",
+      "Validated clock result, attendance and timesheet",
+      "Overtime invitations and session results",
+      "Finalized payroll history and payslip details",
+      "Payroll status and authorized proof view",
+      "Add-back status and approved compensation"
+    ]
+  },
+  {
+    "source": "C",
+    "target": "S",
+    "contextLabel": "Final-pay, DTR review, payroll, billing revision, status/proof and add-back inputs",
+    "level1BoundaryLabels": [
+      "Final-pay computation and quitclaim upload",
+      "DTR verification, payroll computation and billing-reviewed finalization",
+      "Billing export selection, revised workbook, confirmation, status and proof",
+      "Accounting dashboard filters",
+      "Add-back review decision"
+    ]
+  },
+  {
+    "source": "S",
+    "target": "C",
+    "contextLabel": "Final-pay, verified DTR, payroll/billing results, status history, claim evidence and summaries",
+    "level1BoundaryLabels": [
+      "Clearance-ready cases and final-pay results",
+      "Verified DTR, computation preview and finalized payroll results",
+      "Billing workbook, revision preview and payroll status timeline",
+      "DTR and payroll summaries",
+      "Evidence snapshot and server-calculated quote"
+    ]
+  }
+]

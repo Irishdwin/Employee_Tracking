@@ -24,8 +24,8 @@ $raw = file_get_contents('php://input');
 $input = is_string($raw) && $raw !== '' ? (json_decode($raw, true) ?: []) : [];
 $email = isset($input['email']) ? trim((string)$input['email']) : trim((string)($_POST['email'] ?? ''));
 
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    reg_code_json(false, 'A valid email address is required.');
+if ($email === '' || (!filter_var($email, FILTER_VALIDATE_EMAIL) || !preg_match('/^[a-z0-9][a-z0-9._%+\-]*@gmail\.com$/i',$email))) {
+    reg_code_json(false, 'A valid Gmail address is required.');
 }
 
 try {

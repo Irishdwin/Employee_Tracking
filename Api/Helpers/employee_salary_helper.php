@@ -30,6 +30,7 @@ function employee_salary_ensure_schema(mysqli $conn): void
         'daily_rate' => 'DECIMAL(10,2) NULL DEFAULT NULL AFTER BasicSalary',
         'hourly_rate' => 'DECIMAL(10,2) NULL DEFAULT NULL AFTER daily_rate',
         'allowance' => 'DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER hourly_rate',
+        'sunday_duty_allowance' => 'DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER allowance',
         'monthly_salary_credit' => 'DECIMAL(10,2) NULL DEFAULT NULL AFTER allowance',
     ];
 
@@ -86,4 +87,12 @@ function employee_salary_config_from_input($dailyRateRaw, $allowanceRaw): array
         'monthly_salary_credit' => $monthlySalaryCredit,
         'basic_salary' => $monthlySalaryCredit,
     ];
+}
+
+/** Normalize money as decimal text so repeated per-duty addition uses integer cents. */
+function employee_sunday_allowance_input($value): string {
+    if (!is_string($value) && !is_int($value) && !is_float($value)) throw new InvalidArgumentException('Invalid Sunday duty allowance.');
+    $value=trim((string)$value);
+    if (!preg_match('/\A(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,2})?\z/D',$value)) throw new InvalidArgumentException('Sunday duty allowance must be non-negative, at most 99,999,999.99, with up to two decimal places.');
+    $parts=explode('.',$value);return $parts[0].'.'.str_pad($parts[1]??'',2,'0');
 }

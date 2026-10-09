@@ -50,6 +50,8 @@
     <script src="../../Js/Shared/role_guard.js"></script>
     <script src="../../Js/Shared/hydrate_user_profile.js"></script>
 <script src="../../Js/Shared/client_review_reason.js"></script>
+<link rel="stylesheet" href="../../Css/app_dialog.css">
+<script src="../../Js/Shared/app_dialog.js"></script>
 </head>
 <body>
 <div class="layout-wrapper">
@@ -152,7 +154,7 @@
             if (!el) return;
             el.addEventListener('click', function (e) {
                 e.preventDefault();
-                alert('This feature is not available yet.');
+                AppDialog.alert('This feature is not available yet.');
             });
         }
         bindComingSoon('menuSystemSettings');
@@ -233,14 +235,14 @@
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                alert('Decision saved.');
+                AppDialog.alert(decision === 'Rejected' ? 'The endorsed applicant has been rejected successfully.' : 'Decision saved.', decision === 'Rejected' ? 'Applicant rejected successfully' : 'Decision saved');
                 loadEndorsed();
                 if (window.TeamLeadSidebarBadges) TeamLeadSidebarBadges.poll('../../Api/Common/realtime_counters.php');
             } else {
-                alert(data.message || 'Failed to save decision.');
+                AppDialog.alert(data.message || 'Failed to save decision.');
             }
         })
-        .catch(() => alert('Network error while saving decision.'));
+        .catch(() => AppDialog.alert('Network error while saving decision.'));
     }
 
     function escapeHtml(text) {

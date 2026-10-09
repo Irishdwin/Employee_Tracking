@@ -13,7 +13,7 @@
     siteId: null, deploymentId: null, cascadeVersion: 0,
     teamLeadId: null,
     employeeId: null,
-    rateReady: false, rateRequest: 0,
+    rateReady: false, rateRequest: 0, contextReady: false, contextRequest: 0,
     dailyRate: 0,
     hourlyRate: 0,
     breakMinutes: 60,
@@ -45,7 +45,7 @@
   }
 
   function loadCompanies() {
-    fetchJson(API + 'get_companies.php')
+    fetchJson(API + 'get_companies.php?history=1')
       .then(function (res) {
         var sel = $('selCompany');
         if (!res || !res.success) {
@@ -63,7 +63,7 @@
   function loadSites(companyId) {
     var version = state.cascadeVersion, sel = $('selSite');
     sel.disabled = true; sel.innerHTML = '<option value="">Loading…</option>';
-    fetchJson(API + 'get_sites.php?company_id=' + encodeURIComponent(companyId)).then(function(res) {
+    fetchJson(API + 'get_sites.php?history=1&company_id=' + encodeURIComponent(companyId)).then(function(res) {
       if (version !== state.cascadeVersion) return;
       if (!res.success) throw new Error(res.message);
       sel.innerHTML = '<option value="">' + (res.sites.length ? 'Select a site…' : 'No active deployment sites') + '</option>' + res.sites.map(function(x){return '<option value="'+x.site_id+'">'+esc(x.name)+'</option>';}).join('');
@@ -77,7 +77,7 @@
     sel.innerHTML = '<option value="">Loading…</option>';
     resetEmployeeAndBelow();
 
-    fetchJson(API + 'get_teamleads.php?company_id=' + encodeURIComponent(companyId))
+    fetchJson(API + 'get_teamleads.php?history=1&company_id=' + encodeURIComponent(companyId))
       .then(function (res) {
         if (version !== state.cascadeVersion) return;
         if (!res || !res.success) {
@@ -104,7 +104,7 @@
     sel.innerHTML = '<option value="">Loading…</option>';
     resetRecordCards();
 
-    fetchJson(API + 'get_employees.php?company_id=' + encodeURIComponent(companyId) + '&team_lead_id=' + encodeURIComponent(teamLeadId))
+    fetchJson(API + 'get_employees.php?company_id=' + encodeURIComponent(companyId) + '&team_lead_id=' + encodeURIComponent(teamLeadId) + '&history=1')
       .then(function (res) {
         if (version !== state.cascadeVersion) return;
         if (!res || !res.success) {
@@ -126,10 +126,10 @@
   }
 
   function loadEmployeeContext(employeeId) {
-    var version = state.cascadeVersion;
-    fetchJson(API + 'get_employee_attendance_list.php?employee_id=' + encodeURIComponent(employeeId))
+    var version = state.cascadeVersion, selectedDate=$('inpDate').value;
+    fetchJson(API + 'get_employee_attendance_list.php?employee_id=' + encodeURIComponent(employeeId) + '&date=' + encodeURIComponent($('inpDate').value))
       .then(function (res) {
-        if (version !== state.cascadeVersion || employeeId !== state.employeeId || !res || !res.success) return;
+        if (version !== state.cascadeVersion || selectedDate!==$('inpDate').value || employeeId !== state.employeeId || !res || !res.success) return;
 
         var scheduleEl = $('scheduleInfo');
         var s = res.schedule;
@@ -157,6 +157,33 @@
       .catch(function () {});
   }
 
+  function refreshDatedContext() {
+    if(!state.employeeId)return;
+    if(!$('inpDate').value){var n=new Date();$('inpDate').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+    var employee=state.employeeId,date=$('inpDate').value,version=state.cascadeVersion,request=++state.contextRequest;
+    state.contextReady=false;state.rateReady=false;state.rateRequest++;$('btnRunEmployeeScenario').disabled=true;$('btnSaveRecord').disabled=true;
+    $('cardAddRecord').style.display='';$('cardHoliday').style.display='';
+    function current(){return employee===state.employeeId && date===$('inpDate').value && version===state.cascadeVersion && request===state.contextRequest;}
+    function option(id,value,label){var el=$(id),existing=Array.from(el.options).find(function(o){return o.value===String(value);});if(!existing)el.add(new Option(label,value));el.value=String(value);el.disabled=false;}
+    fetchJson(API+'get_employee_payroll_context.php?resolve=1&employee_id='+encodeURIComponent(employee)+'&date='+encodeURIComponent(date)).then(function(res){
+      if(!current())return;
+      if(!res.success)throw new Error(res.message);
+      var c=res.context;state.companyId=c.company_id;state.siteId=c.site_id;state.teamLeadId=c.team_lead_id;state.deploymentId=c.deployment_id;
+      return Promise.all([fetchJson(API+'get_sites.php?history=1&company_id='+c.company_id),fetchJson(API+'get_teamleads.php?history=1'),fetchJson(API+'get_employees.php?history=1')]).then(function(lists){
+        if(!current())return;
+        lists.forEach(function(x){if(!x.success)throw new Error(x.message||'Could not refresh dated selections.');});
+        $('selSite').innerHTML=lists[0].sites.map(function(x){return '<option value="'+x.site_id+'">'+esc(x.name)+'</option>';}).join('');
+        $('selTeamLead').innerHTML=lists[1].team_leads.map(function(x){return '<option value="'+x.team_lead_id+'">'+esc(x.name)+'</option>';}).join('');
+        $('selEmployee').innerHTML=lists[2].employees.map(function(x){return '<option data-deployment-id="'+x.deployment_id+'" value="'+x.employee_id+'">'+esc(x.name)+' ('+esc(x.employee_number)+')</option>';}).join('');
+        option('selCompany',c.company_id,c.company);option('selSite',c.site_id,c.site);option('selTeamLead',c.team_lead_id,c.team_lead_name||('Team Lead '+c.team_lead_id));option('selEmployee',employee,res.employee.name+' ('+res.employee.number+')');
+        $('selEmployee').selectedOptions[0].setAttribute('data-deployment-id',c.deployment_id);
+        state.contextReady=true;$('btnSaveRecord').disabled=!!res.locked;
+        if($('saveResult').classList.contains('alert-danger'))$('saveResult').classList.add('d-none');if(res.locked)showAlert($('saveResult'),res.lock_message,true);
+        loadEmployeeContext(employee);loadEmployeeRate();
+      });
+    }).catch(function(err){if(!current())return;state.contextReady=false;state.rateReady=false;showAlert($('saveResult'),err.message||'Could not resolve the selected date.',true);showAlert($('holidayInfo'),err.message||'Could not resolve the selected date.',true);$('employeeRateDetails').textContent='No eligible deployment or cutoff for this date.';$('scheduleInfo').textContent='No eligible schedule for this date.';$('recordsTableBody').innerHTML='';});
+  }
+
   function loadEmployeeRate() {
     var now=new Date(), today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
     if(!$('inpDate').value)$('inpDate').value=today;
@@ -164,14 +191,14 @@
     state.rateReady=false; state.dailyRate=0;state.hourlyRate=0;
     $('employeeRateCard').classList.remove('d-none');$('employeeRateDetails').textContent='Loading authoritative employee payroll rate…';$('btnRunEmployeeScenario').disabled=true;
     fetchJson(API+'get_employee_payroll_context.php?employee_id='+encodeURIComponent(employee)+'&date='+encodeURIComponent(date)).then(function(res){
-      if(request!==state.rateRequest||version!==state.cascadeVersion||employee!==state.employeeId)return;
+      if(request!==state.rateRequest||version!==state.cascadeVersion||employee!==state.employeeId||date!==$('inpDate').value)return;
       if(!res.success)throw new Error(res.message || 'Could not resolve payroll context.');
       var r=res.rates,c=res.context,e=res.employee;
       $('employeeRateDetails').innerHTML='<p class="mb-1"><strong>'+esc(e.name)+'</strong> ('+esc(e.number)+') · '+esc(e.position)+'</p><p class="mb-1">Client: '+esc(c.company)+' · Site: '+esc(c.site)+' · Deployment '+esc(c.deployment_id)+' · Payroll Type '+esc(c.payroll_type)+'</p>'+
         '<p class="mb-1"><strong>Daily Rate: '+controlledMoney(r.daily_rate)+'</strong> · <strong>Hourly Rate: ₱'+Number(r.hourly_rate).toFixed(4)+'</strong></p><p class="small mb-1">Daily source: '+esc(r.daily_rate_source)+'<br>Hourly source: '+esc(r.hourly_rate_source)+'<br>Date: '+esc(res.date)+' · Cutoff: '+esc(res.period.start)+' to '+esc(res.period.end)+'<br>Accounting reads current employee salary fields; salary_rates effective dates are not applied by the current payroll path.</p>';
       if(!r.valid)throw new Error(res.message);
       state.dailyRate=r.daily_rate;state.hourlyRate=r.hourly_rate;state.rateReady=true;$('btnRunEmployeeScenario').disabled=false;
-    }).catch(function(err){if(request!==state.rateRequest||version!==state.cascadeVersion)return;$('employeeRateDetails').textContent=err.message;});
+    }).catch(function(err){if(request!==state.rateRequest||version!==state.cascadeVersion||date!==$('inpDate').value)return;$('employeeRateDetails').textContent=err.message;});
   }
   function runEmployeeScenario() {
     var scenarioMap={custom:'A',t1:'A',t4:'B',t5:'C',t8:'D',t9:'E',t6:'F',t10:'G',t13:'H'};
@@ -190,6 +217,15 @@
 
   // ---------- 4. Holiday Details ----------
 
+  function loadRegisteredHolidays() {
+    fetchJson(API+'get_holiday_for_date.php?list=registered').then(function(res){
+      var select=$('selRegisteredHoliday');select.replaceChildren(new Option('Select an Admin-registered holiday',''));
+      if(!res.success)throw new Error(res.message);
+      (res.holidays||[]).forEach(function(h){select.add(new Option(h.date+' — '+h.name+' ('+h.type+')',h.date));});
+      $('registeredHolidayMessage').textContent=(res.holidays||[]).length+' holidays read from the Admin holiday calendar. Employee scope is checked below.';
+    }).catch(function(e){$('registeredHolidayMessage').textContent=e.message||'Unable to load registered holidays.';});
+  }
+
   function lookupHoliday() {
     var date = $('inpDate').value;
     var holidayEl = $('holidayInfo');
@@ -203,23 +239,34 @@
       state.currentHolidayType = null;
       return;
     }
+    var employee=state.employeeId, version=state.cascadeVersion;
     fetchJson(API + 'get_holiday_for_date.php?employee_id=' + encodeURIComponent(state.employeeId) + '&date=' + encodeURIComponent(date))
       .then(function (res) {
+        if(employee!==state.employeeId || version!==state.cascadeVersion || date!==$('inpDate').value)return;
         if (!res || !res.success) {
           holidayEl.textContent = (res && res.message) || 'Failed to look up holiday information.';
           holidayEl.className = 'alert alert-danger small mb-2';
           state.currentHolidayType = null;
           return;
         }
+        if(res.schedule){
+          var lateInput=$('inpLateMinutes');
+          if($('selScenario').value==='late' && lateInput.value==='')lateInput.value=String(Number(res.schedule.grace_period||0)+15);
+          if(lateInput.value!=='' && /^\d+$/.test(lateInput.value) && Number(lateInput.value)<=1439){
+            var parts=String(res.schedule.time_in||'').split(':');
+            var mins=Number(parts[0])*60+Number(parts[1])+Number(lateInput.value);
+            if(parts.length>=2 && mins<1440){$('inpTimeIn').value=String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');if($('selScenario').value==='late')$('inpTimeOut').value=String(res.schedule.time_out).slice(0,5);updateOtAvailability();}
+          }
+        }
         if (res.holiday) {
           holidayEl.innerHTML = '<strong>' + esc(res.holiday.name || 'Holiday') + '</strong> — ' +
-            esc(res.holiday.type) +
+            esc(res.holiday.type) + ((res.holidays||[]).length>1?' &middot; Also registered: '+res.holidays.slice(1).map(function(h){return esc(h.name);}).join(', '):'') +
             (res.holiday.region ? ' &middot; Region: ' + esc(res.holiday.region) : (res.holiday.is_nationwide ? ' &middot; Nationwide' : '')) +
             (res.holiday.pay_multiplier ? ' &middot; Pay Multiplier on file: ' + esc(res.holiday.pay_multiplier) + 'x' : '');
           holidayEl.className = 'alert alert-warning small mb-2';
           state.currentHolidayType = res.holiday.type || null;
         } else {
-          holidayEl.textContent = 'Normal Workday — no holiday on file for this date.';
+          holidayEl.textContent = 'No registered holiday applies to this employee on this date.';
           holidayEl.className = 'alert alert-secondary small mb-2';
           state.currentHolidayType = null;
         }
@@ -403,6 +450,7 @@
 
   var SCENARIOS = {
     custom: null,
+    late: {timeIn:'',timeOut:'',ot:null,hint:'Set Late minutes to adjust Time In from the selected date’s actual scheduled start. The preset defaults to 15 minutes beyond grace; you can change it. Late status and deductions use the production attendance/payroll logic.'},
     t1: { timeIn: '08:00', timeOut: '17:00', ot: null, hint: 'Normal workday, no holiday needed — just pick any scheduled workday.' },
     t2: { timeIn: '08:00', timeOut: '17:00', ot: ['17:00', '19:00'], hint: 'Normal workday — pick any scheduled workday. 2 OT hours pre-filled below.' },
     t3: { timeIn: '', timeOut: '', ot: null, hint: 'Pick a Date that is a Regular/Legal Holiday in the Holidays table, and leave Time In/Out blank (Did Not Work).' },
@@ -426,6 +474,7 @@
     if (!cfg) { warn.classList.add('d-none'); return; }
 
     warn.classList.toggle('d-none', !cfg.unsupported);
+    if(key!=='late')$('inpLateMinutes').value='';
     $('inpTimeIn').value = cfg.timeIn;
     $('inpTimeOut').value = cfg.timeOut;
     if (cfg.ot) {
@@ -437,6 +486,7 @@
     }
     previewOtHours();
     updateOtAvailability();
+    if(key==='late')lookupHoliday();
     var otResult = $('otResult');
     if (cfg.hint) {
       otResult.textContent = cfg.hint;
@@ -469,11 +519,13 @@
 
     tbody.querySelectorAll('.btn-edit-record').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        $('inpLateMinutes').value='';$('selScenario').value='custom';
         $('inpDate').value = btn.getAttribute('data-date');
         $('inpTimeIn').value = btn.getAttribute('data-time-in');
         $('inpTimeOut').value = btn.getAttribute('data-time-out');
         $('btnSaveRecord').setAttribute('data-editing-id', btn.getAttribute('data-id'));
         $('btnSaveRecord').textContent = 'Update Record';
+        refreshDatedContext();
         window.scrollTo({ top: $('cardAddRecord').offsetTop - 20, behavior: 'smooth' });
       });
     });
@@ -531,6 +583,7 @@
     $('inpTimeIn').value = '';
     $('inpTimeOut').value = '';
     $('inpRemarks').value = '';
+    $('inpLateMinutes').value = '';
     $('btnSaveRecord').removeAttribute('data-editing-id');
     $('btnSaveRecord').textContent = 'Save Record';
   }
@@ -586,7 +639,7 @@
 
   function bindEvents() {
     $('btnRunEmployeeScenario').addEventListener('click',runEmployeeScenario);
-    $('inpDate').addEventListener('change',function(){if(state.employeeId){$('employeeScenarioResult').textContent='';loadEmployeeRate();}});
+    $('inpDate').addEventListener('change',function(){if(state.employeeId){$('employeeScenarioResult').textContent='';refreshDatedContext();}});
     $('btnRunHolidaySuite').addEventListener('click', runControlledHolidaySuite);
     $('selCompany').addEventListener('change', function () {
       state.cascadeVersion++; state.companyId=this.value || null; state.siteId=null; state.teamLeadId=null; state.deploymentId=null;
@@ -616,15 +669,16 @@
       $('employeeScenarioResult').textContent='';
       state.cascadeVersion++; state.employeeId = this.value || null;
       state.deploymentId = this.selectedOptions[0] ? this.selectedOptions[0].getAttribute('data-deployment-id') : null;
-      resetSaveForm();
+      var selectedDate=$('inpDate').value;resetSaveForm();$('inpDate').value=selectedDate;
       if (state.employeeId) {
-        loadEmployeeContext(state.employeeId);loadEmployeeRate();
+        refreshDatedContext();
       } else {
         resetRecordCards();
       }
     });
 
     $('btnSaveRecord').addEventListener('click', function () {
+      if(!state.contextReady){showAlert($('saveResult'),'Wait for a valid deployment context for the selected date.',true);return;}
       var editingId = this.getAttribute('data-editing-id');
       var date = $('inpDate').value;
       var timeIn = $('inpTimeIn').value;
@@ -632,7 +686,9 @@
       var remarks = $('inpRemarks').value;
       var resultEl = $('saveResult');
 
-      if (!date || !timeIn) {
+      var lateMinutes=$('inpLateMinutes').value;
+      if(lateMinutes!==''&&!$('inpLateMinutes').reportValidity())return;
+      if (!date || (!timeIn && lateMinutes==='')) {
         showAlert(resultEl, 'Date and Time In are required.', true);
         return;
       }
@@ -641,6 +697,7 @@
         ? { action: 'update', attendance_id: editingId, date: date, time_in: timeIn, time_out: timeOut, remarks: remarks }
         : { action: 'create', employee_id: state.employeeId, date: date, time_in: timeIn, time_out: timeOut, remarks: remarks };
 
+      if(lateMinutes!=='')body.late_minutes=lateMinutes;
       fetchJson(API + 'save_attendance.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -653,21 +710,22 @@
         showAlert(resultEl, res.message + ' Computed status: ' + res.computed_status +
           (res.minutes_late ? (' (' + res.minutes_late + ' min late)') : '') +
           (res.undertime_minutes ? (', ' + res.undertime_minutes + ' min undertime') : ''), false);
-        resetSaveForm();
-        loadEmployeeContext(state.employeeId);
+        var savedDate=$('inpDate').value;resetSaveForm();$('inpDate').value=savedDate;
+        refreshDatedContext();
       }).catch(function () {
         showAlert(resultEl, 'Network error while saving.', true);
       });
     });
 
-    $('inpDate').addEventListener('change', function () {
-      lookupHoliday();
-      updateOtAvailability();
-    });
-    $('inpTimeIn').addEventListener('change', updateOtAvailability);
+
+    $('inpLateMinutes').addEventListener('input',function(){if(this.value!==''&&this.validity.valid)lookupHoliday();});
+    $('inpTimeIn').addEventListener('change',function(){$('inpLateMinutes').value='';$('selScenario').value='custom';updateOtAvailability();});
     $('inpTimeOut').addEventListener('change', updateOtAvailability);
     $('inpOtStart').addEventListener('input', previewOtHours);
     $('inpOtEnd').addEventListener('input', previewOtHours);
+    $('selRegisteredHoliday').addEventListener('change',function(){if(this.value){$('inpDate').value=this.value;$('inpDate').dispatchEvent(new Event('change'));}});
+    $('btnRefreshHolidays').addEventListener('click',loadRegisteredHolidays);
+    loadRegisteredHolidays();
     $('selScenario').addEventListener('change', applyScenario);
     $('btnRunVerify').addEventListener('click', runVerification);
 

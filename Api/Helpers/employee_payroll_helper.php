@@ -10,6 +10,7 @@ require_once __DIR__ . '/employee_salary_helper.php';
 require_once __DIR__ . '/dtr_qr_logic.php';
 require_once __DIR__ . '/holidays_helper.php';
 require_once __DIR__ . '/team_schedule_helper.php';
+require_once __DIR__ . '/dtr_holiday_review.php';
 
 /**
  * Resolves the active deployment schedule for an employee on a given date.
@@ -17,13 +18,15 @@ require_once __DIR__ . '/team_schedule_helper.php';
  */
 function payroll_resolve_deployment_schedule(mysqli $conn, int $employeeId, string $dateIso): array
 {
+    $hireDate = payroll_employee_hired_date($conn, $employeeId);
     $defaultSchedule = [
         'time_in' => '08:00:00',
         'time_out' => '17:00:00',
         'break_duration' => 60,
         'grace_period' => 5,
         'working_days' => 'Mon-Fri',
-        'shift_name' => 'Regular Shift'
+        'shift_name' => 'Regular Shift',
+        'hired_date' => $hireDate
     ];
 
     $stmt = $conn->prepare(
@@ -47,7 +50,14 @@ function payroll_resolve_deployment_schedule(mysqli $conn, int $employeeId, stri
         return $defaultSchedule;
     }
 
-    return team_schedule_resolve($conn, $row, $dateIso);
+    return team_schedule_resolve($conn, $row, $dateIso) + ['hired_date' => $hireDate];
+}
+
+/** Recorded employment date is authoritative; missing legacy dates are not guessed. */
+function payroll_employee_hired_date(mysqli $conn, int $employeeId): ?string {
+    $stmt=$conn->prepare('SELECT HiredDate FROM employee WHERE EmployeeID=?');
+    $stmt->bind_param('i',$employeeId);$stmt->execute();$date=$stmt->get_result()->fetch_assoc()['HiredDate']??null;$stmt->close();
+    return $date && $date!=='0000-00-00' ? substr($date,0,10) : null;
 }
 
 /**
@@ -234,6 +244,9 @@ function payroll_timesheet_day_status(
     array $schedule,
     string $todayIso
 ): array {
+    if (!empty($schedule['hired_date']) && $isoDate < $schedule['hired_date']) {
+        return ['status'=>'Not Yet Hired','total_hours'=>null,'raw_hours'=>null,'break_minutes'=>0,'undertime_minutes'=>null,'late_minutes'=>0,'is_late'=>false];
+    }
     $scheduledWeekdays = payroll_scheduled_weekdays($schedule['working_days']);
     $isScheduled = payroll_is_scheduled_day($isoDate, $scheduledWeekdays);
     $isPast = $isoDate < $todayIso;
@@ -477,6 +490,9 @@ function payroll_fetch_approved_overtime(mysqli $conn, int $employeeId, string $
         $approvedBreakdown[] = ['overtime_id'=>(int)$row['OvertimeID'], 'deployment_id'=>(int)$row['DeploymentID'], 'date'=>$row['OvertimeDate'], 'hours'=>$h, 'holiday_type'=>$holidayRates[$row['OvertimeDate']]['type']??null];
         if (isset($holidayRates[$row['OvertimeDate']])) {
             $holiday = $holidayRates[$row['OvertimeDate']];
+            if ($h > 0 && ($holiday['ot_multiplier'] ?? null) === null) {
+                throw new InvalidArgumentException('Holiday overtime on '.$row['OvertimeDate'].' requires Accounting review: the client has not confirmed the rest-day or double-holiday overtime rate.');
+            }
             $holidayAmount = round($h * $hourlyRate * $holiday['ot_multiplier'], 2);
             $holidayHours += $h; $holidayPay += $holidayAmount;
             $holidayBreakdown[] = ['date'=>$row['OvertimeDate'],'holiday_id'=>$holiday['id'],'name'=>$holiday['name'],'type'=>$holiday['type'],'hours'=>$h,'pay_multiplier'=>$holiday['pay_multiplier'],'pay'=>$holidayAmount,'source'=>'approved_overtime'];
@@ -509,23 +525,27 @@ function payroll_fetch_approved_overtime(mysqli $conn, int $employeeId, string $
  * distinguishing paid vs unpaid leave -- `leaves.AffectsPayroll` and
  * `leaves.LeaveType` are never read anywhere else in the project (verified
  * by scanning the whole codebase), so there is no existing precedent to
- * safely interpret them against. This treats ANY Approved leave as
- * qualifying, matching how the only two existing consumers of the `leaves`
- * table (Api/TeamLead/get_employee_attendance_logs.php,
- * get_tl_attendance_roster.php) already treat "Approved" as the only
- * distinction that matters. This should be confirmed with HR/payroll if a
- * stricter paid/unpaid split is actually required -- reported as a gap in
- * the implementation report rather than silently guessed.
+ * safely interpret them against. Approved leave without attendance therefore
+ * requires authorized review of paid status rather than automatic entitlement.
  */
 function payroll_holiday_no_work_eligible(mysqli $conn, PDO $pdo, int $employeeId, string $holidayIso, array $schedule): bool
 {
+    $context=dtr_holiday_context($conn,$pdo,$employeeId,$holidayIso);
+    $hireDate=$context['schedule']['hired_date']??null;
+    if($hireDate && ($holidayIso<$hireDate || ($context['preceding_workday'] && $context['preceding_workday']<$hireDate)))return false;
+    $decision=dtr_holiday_decision($pdo,$context);
+    if($decision){
+        if($decision['outcome']==='eligible')return true;
+        if($decision['outcome']==='ineligible')return false;
+        throw new InvalidArgumentException('Unworked holiday on '.$holidayIso.' requires Accounting review: the recorded decision remains unresolved.');
+    }
     $cursor = new DateTime($holidayIso);
     $precedingWorkday = null;
     for ($i = 0; $i < 14; $i++) {
         $cursor->modify('-1 day');
         $candidate = $cursor->format('Y-m-d');
         $candidateSchedule = payroll_resolve_deployment_schedule($conn, $employeeId, $candidate);
-        $candidateHolidays = holidays_fetch_for_range($conn, $candidate, $candidate)[$candidate] ?? [];
+        $candidateHolidays = holidays_fetch_for_range($conn, $candidate, $candidate, $employeeId, $candidateSchedule['deployment_id'] ?? null)[$candidate] ?? [];
         $nonWorkingHoliday = false;
         foreach ($candidateHolidays as $holiday) {
             if (in_array($holiday['type'], ['Regular Holiday', 'Special Non-working Day'], true)) {
@@ -539,13 +559,13 @@ function payroll_holiday_no_work_eligible(mysqli $conn, PDO $pdo, int $employeeI
         }
     }
     if ($precedingWorkday === null) {
-        return false;
+        throw new InvalidArgumentException('Unworked holiday on '.$holidayIso.' requires Accounting review: no preceding scheduled working day could be established.');
     }
 
-    $stmt = $pdo->prepare('SELECT time_in FROM daily_time_records WHERE employee_id = ? AND date = ? LIMIT 1');
+    $stmt = $pdo->prepare('SELECT time_in, time_out, status FROM daily_time_records WHERE employee_id = ? AND date = ? LIMIT 1');
     $stmt->execute([$employeeId, $precedingWorkday]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($row && !empty($row['time_in'])) {
+    if ($row && !empty($row['time_in']) && !empty($row['time_out']) && !in_array(strtolower((string)$row['status']), ['absent','rejected','on leave','leave'], true)) {
         return true;
     }
 
@@ -562,6 +582,14 @@ function payroll_holiday_no_work_eligible(mysqli $conn, PDO $pdo, int $employeeI
     $leaveStmt->execute();
     $has = $leaveStmt->get_result()->num_rows > 0;
     $leaveStmt->close();
+    if ($has) {
+        // Approved is not proof of paid leave. AffectsPayroll has no established
+        // paid/unpaid meaning in this project; do not silently grant entitlement.
+        throw new InvalidArgumentException('Unworked holiday on '.$holidayIso.' requires Accounting review: confirm whether approved leave on '.$precedingWorkday.' was paid.');
+    }
+    if (!$row || (!empty($row['time_in']) && empty($row['time_out']))) {
+        throw new InvalidArgumentException('Unworked holiday on '.$holidayIso.' requires Accounting review: verify attendance on the preceding scheduled workday '.$precedingWorkday.'.');
+    }
     return $has;
 }
 
@@ -583,6 +611,10 @@ function payroll_compute_period(
 ): array {
     employee_salary_ensure_schema($conn);
 
+    $hireDate=payroll_employee_hired_date($conn,$employeeId);
+    if($hireDate && $hireDate>$periodEnd)throw new InvalidArgumentException('The employee was not yet hired during this payroll cutoff.');
+    $payableStart=$hireDate ? max($periodStart,$hireDate) : $periodStart;
+
     $todayIso = date('Y-m-d');
 
     $stmt = $pdo->prepare(
@@ -603,6 +635,11 @@ function payroll_compute_period(
         }
     }
 
+    $sundayRateStmt=$conn->prepare('SELECT sunday_duty_allowance FROM employee WHERE EmployeeID=?');
+    $sundayRateStmt->bind_param('i',$employeeId);$sundayRateStmt->execute();
+    $sundayRate=(string)($sundayRateStmt->get_result()->fetch_assoc()['sunday_duty_allowance']??'0.00');$sundayRateStmt->close();
+    $sundayRateCents=(int)str_replace('.','',number_format((float)$sundayRate,2,'.',''));
+    $sundayDutyDates=[];
     $daysWorked = 0;
     $sundayOtHours = 0.0;
     $regularOtHours = 0.0;
@@ -629,13 +666,22 @@ function payroll_compute_period(
     $endDt = new DateTime($periodEnd);
     while ($cursor <= $endDt) {
         $iso = $cursor->format('Y-m-d');
+        if($iso<$payableStart){$cursor->modify('+1 day');continue;}
         $dtr = $dtrByDate[$iso] ?? null;
 
         // Dynamically resolve deployment schedule for each day
         $schedule = payroll_resolve_deployment_schedule($conn, $employeeId, $iso);
 
         $dateHolidays = $holidayDetail[$iso] ?? [];
+        foreach ($dateHolidays as $recordedHoliday) {
+            if (!in_array($recordedHoliday['type'] ?? '', ['Regular Holiday','Special Non-working Day','Special Working Day','Local/Company Holiday'], true)) {
+                throw new InvalidArgumentException('Holiday classification on '.$iso.' requires Accounting review.');
+            }
+        }
         $regularHolidaysToday = array_values(array_filter($dateHolidays, static fn($h) => $h['type'] === 'Regular Holiday'));
+        if (count($dateHolidays) > 1 && !(count($dateHolidays) === 2 && count($regularHolidaysToday) === 2)) {
+            throw new InvalidArgumentException('Holiday classification on '.$iso.' requires review: only two coinciding regular holidays have a confirmed client rule.');
+        }
         $isDoubleHoliday = count($regularHolidaysToday) >= 2;
         $holInfo = $isDoubleHoliday ? $regularHolidaysToday[0] : ($dateHolidays[0] ?? null);
         $isRestDayToday = !payroll_is_scheduled_day($iso, payroll_scheduled_weekdays($schedule['working_days']));
@@ -643,7 +689,7 @@ function payroll_compute_period(
         if ($isDoubleHoliday) $holidayMultiplier = 3.0;
         elseif ($isRestDayToday && ($holInfo['type'] ?? '') === 'Regular Holiday') $holidayMultiplier = 2.6;
         elseif ($isRestDayToday && ($holInfo['type'] ?? '') === 'Special Non-working Day') $holidayMultiplier = 1.5;
-        if ($holInfo) $holidayRates[$iso] = array_merge($holInfo, ['pay_multiplier'=>$holidayMultiplier,'ot_multiplier'=>$holidayMultiplier * ($holInfo['type']==='Special Working Day' ? 1.25 : 1.30)]);
+        if ($holInfo) $holidayRates[$iso] = array_merge($holInfo, ['pay_multiplier'=>$holidayMultiplier,'ot_multiplier'=>($isDoubleHoliday || ($isRestDayToday && in_array($holInfo['type'], ['Regular Holiday','Special Non-working Day'], true))) ? null : $holidayMultiplier * ($holInfo['type']==='Special Working Day' ? 1.25 : 1.30)]);
 
         $dayMeta = payroll_timesheet_day_status($dtr, $iso, $schedule, $todayIso);
         // A worked holiday on a scheduled rest day still has ordinary duty pay.
@@ -652,6 +698,18 @@ function payroll_compute_period(
             $holidayDutySchedule = $schedule;
             $holidayDutySchedule['working_days'] = 'Mon,Tue,Wed,Thu,Fri,Sat,Sun';
             $dayMeta = payroll_timesheet_day_status($dtr, $iso, $holidayDutySchedule, $todayIso);
+        }
+
+        // Completed Sunday duty reuses the existing DTR hours without changing rest-day premiums.
+        if ($cursor->format('w') === '0' && !empty($schedule['deployment_id'])
+            && ($deploymentId===null || (int)$schedule['deployment_id']===$deploymentId) && $dtr && !empty($dtr['time_in']) && !empty($dtr['time_out'])
+            && !in_array(strtolower((string)($dtr['status']??'')),['absent','on leave','leave','rejected'],true)) {
+            $sundayMeta=$dayMeta;
+            if ($isRestDayToday) {
+                $dutySchedule=$schedule;$dutySchedule['working_days']='Mon,Tue,Wed,Thu,Fri,Sat,Sun';
+                $sundayMeta=payroll_timesheet_day_status($dtr,$iso,$dutySchedule,$todayIso);
+            }
+            if ((float)($sundayMeta['total_hours']??0)>0 && strtotime($dtr['time_out'])<=time()) $sundayDutyDates[$iso]=true;
         }
 
         if ($dayMeta['status'] === 'Present') {
@@ -708,9 +766,20 @@ function payroll_compute_period(
                 $isRegularHoliday = ($holInfo['type'] === 'Regular Holiday');
                 $isSpecialNonWorking = ($holInfo['type'] === 'Special Non-working Day');
             }
-            $workedHolidayToday = $dtr && !empty($dtr['time_in']);
+            $workedHolidayToday = $dtr && !empty($dtr['time_in']) && !empty($dtr['time_out'])
+                && (float)($dayMeta['total_hours'] ?? 0) > 0
+                && in_array($dayMeta['status'], ['Present','Late','Undertime'], true);
+            if ($dtr && !empty($dtr['time_in']) && empty($dtr['time_out'])) {
+                throw new InvalidArgumentException('Holiday attendance on '.$iso.' requires review: complete and verify the clock-out before computing payroll.');
+            }
+            if ($workedHolidayToday && substr((string)$dtr['time_out'], 0, 10) !== $iso) {
+                throw new InvalidArgumentException('Overnight holiday attendance on '.$iso.' requires Accounting review of hours across calendar dates before computing payroll.');
+            }
 
             if ($workedHolidayToday) {
+                if ($isDoubleHoliday && $isRestDayToday) {
+                    throw new InvalidArgumentException('Double holiday work on a scheduled rest day on '.$iso.' requires confirmation of the client pay rule.');
+                }
                 $holidayDays++;
 
                 if ($isDoubleHoliday) {
@@ -758,7 +827,7 @@ function payroll_compute_period(
                     'is_double_holiday' => $isDoubleHoliday,
                     'holiday_ids' => $isDoubleHoliday ? $doubleHolidayIds : [$holInfo['id']],
                 ];
-            } elseif ($isRegularHoliday) {
+            } elseif ($isRegularHoliday && $iso <= $todayIso) {
                 // No work rendered on a Regular Holiday (including a Double
                 // Holiday, which is still two Regular Holidays): PH law
                 // still guarantees pay -- 100% normally, 200% for a Double
@@ -807,6 +876,7 @@ function payroll_compute_period(
     // own PayMultiplier (was: round($holidayDays * $dailyRate, 2) — an
     // implicit hardcoded "+1x day" that assumed every holiday is double pay).
     $allowanceHalf = round($monthlyAllowance / 2, 2);
+    $sundayAllowance = count($sundayDutyDates) * $sundayRateCents / 100;
     $silAccrual = round($dailyRate * 5 / 24, 2);
 
     $totalLateUndertimeMinutes = $totalLateMinutes + $totalUndertimeMinutes;
@@ -816,7 +886,7 @@ function payroll_compute_period(
     // Team-Lead-recorded, Accounting-approved overtime (separate OT sessions —
     // NOT the same-day >8h / Sunday auto-derivation above, which stays as-is
     // for backward compatibility with existing attendance-only OT).
-    $approvedOt = payroll_fetch_approved_overtime($conn, $employeeId, $periodStart, $periodEnd, $hourlyRate, $holidayRates, $deploymentId);
+    $approvedOt = payroll_fetch_approved_overtime($conn, $employeeId, $payableStart, $periodEnd, $hourlyRate, $holidayRates, $deploymentId);
     $holidayOtHours += (float)($approvedOt['holiday_hours'] ?? 0);
     $holidayOtPay = round($holidayOtPay + (float)($approvedOt['holiday_pay'] ?? 0), 2);
     $holidayOtBreakdown = array_merge($holidayOtBreakdown, $approvedOt['holiday_breakdown'] ?? []);
@@ -827,7 +897,7 @@ function payroll_compute_period(
         $addBack = add_back_payroll_total($pdo, $employeeId, $deploymentId, $periodStart, $periodEnd);
     }
     $grossPay = round(
-        $basicPay + $sundayOtPay + $regularOtPay + $approvedOt['pay'] + $holidayPay + $holidayOtPay + $allowanceHalf - $lateUndertimeDeduction + $addBack,
+        $basicPay + $sundayOtPay + $regularOtPay + $approvedOt['pay'] + $holidayPay + $holidayOtPay + $allowanceHalf + $sundayAllowance - $lateUndertimeDeduction + $addBack,
         2
     );
 
@@ -881,6 +951,9 @@ function payroll_compute_period(
             'holiday_ot_pay' => $holidayOtPay,
             'sil_accrual' => $silAccrual,
             'allowance' => $allowanceHalf,
+            'sunday_allowance' => $sundayAllowance,
+            'sunday_duty_dates' => array_keys($sundayDutyDates),
+            'sunday_allowance_rate' => (float)$sundayRate,
         ],
         'holiday_id' => $holidayIdForPeriod,
         'holiday_breakdown' => $holidayBreakdown,

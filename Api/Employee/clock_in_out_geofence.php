@@ -51,6 +51,32 @@ try {
     $distanceMeters=$validation['distance_meters'];
     $allowedRadius=$site['geofence_radius'];
 
+    require_once __DIR__.'/../Helpers/overtime_workflow.php';
+    $serverNow = date('Y-m-d H:i:s');
+    otw_auto_close($conn,$serverNow,(int)$site['employee_id']);
+    $conn->begin_transaction();
+    otw_lock_employee($conn,(int)$site['employee_id']);
+    $context=otw_punch_context($conn,(int)$site['employee_id'],(int)$site['deployment_id'],$action,$serverNow);
+    if (!$context[$action==='clock_in'?'can_in':'can_out']) throw new DomainException($context['message']??'This clock action is not available for your current attendance state.',409);
+    if ($context['kind']==='overtime') {
+        otw_check_csrf($input);
+        $photo = saveBase64Selfie($selfieBase64,$userId,'overtime_'.$action);
+        if (!$photo) throw new DomainException('Could not save the live selfie.');
+        try {
+            otw_clock($conn,$userId,$context['id'],$action,$site,$serverNow,$photo,
+                ['latitude'=>$userLat,'longitude'=>$userLng,'accuracy'=>$accuracy,'distance_meters'=>$distanceMeters],true);
+            $conn->commit();
+        } catch (Throwable $e) {
+            $conn->rollback();
+            $privatePhoto=__DIR__.'/../../'.$photo;
+            if (is_file($privatePhoto)) unlink($privatePhoto);
+            throw $e;
+        }
+        echo json_encode(['success'=>true,'message'=>'Overtime '.($action==='clock_in'?'time-in':'time-out').' recorded.','attendance_context'=>'overtime']);
+        exit;
+    }
+    $conn->commit();
+
     $deviceInfo = parseUserAgentDetails($_SERVER['HTTP_USER_AGENT'] ?? '');
     $todayDate = date('Y-m-d');
     $serverNow = date('Y-m-d H:i:s');
@@ -266,10 +292,10 @@ try {
 
 } catch (DomainException $e) {
     $conn->rollback();
-    http_response_code(409);
+    http_response_code(in_array($e->getCode(),[400,403,409,422],true)?$e->getCode():409);
     echo json_encode(['success'=>false,'message'=>$e->getMessage()]);
 } catch (Throwable $e) {
     $conn->rollback();
     error_log('clock_in_out_geofence exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-    echo json_encode(['success' => false, 'message' => 'Server exception: ' . $e->getMessage()]);
+    http_response_code(500); echo json_encode(['success' => false, 'message' => 'Could not record attendance. Please retry.']);
 }

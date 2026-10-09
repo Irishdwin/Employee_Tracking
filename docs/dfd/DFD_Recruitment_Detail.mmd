@@ -1,0 +1,96 @@
+%% Gane & Sarson notation. DOT/SVG is the exact open-ended-store version.
+flowchart LR
+  classDef entity fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef process fill:#f4faf5,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef store fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  linkStyle default stroke:#43835b;
+  U["Portal Users (Admin, HR, Applicant, Employee, Team Lead, Accounting)"]:::entity
+  P1("1.0 Authenticate and Manage Accounts"):::process
+  A["Admin"]:::entity
+  G["Google Identity Service"]:::entity
+  M["Email Delivery Service"]:::entity
+  R["Applicant"]:::entity
+  P2("2.0 Manage Recruitment and Hiring"):::process
+  H["HR"]:::entity
+  T["Team Lead / Site Supervisor"]:::entity
+  P3("3.0 Manage Job Orders"):::process
+  E["Employee"]:::entity
+  P4("4.0 Manage Employee Records and Separation"):::process
+  C["Accounting Staff"]:::entity
+  P5("5.0 Manage Clients, Sites and Deployments"):::process
+  D1[["D1 - Accounts and Security"]]:::store
+  D2[["D2 - Applicants and Applications"]]:::store
+  D5[["D5 - Job Orders and Classifications"]]:::store
+  D4[["D4 - Clients and Agreements"]]:::store
+  D3[["D3 - Employees and Separation"]]:::store
+  D10[["D10 - Payroll, Billing and Status History"]]:::store
+  D6[["D6 - Sites and Deployments"]]:::store
+  D15[["D15 - Uploaded Documents and Evidence Files"]]:::store
+  D11[["D11 - Notifications"]]:::store
+  D13[["D13 - Audit and Configuration"]]:::store
+  U -->|"Credentials, Google ID token, account profile and recovery inputs"| P1
+  P1 -->|"Session, role access, profile and account recovery results"| U
+  A -->|"Account creation and activation changes"| P1
+  P1 -->|"Account directory and management results"| A
+  P1 -->|"Google public signing-key request"| G
+  G -->|"Public signing keys"| P1
+  P1 -->|"Verification and password recovery email payloads"| M
+  M -->|"Delivery result"| P1
+  R -->|"Applicant profile, documents, application and contract files"| P2
+  P2 -->|"Job listings, application status and document results"| R
+  H -->|"Review, interview, endorsement, contract and hiring inputs"| P2
+  P2 -->|"Applicant dossiers and recruitment results"| H
+  T -->|"Endorsed applicant approval or rejection"| P2
+  P2 -->|"Endorsed applicant dossiers"| T
+  T -->|"Multi-position job order request"| P3
+  P3 -->|"Job order status and approved staffing requirements"| T
+  H -->|"Job order review and maintenance inputs"| P3
+  P3 -->|"Job order requests and published job records"| H
+  A -->|"Job order review and classification changes"| P3
+  P3 -->|"Job order and classification results"| A
+  E -->|"Employee profile, documents and resignation submission"| P4
+  P4 -->|"Profile, documents and resignation status"| E
+  H -->|"Employee changes, clearance decisions and separation completion"| P4
+  P4 -->|"Employee records and clearance results"| H
+  C -->|"Final-pay computation and quitclaim upload"| P4
+  P4 -->|"Clearance-ready cases and final-pay results"| C
+  A -->|"Separation completion decision"| P4
+  P4 -->|"Separation result"| A
+  A -->|"Client, service agreement, site and Team Lead assignments"| P5
+  P5 -->|"Client, agreement, site and deployment records"| A
+  H -->|"Deployment assignment and end date"| P5
+  P5 -->|"Employee, client and site assignment results"| H
+  T -->|"Worksite registration and company profile inputs"| P5
+  P5 -->|"Assigned sites, geofence and deployed team records"| T
+  P5 -->|"Current worksite and deployment context"| E
+  D1 -->|"Account identity, role and password history"| P1
+  P1 -->|"Account and security changes"| D1
+  D2 -->|"Applicant dossiers and application history"| P2
+  P2 -->|"Profile, application, review and endorsement records"| D2
+  D5 -->|"Published positions and staffing availability"| P2
+  P2 -->|"Approved applicant, contract and hiring identity"| P4
+  P2 -->|"Applicant-to-Employee account elevation"| P1
+  D5 -->|"Job order requests and classifications"| P3
+  P3 -->|"Approved orders, position details and classification changes"| D5
+  D4 -->|"Client and agreement eligibility"| P3
+  D3 -->|"Employee, resignation and clearance records"| P4
+  P4 -->|"Employee, clearance, final-pay and resignation changes"| D3
+  D10 -->|"Salary, payroll and outstanding advance context"| P4
+  P4 -->|"Hired employee or separation deployment change"| P5
+  D4 -->|"Client and agreement records"| P5
+  P5 -->|"Client profiles and service agreements"| D4
+  D6 -->|"Sites, geofences and assignments"| P5
+  P5 -->|"Site, worksite and deployment changes"| D6
+  D3 -->|"Active employee records"| P5
+  D15 -->|"Authorized document or evidence content"| P2
+  P2 -->|"Uploaded document, evidence or proof file"| D15
+  D15 -->|"Authorized document or evidence content"| P4
+  P4 -->|"Uploaded document, evidence or proof file"| D15
+  P1 -->|"Recorded authenticate and manage accounts notification"| D11
+  P2 -->|"Recorded manage recruitment and hiring notification"| D11
+  P3 -->|"Recorded manage job orders notification"| D11
+  P5 -->|"Recorded manage clients, sites and deployments notification"| D11
+  P1 -->|"Actor and business audit event"| D13
+  P2 -->|"Actor and business audit event"| D13
+  P4 -->|"Actor and business audit event"| D13
+  P5 -->|"Actor and business audit event"| D13

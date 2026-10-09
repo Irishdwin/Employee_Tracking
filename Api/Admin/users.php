@@ -115,12 +115,13 @@ if ($method === 'GET') {
         $documents = [];
         if ($applicantId > 0) {
             $docStmt = $conn->prepare(
-                "SELECT DocType, FilePath, OriginalFileName FROM applicant_uploaded_docs WHERE ApplicantID = ?"
+                "SELECT DocID, DocType, FilePath, OriginalFileName FROM applicant_uploaded_docs WHERE ApplicantID = ?"
             );
             $docStmt->bind_param("i", $applicantId);
             $docStmt->execute();
             $docRes = $docStmt->get_result();
             while ($row = $docRes->fetch_assoc()) {
+                if(preg_match('/^(resume|cv|resume\s*\/\s*cv)$/i',$row['DocType']))$row['FilePath']='../../Api/Applicant/view_document.php?id='.(int)$row['DocID'];
                 $documents[] = $row;
             }
             $docStmt->close();

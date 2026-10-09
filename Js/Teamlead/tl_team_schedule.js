@@ -1,7 +1,7 @@
 (function (global) {
   'use strict';
   var API = '../../Api/TeamLead/team_schedule.php';
-  var state = { employees: [], schedules: [], csrf: '', today: '', loading: false, saving: false, edit: null };
+  var state = { employees: [], schedules: [], csrf: '', today: '', loading: false, saving: false, edit: null, current: null, dutyRequest: 0, confirming: false };
   function el(id) { return document.getElementById(id); }
   function esc(value) { var d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; }
   function message(text, danger) {
@@ -41,10 +41,16 @@
     var employee = state.employees.find(function (e) { return String(e.deployment_id) === el('tlScheduleEmployee').value; });
     if (employee) {
       fill(employee.fixed);
+      el('tlScheduleType').value='Rotating';setType();refreshDuty();
       el('tlScheduleDate').min = employee.start_date;
       el('tlScheduleDate').max = employee.end_date || '';
     }
     render();
+  }
+  async function refreshDuty(){
+    var seq=++state.dutyRequest;state.current=null;el('tlScheduleCurrentDuty').textContent='Loading current duty…';
+    if(!el('tlScheduleEmployee').value){el('tlScheduleCurrentDuty').textContent='Select an employee and date.';return;}
+    try{var r=await fetch(API+'?site_id='+encodeURIComponent(el('tlScheduleSite').value)+'&date='+encodeURIComponent(el('tlScheduleDate').value),{credentials:'include'});var d=await r.json();if(seq!==state.dutyRequest)return;if(!r.ok||!d.success)throw new Error(d.message||'Unable to load current duty.');var employee=d.employees.find(function(e){return String(e.deployment_id)===el('tlScheduleEmployee').value;});state.current=employee&&employee.current_duty;if(!state.current)throw new Error('Select an assigned employee.');el('tlScheduleCurrentDuty').textContent=state.current.is_working_day?formatTime(state.current.time_in)+' – '+formatTime(state.current.time_out)+(state.current.overnight?' (next day)':''):'Rest day';}catch(e){if(seq===state.dutyRequest)el('tlScheduleCurrentDuty').textContent=e.message;}
   }
   function formatTime(t) {
     var p = t.split(':'); var h = Number(p[0]);
@@ -68,6 +74,7 @@
     if (state.loading || state.saving) return;
     state.loading = true;
     var requestedSite=el('tlScheduleSite').value;
+    var selectedDate=el('tlScheduleDate').value;
     el('tlScheduleSite').disabled=true;
     el('tlScheduleSave').disabled=true;
     try {
@@ -88,7 +95,7 @@
       el('tlScheduleEmployee').value = selected;
       el('tlScheduleDate').value = state.today;
       el('tlScheduleSave').disabled = !state.employees.length;
-      if (selected && !state.edit) selectEmployee();
+      if (selected && !state.edit) {selectEmployee();el('tlScheduleDate').value=selectedDate||state.today;refreshDuty();}
       setType(); render();
     } catch (error) { message(error.message, true); }
     finally { state.loading = false;el('tlScheduleSite').disabled=false; }
@@ -106,17 +113,27 @@
     } catch (error) { message(error.message, true); }
     finally { state.saving = false;el('tlScheduleSite').disabled=false; el('tlScheduleSave').disabled = !state.employees.length; }
   }
-  el('tlScheduleForm').addEventListener('submit', function (event) {
+  el('tlScheduleForm').addEventListener('submit', async function (event) {
     event.preventDefault();
     if (!el('tlScheduleForm').reportValidity()) return;
     var selected = el('tlScheduleEmployee').value;
     if (!selected) { message('Select a deployed employee.', true); return; }
-    mutate({ action: 'save', deployment_id: Number(selected), schedule_type: el('tlScheduleType').value,
+    if(state.confirming || state.saving)return;
+    var payload={ action: 'save' , deployment_id: Number(selected), schedule_type: el('tlScheduleType').value,
       date: el('tlScheduleDate').value, time_in: el('tlScheduleTimeIn').value, time_out: el('tlScheduleTimeOut').value,
       break_duration: Number(el('tlScheduleBreak').value), grace_period: Number(el('tlScheduleGrace').value),
-      working_days: Array.from(el('tlScheduleForm').querySelectorAll('[name="schedule_day"]:checked')).map(function (c) { return c.value; }) });
+      working_days: Array.from(el('tlScheduleForm').querySelectorAll('[name="schedule_day"]:checked')).map(function (c) { return c.value; }) };
+    if(el('tlScheduleType').value!=='Fixed'){
+      if(!state.current || state.current.date!==el('tlScheduleDate').value){message('Wait for the current duty to load before saving.',true);return;}
+      state.confirming=true;
+      var employee=state.employees.find(function(e){return String(e.deployment_id)===selected;});
+      var confirmed=await global.OnazulDialogs.confirm('Employee: '+employee.name+'\nEffective Date: '+el('tlScheduleDate').value+'\nCurrent Duty: '+el('tlScheduleCurrentDuty').textContent+'\nNew Duty: '+formatTime(el('tlScheduleTimeIn').value)+' – '+formatTime(el('tlScheduleTimeOut').value)+'\nThis change applies only to the selected date.',{title:'Change Employee Duty Schedule?',confirmText:'Confirm Change'});
+      state.confirming=false;if(!confirmed)return;
+    }
+    mutate(payload);
   });
   el('tlScheduleEmployee').addEventListener('change', selectEmployee);
+  el('tlScheduleDate').addEventListener('change',refreshDuty);
   el('tlScheduleType').addEventListener('change', setType);
   el('tlScheduleRefresh').addEventListener('click', load);
   el('tlScheduleReset').addEventListener('click', function () { state.edit = null; el('tlScheduleForm').reset(); selectEmployee(); setType(); });
@@ -126,7 +143,7 @@
     if (edit) {
       var s = state.schedules[Number(edit.dataset.edit)];
       el('tlScheduleEmployee').value = String(s.deployment_id); selectEmployee(); fill(s);
-      state.edit = s; el('tlScheduleEmployee').disabled = true;
+      refreshDuty();state.edit = s; el('tlScheduleEmployee').disabled = true;
       el('tlScheduleType').options[0].disabled = Boolean(s.schedule_id);
       el('tlScheduleDate').readOnly = Boolean(s.schedule_id) || s.schedule_type === 'Fixed';
       el('tlScheduleForm').scrollIntoView({ behavior: 'smooth', block: 'start' });

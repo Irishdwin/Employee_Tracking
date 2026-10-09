@@ -17,6 +17,8 @@ if (!in_array($_SESSION['role'], $allowedRoles)) {
 }
 
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__ . '/../Helpers/application_endorsement.php';
+try { ae_authorize($conn,(int)$_SESSION['user_id'],['Admin','HR']); } catch (DomainException $e) { http_response_code(403); header('Content-Type: application/json'); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
 
 header('Content-Type: application/json');
 require_once __DIR__ . '/../Helpers/contract_expiry_helper.php';
@@ -64,23 +66,35 @@ function parseContractRemarks($remarks) {
 // Get applications that are approved by client and ready for conversion
 $sql = "
     SELECT 
-        ja.ApplicationID,
+        ja.ApplicationID, ja.ApplicantID,
         a.FullName AS ApplicantName,
-        jo.Position,
+        COALESCE(jod.position_title,jo.Position) AS Position,
         c.Name AS CompanyName,
         ja.ClientApprovalStatus,
-        ja.Remarks,
+        ja.Remarks, ja.EndorsedDate,
+        CASE WHEN ja.Remarks LIKE '%Contract uploaded:%' THEN 'Ready to convert' ELSE 'Contract required' END ConversionState,
+        CASE WHEN COALESCE(ja.Remarks,'') NOT LIKE '%Contract uploaded:%' THEN 'pending'
+             WHEN LOWER(REGEXP_SUBSTR(ja.Remarks,'type=[^;]+')) LIKE '%open%' THEN 'open'
+             WHEN ja.Remarks REGEXP 'expiry_date=[0-9]{4}-[0-9]{2}-[0-9]{2}' AND SUBSTRING(REGEXP_SUBSTR(ja.Remarks,'expiry_date=[0-9]{4}-[0-9]{2}-[0-9]{2}'),13,10)<CURDATE() THEN 'expired'
+             ELSE 'expiring' END ContractState,
         CASE WHEN ja.Remarks LIKE '%Contract uploaded:%' THEN 1 ELSE 0 END AS ContractUploaded
     FROM job_applications ja
     INNER JOIN applicants a ON ja.ApplicantID = a.ApplicantID
     INNER JOIN joborder jo ON ja.JobOrderID = jo.JobOrderID
-    INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
+    LEFT JOIN job_order_details jod ON jod.detail_id=ja.target_detail_id AND jod.JobOrderID=ja.JobOrderID INNER JOIN clientcompany c ON jo.CompanyID = c.CompanyID
     WHERE ja.ClientApprovalStatus = 'Approved'
     AND ja.HiredDate IS NULL
     ORDER BY ja.EndorsedDate DESC
 ";
 
-$result = $conn->query($sql);
+require_once __DIR__ . '/../Helpers/list_query_page.php';
+if (isset($_GET['application_id'])) {
+    $id=filter_var($_GET['application_id'],FILTER_VALIDATE_INT,['options'=>['min_range'=>1]]);
+    if(!$id)list_query_invalid();
+    $sql=str_replace('AND ja.HiredDate IS NULL','AND ja.HiredDate IS NULL AND ja.ApplicationID = '.(int)$id,$sql);
+}
+[$sql,$types,$values,$pagination]=list_query_page($conn,$sql,['ApplicationID','ApplicantName','Position','CompanyName','ApplicantID'],['company'=>'CompanyName','position'=>'Position','contract_state'=>'ContractState','conversion_state'=>'ConversionState']);
+$stmt=$conn->prepare($sql); if($types!=='')$stmt->bind_param($types,...$values); $stmt->execute(); $result=$stmt->get_result();
 $applications = [];
 
 if ($result) {
@@ -99,6 +113,7 @@ if ($result) {
 
 echo json_encode([
     'success' => true,
-    'applications' => $applications
+    'applications' => $applications,
+    'pagination'=>$pagination
 ]);
 ?>

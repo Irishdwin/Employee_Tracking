@@ -30,6 +30,9 @@ if (!isset($_FILES['document']) || $_FILES['document']['error'] !== UPLOAD_ERR_O
     exit();
 }
 
+require_once __DIR__.'/../Helpers/resume_upload.php';
+$isResume=resume_document_type($docType);
+if($isResume){try{resume_validate_file($_FILES['document']);}catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['success'=>false,'message'=>$e->getMessage()]);exit;}}
 $file = $_FILES['document'];
 $originalName = basename($file['name']);
 $fileSize = (int)$file['size'];
@@ -53,6 +56,8 @@ if ($fileSize > 15 * 1024 * 1024) { // 15MB limit
 try {
     require __DIR__ . '/../Db_connection/db_connect.php';
 
+    require_once __DIR__.'/../Helpers/application_endorsement.php';
+    try{ae_authorize($conn,(int)$_SESSION['user_id'],['Applicant']);}catch(Throwable $e){http_response_code(403);echo json_encode(['success'=>false,'message'=>'Unauthorized']);exit;}
     // Get ApplicantID for this user
     $appStmt = $conn->prepare("SELECT ApplicantID FROM applicants WHERE UserID = ? LIMIT 1");
     $appStmt->bind_param("i", $userId);
@@ -68,12 +73,12 @@ try {
     }
     $applicantId = (int)$appRow['ApplicantID'];
 
-    $uploadDir = __DIR__ . '/../../Uploads/Documents/';
+    $uploadDir = __DIR__ . '/../../Uploads/Documents/' . ($isResume?'Resumes/':'');
     if (!is_dir($uploadDir)) {
         mkdir($uploadDir, 0755, true);
     }
 
-    $newFileName = sprintf('doc_%d_%d_%s.%s', $applicantId, time(), bin2hex(random_bytes(4)), $ext);
+    $newFileName = sprintf('doc_%d_%d_%s.%s', $applicantId, time(), bin2hex(random_bytes(16)), $ext);
     $destination = $uploadDir . $newFileName;
 
     if (!move_uploaded_file($tmpName, $destination)) {
@@ -82,7 +87,7 @@ try {
         exit();
     }
 
-    $dbFilePath = '../../Uploads/Documents/' . $newFileName;
+    $dbFilePath = '../../Uploads/Documents/' . ($isResume?'Resumes/':'') . $newFileName;
 
     // Insert or record upload
     $insStmt = $conn->prepare("
@@ -103,8 +108,9 @@ try {
     exit();
 
 } catch (Throwable $e) {
-    error_log('upload_applicant_document error: ' . $e->getMessage());
+    if(isset($destination) && is_file($destination))unlink($destination);
+    error_log('Applicant document upload failed.');
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Server error while saving document: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Server error while saving document.']);
     exit();
 }

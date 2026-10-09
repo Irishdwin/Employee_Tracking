@@ -1,0 +1,22 @@
+[
+    "stable two-employee roster",
+    "HTTP fixture uses disposable database",
+    "Authenticated XLSX download",
+    "Main agency sheet, reconciliation and signed manifest",
+    "Actual agency overhead formula",
+    "Agency overhead independent calculation",
+    "Original saved gross shown",
+    "Export leaves saved payroll unchanged",
+    "Other client excluded",
+    "Run stores actual agency invoice total",
+    "Employee export denied",
+    "Mismatched billing reference denied",
+    "Unchanged actual download imports safely",
+    "Billing allowance correction retains review semantics",
+    "Real multipart import preview succeeds",
+    "Reviewed correction confirms through existing API",
+    "Only reviewed delta changes saved payroll, not agency variance",
+    "Unchanged employee payroll untouched",
+    "Reviewed correction leaves locked DTR unchanged",
+    "Review confirmation remains idempotent"
+]

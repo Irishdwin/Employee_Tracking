@@ -8,7 +8,7 @@
  * @param string $bodyPlain Plain text body
  * @return array ['sent' => bool, 'error' => string|null]
  */
-function send_mail_smtp($to, $subject, $bodyPlain) {
+function send_mail_smtp($to, $subject, $bodyPlain, bool $requireVerifiedTls = false) {
     $configPath = __DIR__ . '/../config/mail_config.php';
     if (!is_file($configPath)) {
         return ['sent' => false, 'error' => 'Edit Api/config/mail_config.php with your Gmail and App Password.'];
@@ -54,6 +54,11 @@ function send_mail_smtp($to, $subject, $bodyPlain) {
             ]
         ];
 
+        if ($requireVerifiedTls) {
+            $mail->SMTPOptions = ['ssl'=>['verify_peer'=>true,'verify_peer_name'=>true,'allow_self_signed'=>false]];
+            $caFile=(string)($config['smtp_ca_file'] ?? ini_get('openssl.cafile'));
+            if($caFile!=='' && is_file($caFile))$mail->SMTPOptions['ssl']['cafile']=$caFile;
+        }
         $mail->setFrom($config['from_email'], $config['from_name']);
         $mail->addAddress($to);
         $mail->Subject = $subject;

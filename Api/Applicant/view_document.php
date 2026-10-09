@@ -1,103 +1,33 @@
 <?php
-require_once __DIR__ . '/../Common/session_init.php';
-
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'Applicant') {
-    http_response_code(401);
-    echo 'Unauthorized';
-    exit();
+require_once __DIR__.'/../Common/session_init.php';
+require_once __DIR__.'/../Db_connection/db_connect.php';
+require_once __DIR__.'/applicant_doc_fs.php';
+require_once __DIR__.'/../Helpers/application_endorsement.php';
+// Historical URLs use the same document ownership and recruitment authorization.
+if(isset($_GET['legacy_file'])){
+ $legacy=basename((string)$_GET['legacy_file']);
+ $q=$conn->prepare("SELECT DocID FROM applicant_uploaded_docs WHERE SUBSTRING_INDEX(REPLACE(FilePath,CHAR(92),'/'),'/',-1)=? LIMIT 1");$q->bind_param('s',$legacy);$q->execute();$old=$q->get_result()->fetch_assoc();$q->close();
+ if(!$old){http_response_code(404);exit('Document unavailable.');}
+ $_GET['id']=(int)$old['DocID'];
 }
-
-$userId = (int)$_SESSION['user_id'];
-$docId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-$docType = isset($_GET['type']) ? trim((string)$_GET['type']) : '';
-
-if ($docId <= 0 && $docType === '') {
-    http_response_code(400);
-    echo 'Invalid document reference.';
-    exit();
+$uid=(int)($_SESSION['user_id']??0);$role=(string)($_SESSION['role']??'');
+if(!in_array($role,['Applicant','Employee','HR','Admin','TeamLead','Team Lead'],true)){http_response_code(403);exit('Unauthorized');}
+try { ae_authorize($conn,$uid,[$role]); } catch(Throwable $e){http_response_code(403);exit('Unauthorized');}
+$id=(int)($_GET['id']??$_GET['doc_id']??0);$type=trim((string)($_GET['type']??''));
+if($id>0){$q=$conn->prepare('SELECT d.*,a.UserID OwnerID,a.Email FROM applicant_uploaded_docs d JOIN applicants a ON a.ApplicantID=d.ApplicantID WHERE DocID=?');$q->bind_param('i',$id);}
+else {$q=$conn->prepare('SELECT d.*,a.UserID OwnerID,a.Email FROM applicant_uploaded_docs d JOIN applicants a ON a.ApplicantID=d.ApplicantID WHERE a.UserID=? AND d.DocType=? ORDER BY d.DocID DESC LIMIT 1');$q->bind_param('is',$uid,$type);}
+$q->execute();$doc=$q->get_result()->fetch_assoc();$q->close();
+if(!$doc){http_response_code(404);exit('Document not found.');}
+$allowed=in_array($role,['Admin','HR'],true)||((int)$doc['OwnerID']===$uid && in_array($role,['Applicant','Employee'],true));
+if(in_array($role,['TeamLead','Team Lead'],true)){
+ $q=$conn->prepare('SELECT jo.CompanyID FROM job_applications ja JOIN joborder jo ON jo.JobOrderID=ja.JobOrderID WHERE ja.ApplicantID=? AND ja.EndorsedDate IS NOT NULL');$q->bind_param('i',$doc['ApplicantID']);$q->execute();$rows=$q->get_result();while($row=$rows->fetch_assoc())if(ae_tl_scope($conn,$uid,(int)$row['CompanyID']))$allowed=true;$q->close();
 }
-
-try {
-    require __DIR__ . '/../Db_connection/db_connect.php';
-
-    // Verify applicant owns the record
-    $appStmt = $conn->prepare("SELECT ApplicantID FROM applicants WHERE UserID = ? LIMIT 1");
-    $appStmt->bind_param("i", $userId);
-    $appStmt->execute();
-    $appRes = $appStmt->get_result();
-    $appRow = $appRes->fetch_assoc();
-    $appStmt->close();
-
-    if (!$appRow) {
-        http_response_code(403);
-        echo 'Applicant record not found.';
-        exit();
-    }
-    $applicantId = (int)$appRow['ApplicantID'];
-
-    if ($docId > 0) {
-        $docStmt = $conn->prepare("SELECT FilePath, OriginalFileName, DocType FROM applicant_uploaded_docs WHERE DocID = ? AND ApplicantID = ? LIMIT 1");
-        $docStmt->bind_param("ii", $docId, $applicantId);
-    } else {
-        $docStmt = $conn->prepare("SELECT FilePath, OriginalFileName, DocType FROM applicant_uploaded_docs WHERE ApplicantID = ? AND DocType = ? ORDER BY DocID DESC LIMIT 1");
-        $docStmt->bind_param("is", $applicantId, $docType);
-    }
-    $docStmt->execute();
-    $docRes = $docStmt->get_result();
-    $doc = $docRes->fetch_assoc();
-    $docStmt->close();
-
-    if (!$doc) {
-        http_response_code(404);
-        echo 'Document not found or unauthorized.';
-        exit();
-    }
-
-    $relativePath = $doc['FilePath'];
-    $fullPath = __DIR__ . '/../../' . ltrim(str_replace(['../../', '../'], '', $relativePath), '/');
-    if (!file_exists($fullPath)) {
-        $fullPath = __DIR__ . '/' . $relativePath;
-        if (!file_exists($fullPath)) {
-            http_response_code(404);
-            echo 'File on disk not found.';
-            exit();
-        }
-    }
-
-    $filename = $doc['OriginalFileName'] ?: basename($fullPath);
-    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
-
-    $mime = 'application/octet-stream';
-    switch ($ext) {
-        case 'pdf':
-            $mime = 'application/pdf';
-            break;
-        case 'jpg':
-        case 'jpeg':
-            $mime = 'image/jpeg';
-            break;
-        case 'png':
-            $mime = 'image/png';
-            break;
-        case 'webp':
-            $mime = 'image/webp';
-            break;
-        case 'doc':
-            $mime = 'application/msword';
-            break;
-        case 'docx':
-            $mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-            break;
-    }
-
-    header('Content-Type: ' . $mime);
-    header('Content-Disposition: inline; filename="' . basename($filename) . '"');
-    header('Content-Length: ' . filesize($fullPath));
-    readfile($fullPath);
-    exit();
-
-} catch (Throwable $e) {
-    http_response_code(500);
-    echo 'Error loading document.';
-    exit();
-}
+if(!$allowed){http_response_code(403);exit('Unauthorized');}
+$path=applicant_doc_absolute_path($doc['FilePath']);
+if(!$path || !is_readable($path)){http_response_code(404);exit('Document unavailable.');}
+if(str_contains(str_replace('\\','/',$doc['FilePath']),'/Resumes/')){require_once __DIR__.'/../Helpers/resume_upload.php';try{resume_validate_file(['error'=>UPLOAD_ERR_OK,'tmp_name'=>$path,'name'=>$doc['OriginalFileName']]);}catch(InvalidArgumentException $e){http_response_code(422);exit('The resume PDF is invalid or unavailable. Please upload a replacement.');}}
+$mime=(new finfo(FILEINFO_MIME_TYPE))->file($path);
+$inline=in_array($mime,['application/pdf','image/jpeg','image/png','image/webp'],true)&&empty($_GET['download']);
+$name=preg_replace('/[\r\n"\\\\]/','_',basename($doc['OriginalFileName']?:$path));
+header('Content-Type: '.($mime?:'application/octet-stream'));header('X-Content-Type-Options: nosniff');header('Cache-Control: private, no-store');header('Content-Security-Policy: sandbox');
+header('Content-Disposition: '.($inline?'inline':'attachment').'; filename="'.$name.'"');header('Content-Length: '.filesize($path));readfile($path);

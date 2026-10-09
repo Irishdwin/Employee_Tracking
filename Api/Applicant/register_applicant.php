@@ -57,8 +57,8 @@ $confirmPassword = (string)($input['confirm_password'] ?? '');
 
 $fieldErrors = [];
 
-if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    $fieldErrors['email'] = 'A valid email address is required.';
+if ($email === '' || (!filter_var($email, FILTER_VALIDATE_EMAIL) || !preg_match('/^[a-z0-9][a-z0-9._%+\-]*@gmail\.com$/i',$email))) {
+    $fieldErrors['email'] = 'A valid Gmail address is required.';
 }
 
 if ($verificationCode === '' || !preg_match('/^\d{4}$/', $verificationCode)) {
@@ -83,9 +83,10 @@ if ($verificationCode === '' || !preg_match('/^\d{4}$/', $verificationCode)) {
     }
 }
 
+require_once __DIR__.'/../Helpers/ph_mobile.php';
 if ($mobile === '') {
     $fieldErrors['mobile_number'] = 'Mobile number is required.';
-} elseif (!preg_match('/^[0-9+\-\s()]{7,20}$/', $mobile)) {
+} elseif (ph_mobile_normalize($mobile) === null) {
     $fieldErrors['mobile_number'] = 'Enter a valid mobile number.';
 }
 

@@ -1,0 +1,33 @@
+{
+    "success": true,
+    "checks": {
+        "review_selectable_data": true,
+        "review_submission_allowed": true,
+        "unknown_totals_preserved": true,
+        "review_cannot_verify": true,
+        "review_cannot_compute": true,
+        "no_saved_payroll": true,
+        "recorded_late_duty_visible": true,
+        "worked_holiday_visible": true,
+        "no_unapproved_ot": true,
+        "payroll_totals_still_unknown": true,
+        "resolved_totals_recorded": true,
+        "resolved_can_compute": true,
+        "obsolete_pre_hire_review_warning_cleared": true,
+        "pre_hire_rows_not_absent": true,
+        "pre_hire_hours_and_lates_excluded": true,
+        "hire_day_attendance_and_late_retained": true,
+        "pre_hire_worked_holiday_excluded": true,
+        "pre_hire_approved_overtime_excluded": true,
+        "one_payable_workday": true,
+        "pre_hire_source_preserved": true,
+        "whole_pre_hire_cutoff_not_payable": true,
+        "pre_hire_holiday_reviews_excluded": true,
+        "ordinary_pre_hire_work_excluded": true,
+        "shared_view_status_boundary": true,
+        "hired_before_cutoff_normal_absence": true,
+        "missing_hire_date_not_guessed": true,
+        "production_unchanged": true
+    },
+    "cleanup": "PASS: disposable database removed; no test records remain"
+}

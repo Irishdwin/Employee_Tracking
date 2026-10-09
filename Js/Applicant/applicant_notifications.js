@@ -5,7 +5,7 @@
 (function () {
   const API = (typeof API_BASE !== 'undefined' ? API_BASE : '../../Api/Applicant/') + 'notifications.php';
   const POLL_INTERVAL = 30000;
-  const style=document.createElement('style');style.textContent='#notificationList .ow-notif-unread{background:#fff0f1!important;border-left:3px solid #dc3545;color:#a31929}#notificationList .ow-notif-unread strong{color:#a31929!important}#notificationList .dropdown-item:not(.ow-notif-unread){background:transparent}#notificationList .ow-notif-view{position:sticky;bottom:0;background:#edf4fc;padding:10px;display:block;border-top:1px solid #cdddef}#notificationList .ow-notif-view a{display:block;text-align:center;background:#0056b3;color:white;border-radius:8px;padding:9px;text-decoration:none;font-weight:600}.ow-applicant-notification-header{position:sticky;top:0;background:#edf4fc;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px}.ow-applicant-notification-header a{color:#0056b3;font-weight:700}';document.head.appendChild(style);
+  const style=document.createElement('style');style.textContent='#notificationList .ow-notif-unread{background:#fff0f1!important;border-left:3px solid #dc3545;color:#a31929}#notificationList .ow-notif-unread strong{color:#a31929!important}#notificationList .dropdown-item:not(.ow-notif-unread){background:transparent}#notificationList .ow-notif-view{position:sticky;bottom:0;background:#edf4fc;padding:10px;display:block;border-top:1px solid #cdddef}#notificationList .ow-notif-view a{display:block;text-align:center;background:#0056b3;color:white;border-radius:8px;padding:9px;text-decoration:none;font-weight:600}.ow-applicant-notification-header{position:sticky;top:0;background:#fff!important;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px}.ow-applicant-notification-header a{color:#0056b3;font-weight:700}';document.head.appendChild(style);
   const viewAll='<li class="ow-notif-view"><a href="applicant_notifications.html">View all notifications</a></li>';
 
   function notificationDestination(n) {
@@ -59,16 +59,7 @@
         e.stopPropagation();
         var id = parseInt(el.getAttribute('data-id'), 10);
         var href = el.getAttribute('href') || 'applicant_notifications.html';
-        fetch(API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'mark_read', notification_id: id }),
-          credentials: 'include'
-        })
-          .catch(function () {})
-          .then(function () {
-            window.location.href = href;
-          });
+        window.location.href = href;
       });
     });
   }

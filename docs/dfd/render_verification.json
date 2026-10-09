@@ -1,0 +1,44 @@
+[
+  {
+    "file": "DFD_Attendance_Detail.svg",
+    "notation": "Gane & Sarson",
+    "svg": true,
+    "nodes": 22,
+    "edges": 58
+  },
+  {
+    "file": "DFD_Level_0_Context.svg",
+    "notation": "Gane & Sarson",
+    "svg": true,
+    "nodes": 10,
+    "edges": 18
+  },
+  {
+    "file": "DFD_Level_1.svg",
+    "notation": "Gane & Sarson",
+    "svg": true,
+    "nodes": 38,
+    "edges": 156
+  },
+  {
+    "file": "DFD_Level_2_Payroll.svg",
+    "notation": "Gane & Sarson",
+    "svg": true,
+    "nodes": 14,
+    "edges": 24
+  },
+  {
+    "file": "DFD_Payroll_Detail.svg",
+    "notation": "Gane & Sarson",
+    "svg": true,
+    "nodes": 13,
+    "edges": 25
+  },
+  {
+    "file": "DFD_Recruitment_Detail.svg",
+    "notation": "Gane & Sarson",
+    "svg": true,
+    "nodes": 24,
+    "edges": 66
+  }
+]

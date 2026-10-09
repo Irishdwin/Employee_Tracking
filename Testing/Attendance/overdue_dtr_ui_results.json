@@ -1,0 +1,7 @@
+{
+  "passed": 2,
+  "results": [
+    "1366px: original dashboard functions: loading, stale response, review-blocked/locked rows, eligible selection, empty cutoff PASS",
+    "390px: original dashboard functions: loading, stale response, review-blocked/locked rows, eligible selection, empty cutoff PASS"
+  ]
+}

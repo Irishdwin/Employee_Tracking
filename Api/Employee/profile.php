@@ -39,6 +39,7 @@ try {
  $applicant=(int)$row['ApplicantID'];$birth=$birth!==''?$birth:null;$gender=$gender!==''?$gender:null;
  $conn->begin_transaction();
  $save=$conn->prepare('UPDATE applicants SET MobileNumber=?,BirthDate=?,Gender=? WHERE ApplicantID=? AND UserID=?');$save->bind_param('sssii',$mobile,$birth,$gender,$applicant,$uid);$save->execute();$save->close();
+ $employeeSex=$conn->prepare('UPDATE employee e JOIN users u ON LOWER(TRIM(e.Email))=LOWER(TRIM(u.Email)) SET e.gender=? WHERE u.UsersID=?');$employeeSex->bind_param('si',$gender,$uid);$employeeSex->execute();$employeeSex->close();
  if($address){
   $region=$address['region'];$province=$address['state_province'];$city=$address['city'];$barangay=$address['barangay'];$codes=json_encode($address['psgc']);$country='Philippines';
   $full=implode(', ',array_filter([$street,$barangay,$city,$province,$postal,$country]));$home=mb_substr(implode(', ',array_filter([$city,$province,$country])),0,150);

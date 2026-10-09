@@ -18,11 +18,11 @@ function evidence_file(string $reference, string $folder='attendance_photos'): a
         if (!str_starts_with($reference,$prefix)) throw new DomainException('Invalid evidence reference.',403);
         $name=substr($reference,strlen($prefix));
     } else $name=$reference;
-    if (!preg_match('/^[A-Za-z0-9_-]+\.(jpg|jpeg|png)$/i',$name)) throw new DomainException('Invalid evidence reference.',403);
+    if (!preg_match('/^[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i',$name)) throw new DomainException('Invalid evidence reference.',403);
     $path=$root ? realpath($root.'/'.$name) : false;
     if (!$path || !is_file($path) || !str_starts_with(strtolower($path),strtolower($root.DIRECTORY_SEPARATOR))) throw new DomainException('Evidence file is unavailable.',404);
     $mime=(new finfo(FILEINFO_MIME_TYPE))->file($path);
-    if (!in_array($mime,['image/jpeg','image/png'],true) || !getimagesize($path)) throw new DomainException('Unsupported evidence format.',415);
+    if (!in_array($mime,$folder==='add_back_evidence'?['image/jpeg','image/png','image/webp']:['image/jpeg','image/png'],true) || !getimagesize($path)) throw new DomainException('Unsupported evidence format.',415);
     return ['path'=>$path,'mime'=>$mime,'size'=>filesize($path),'sha256'=>hash_file('sha256',$path)];
 }
 
@@ -53,4 +53,29 @@ function evidence_safe_attendance(array $a): array {
         $out['clock'.$kind.'_url']=$available ? '../../Api/Common/attendance_evidence.php?attendance_id='.(int)$a['AttendanceID'].'&type=clock'.$kind : null;
     }
     return $out;
+}
+
+/** Validate the PHP upload and decoded image before any request is committed. */
+function evidence_uploads(array $uploads): array {
+    if(!$uploads)return [];
+    if(!isset($uploads['name']) || !is_array($uploads['name']))throw new DomainException('Invalid image upload.',422);
+    $files=[];
+    foreach($uploads['name'] as $i=>$original){
+        $error=$uploads['error'][$i]??UPLOAD_ERR_NO_FILE;
+        if($error===UPLOAD_ERR_NO_FILE)continue;
+        if(count($files)>=3)throw new DomainException('You can upload a maximum of 3 images.',422);
+        if(in_array($error,[UPLOAD_ERR_INI_SIZE,UPLOAD_ERR_FORM_SIZE],true))throw new DomainException('Each image must not exceed 5 MB.',422);
+        if($error!==UPLOAD_ERR_OK)throw new DomainException('Image upload failed. Please select the images again.',422);
+        $path=$uploads['tmp_name'][$i]??'';
+        if(!is_string($path)||!is_uploaded_file($path))throw new DomainException('Invalid image upload.',422);
+        $size=filesize($path);if(!$size||$size>5*1024*1024)throw new DomainException('Each image must not exceed 5 MB.',422);
+        $extension=strtolower(pathinfo((string)$original,PATHINFO_EXTENSION));$mime=(new finfo(FILEINFO_MIME_TYPE))->file($path);
+        $types=['jpg'=>'image/jpeg','jpeg'=>'image/jpeg','png'=>'image/png','webp'=>'image/webp'];
+        if(!isset($types[$extension])||$types[$extension]!==$mime)throw new DomainException('Only JPG, JPEG, PNG, and WEBP images are allowed.',422);
+        $info=@getimagesize($path);
+        if(!$info || $info['mime']!==$mime || $info[0]>16384 || $info[1]>16384 || $info[0]*$info[1]>20000000)throw new DomainException('The selected file is not a supported image or its dimensions are too large.',422);
+        $decoded=@imagecreatefromstring(file_get_contents($path));if(!$decoded)throw new DomainException('The selected image is damaged or invalid.',422);imagedestroy($decoded);
+        $files[]=['path'=>$path,'mime'=>$mime,'size'=>$size,'sha256'=>hash_file('sha256',$path)];
+    }
+    return $files;
 }

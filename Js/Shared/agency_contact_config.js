@@ -1,6 +1,9 @@
 (function () {
     'use strict';
   
+    var csrfToken='';
+    var fields=['company_name','tagline','about','mission','applicant_guidance','office_address','office_hours','website','facebook'];
+    function bindLanding(data){csrfToken=data.csrf_token||csrfToken;fields.forEach(function(key){var el=document.getElementById('agencyLanding-'+key);if(el)el.value=(data.landing||{})[key]||'';});}
     var API = '../../Api/Common/agency_contact.php';
   
     var form = document.getElementById('agencyContactForm');
@@ -34,6 +37,7 @@
             throw new Error(data.message || 'Failed to load Agency Contact.');
           }
           bindContact(data.contact);
+          bindLanding(data);
         })
         .catch(function (err) {
           showAlert(err.message || 'Unable to load Agency Contact.', 'danger');
@@ -47,6 +51,8 @@
         if (btn) btn.disabled = true;
   
         var payload = {
+          csrf_token:csrfToken,
+          landing:Object.fromEntries(fields.map(function(key){return [key,document.getElementById('agencyLanding-'+key).value.trim()];})),
           name: document.getElementById('agencyContactName').value.trim(),
           email: document.getElementById('agencyContactEmail').value.trim(),
           phone: document.getElementById('agencyContactPhone').value.trim(),
@@ -69,6 +75,7 @@
           .then(function (data) {
             showAlert(data.message || 'Agency Contact saved.', 'success');
             bindContact(data.contact);
+          bindLanding(data);
           })
           .catch(function (err) {
             showAlert(err.message, 'danger');

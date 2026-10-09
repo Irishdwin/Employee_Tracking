@@ -25,6 +25,16 @@ const assert=require('node:assert/strict');
  const c=await pair(a);
  for(const answer of [String(c.answer-1),String(c.answer+1),'abc',`${c.answer}abc`]){const r=await context.request.post('http://localhost/Employee_Tracking/Api/Login/check_captcha.php',{form:{challenge_id:c.id,answer}});assert.equal((await r.json()).valid,false);}
  checks.push('Incorrect and malformed answers still rejected by actual server');
+ await a.locator('[name=username]').fill('fixture@example.com');
+ await a.locator('#passwordField').fill('fixture-password');
+ const beforeExpiry=await pair(a);
+ await a.route('**/Api/Login/check_captcha.php',route=>route.fulfill({contentType:'application/json',body:JSON.stringify({valid:false,code:'expired',message:'Expired'})}));
+ await a.locator('#captchaInput').fill(String(beforeExpiry.answer));
+ await a.waitForFunction(id=>document.getElementById('captchaChallengeId').value && document.getElementById('captchaChallengeId').value!==id,beforeExpiry.id);
+ assert.equal(await a.locator('[name=username]').inputValue(),'fixture@example.com');
+ assert.equal(await a.locator('#passwordField').inputValue(),'fixture-password');
+ await a.unroute('**/Api/Login/check_captcha.php');await valid(a);
+ checks.push('Expired validation automatically replaces challenge and preserves credentials');
  await a.screenshot({path:__dirname+'/verified.png'});
  console.log(JSON.stringify({success:true,passed:checks.length,tests:checks},null,2));
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

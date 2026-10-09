@@ -1,0 +1,74 @@
+[
+  {
+    "label": "Review rejects unauthenticated user",
+    "result": "PASS"
+  },
+  {
+    "label": "Review rejects wrong role",
+    "result": "PASS"
+  },
+  {
+    "label": "Review rejects another Team Lead site",
+    "result": "PASS"
+  },
+  {
+    "label": "Review API loads",
+    "result": "PASS"
+  },
+  {
+    "label": "Review equals authoritative engine",
+    "result": "PASS"
+  },
+  {
+    "label": "Review selected-site roster only",
+    "result": "PASS"
+  },
+  {
+    "label": "Cross-site submission rejected",
+    "result": "PASS"
+  },
+  {
+    "label": "Submit API succeeds",
+    "result": "PASS"
+  },
+  {
+    "label": "Locked submission uses persisted snapshot",
+    "result": "PASS"
+  },
+  {
+    "label": "Locked totals survive later source changes",
+    "result": "PASS"
+  },
+  {
+    "label": "Accounting detail retains submitted classification",
+    "result": "PASS"
+  },
+  {
+    "label": "Accounting batch uses persisted overtime",
+    "result": "PASS"
+  },
+  {
+    "label": "Holiday review retains base duty and approved holiday OT",
+    "result": "PASS"
+  },
+  {
+    "label": "Holiday DTR submission succeeds",
+    "result": "PASS"
+  },
+  {
+    "label": "Accounting receives holiday type and hours",
+    "result": "PASS"
+  },
+  {
+    "label": "Accounting verification API succeeds",
+    "result": "PASS"
+  },
+  {
+    "label": "Verification preserves classification snapshot",
+    "result": "PASS"
+  },
+  {
+    "label": "Payroll run API succeeds on isolated verified DTR",
+    "result": "PASS"
+  }
+]

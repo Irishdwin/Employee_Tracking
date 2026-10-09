@@ -1,0 +1,78 @@
+{
+    "success": true,
+    "results": {
+        "normal": {
+            "PASS": true,
+            "requested_hours": "2.00",
+            "approved_amount": 250,
+            "gross": "250.00",
+            "payroll_id": "2"
+        },
+        "regular_holiday": {
+            "PASS": true,
+            "requested_hours": "2.00",
+            "approved_amount": 500,
+            "gross": "500.00",
+            "payroll_id": "4"
+        },
+        "holiday_rest_day": {
+            "PASS": true,
+            "requested_hours": "2.00",
+            "approved_amount": 650,
+            "gross": "650.00",
+            "payroll_id": "6"
+        },
+        "incomplete": {
+            "PASS": true,
+            "requested_hours": "8.00",
+            "approved_amount": 1000,
+            "gross": "1000.00",
+            "payroll_id": "8"
+        },
+        "rejected": "PASS no ledger",
+        "missing_rate": "PASS approval blocked",
+        "current_rate_snapshot": "PASS: no browser rate; completed duty accepted in Philippine time"
+    },
+    "security": {
+        "self_approval": "PASS",
+        "amount_tampering": "PASS",
+        "non_accounting_review": "PASS",
+        "path_traversal": "PASS",
+        "owned_evidence_download": "PASS",
+        "cross_employee_evidence_and_request": "PASS",
+        "clock_in_out_evidence_and_submitted_lock": "PASS",
+        "unsupported_additional_upload": "PASS",
+        "storage_containment": "PASS",
+        "unsupported_image": "PASS",
+        "duplicate_request_approval_payment": "PASS"
+    },
+    "production_unchanged": true,
+    "fixture_directory": "C:\\Users\\IRISHD~1\\AppData\\Local\\Temp/onazul-addback-1fd2e2f16aac4d66",
+    "production_before": {
+        "employee": "918052064",
+        "attendance": "3828318813",
+        "daily_time_records": "3105386712",
+        "dtr_submissions": "2145068532",
+        "payroll": "0",
+        "payroll_adjustments": "0",
+        "add_back_requests": "0",
+        "add_back_evidence": "0",
+        "notifications": "3055540792",
+        "salary_rates": "0",
+        "holidays": "2905175276"
+    },
+    "production_after": {
+        "employee": "918052064",
+        "attendance": "3828318813",
+        "daily_time_records": "3105386712",
+        "dtr_submissions": "2145068532",
+        "payroll": "0",
+        "payroll_adjustments": "0",
+        "add_back_requests": "0",
+        "add_back_evidence": "0",
+        "notifications": "3055540792",
+        "salary_rates": "0",
+        "holidays": "2905175276"
+    },
+    "cleanup": "Disposable database removed"
+}

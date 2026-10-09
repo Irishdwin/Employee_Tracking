@@ -190,7 +190,7 @@
       })
       .catch(function (err) {
         modal.hide();
-        alert(err.message || 'Could not load agreement document.');
+        AppDialog.alert(err.message || 'Could not load agreement document.');
       });
   }
 

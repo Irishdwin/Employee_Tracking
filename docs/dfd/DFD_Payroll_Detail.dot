@@ -1,0 +1,44 @@
+digraph DFD {
+// Gane & Sarson: rectangular entities, rounded processes, open-right stores.
+graph [rankdir=LR, bgcolor="white", nodesep=0.4, ranksep=1.3, pad=0.35, label="DTR Verification, Payroll Finalization, Billing Revisions and Release Status\nGane & Sarson notation", labelloc=t, fontsize=22, fontname="Arial"];
+node [fontname="Arial", fontsize=12, margin="0.16,0.10", color="#43835b", fontcolor="#172b20"];
+edge [fontname="Arial", fontsize=10, color="#43835b", fontcolor="#172b20", arrowsize=0.7];
+C [label="Accounting Staff", shape=box];
+P9 [label="9.0 Compute and Finalize Payroll", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+E [label="Employee", shape=box];
+P10 [label="10.0 Manage Billing Revisions\nand Payroll Status", shape=box, style="rounded,filled", fillcolor="#f4faf5"];
+D8 [label="D8 - Attendance and DTR", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D8 - Attendance and DTR</TD></TR></TABLE> >];
+D3 [label="D3 - Employees and Separation", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D3 - Employees and Separation</TD></TR></TABLE> >];
+D7 [label="D7 - Schedules and Holidays", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D7 - Schedules and Holidays</TD></TR></TABLE> >];
+D9 [label="D9 - Overtime and Existing Leave", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D9 - Overtime and Existing Leave</TD></TR></TABLE> >];
+D13 [label="D13 - Audit and Configuration", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D13 - Audit and Configuration</TD></TR></TABLE> >];
+D10 [label="D10 - Payroll, Billing and\nStatus History", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D10 - Payroll, Billing and Status History</TD></TR></TABLE> >];
+D4 [label="D4 - Clients and Agreements", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D4 - Clients and Agreements</TD></TR></TABLE> >];
+D15 [label="D15 - Uploaded Documents and\nEvidence Files", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D15 - Uploaded Documents and Evidence Files</TD></TR></TABLE> >];
+D11 [label="D11 - Notifications", shape=box, shape=plain, label=< <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" COLOR="#43835b"><TR><TD BORDER="1" SIDES="LTB" CELLPADDING="9">D11 - Notifications</TD></TR></TABLE> >];
+C -> P9 [label="DTR verification, payroll\ncomputation and billing-reviewed\nfinalization"];
+P9 -> C [label="Verified DTR, computation\npreview and finalized payroll\nresults"];
+E -> P9 [label="Payroll history or payslip\nselection"];
+P9 -> E [label="Finalized payroll history and\npayslip details"];
+C -> P10 [label="Billing export selection,\nrevised workbook, confirmation,\nstatus and proof"];
+P10 -> C [label="Billing workbook, revision\npreview and payroll status\ntimeline"];
+P10 -> E [label="Payroll status and authorized\nproof view"];
+D8 -> P9 [label="Submitted DTR and attendance"];
+P9 -> D8 [label="DTR review decisions"];
+D3 -> P9 [label="Employee salary configuration"];
+D7 -> P9 [label="Effective shifts and holiday\nrules"];
+D9 -> P9 [label="Approved overtime and existing\nleave"];
+D13 -> P9 [label="Government deduction rate\nconfiguration"];
+D10 -> P9 [label="Payroll runs, billing snapshots\nand adjustments"];
+P9 -> D10 [label="Computed runs, finalized payroll\nand member snapshots"];
+P9 -> P10 [label="Computed billing rows and\nfinalized run membership"];
+D4 -> P10 [label="Payroll type and service\nagreement billing terms"];
+D10 -> P10 [label="Export baseline, finalized\npayroll and status history"];
+P10 -> D10 [label="Billing exports, confirmed\nrevisions, adjustments and\nstatus history"];
+D15 -> P10 [label="Authorized document or evidence\ncontent"];
+P10 -> D15 [label="Uploaded document, evidence or\nproof file"];
+P9 -> D11 [label="Recorded compute and finalize\npayroll notification"];
+P10 -> D11 [label="Recorded manage billing\nrevisions and payroll status\nnotification"];
+P9 -> D13 [label="Actor and business audit event"];
+P10 -> D13 [label="Actor and business audit event"];
+}

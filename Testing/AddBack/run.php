@@ -16,10 +16,10 @@ function ab_insert(mysqli $db,string $table,array $row): int {
 }
 function ab_session(string $root,int $user,string $role): string {
     ini_set('session.save_path',$root.'/sessions'); ini_set('session.use_cookies','0'); ini_set('session.cache_limiter','');
-    $id=bin2hex(random_bytes(16)); session_id($id); session_start(); $_SESSION=['user_id'=>$user,'role'=>$role,'last_activity'=>time()]; session_write_close(); return $id;
+    $id=bin2hex(random_bytes(16)); session_id($id); session_start(); $_SESSION=['user_id'=>$user,'role'=>$role,'last_activity'=>time(),'add_back_csrf'=>'fixture-addback-token','payroll_csrf'=>'fixture-payroll-token']; session_write_close(); return $id;
 }
 function ab_http(string $url,string $session,?array $body=null,int $expected=200): array {
-    $ctx=stream_context_create(['http'=>['method'=>$body===null?'GET':'POST','timeout'=>40,'ignore_errors'=>true,'header'=>"Cookie: PHPSESSID=$session\r\nContent-Type: application/json\r\n",'content'=>$body===null?'':json_encode($body)]]);
+    $ctx=stream_context_create(['http'=>['method'=>$body===null?'GET':'POST','timeout'=>40,'ignore_errors'=>true,'header'=>"Cookie: PHPSESSID=$session\r\nContent-Type: application/json\r\nX-AddBack-CSRF: fixture-addback-token\r\nX-Payroll-CSRF: fixture-payroll-token\r\n",'content'=>$body===null?'':json_encode($body)]]);
     $text=file_get_contents($url,false,$ctx); preg_match('/\s(\d{3})\s/',$http_response_header[0]??'',$m); $code=(int)($m[1]??0);
     $data=json_decode((string)$text,true);
     if ($code!==$expected || ($expected===200 && is_array($data) && empty($data['success']))) throw new RuntimeException('HTTP '.$code.' expected '.$expected.' at '.$url.': '.substr((string)$text,0,400));
@@ -36,10 +36,14 @@ try {
     ab_copy(__DIR__.'/../../Api',$root.'/Api'); mkdir($root.'/sessions',0700,true); mkdir($root.'/uploads/attendance_photos',0700,true); mkdir($root.'/uploads/add_back_evidence',0700,true);
     $path=$root.'/Api/Common/session_init.php'; file_put_contents($path,"<?php\nini_set('session.save_path',".var_export($root.'/sessions',true).");\n".substr(file_get_contents($path),5));
     $path=$root.'/Api/Db_connection/db_connect.php'; file_put_contents($path,str_replace("\$dbname = '$sourceDb';","\$dbname = '$testDb';",file_get_contents($path)));
-    foreach (['attendance_pdo.php','hris_pdo.php'] as $file) { $path=$root.'/Api/Helpers/'.$file; file_put_contents($path,str_replace('dbname='.$sourceDb.';','dbname='.$testDb.';',file_get_contents($path))); }
+    foreach (['attendance_pdo.php','hris_pdo.php'] as $file) { $path=$root.'/Api/Helpers/'.$file; file_put_contents($path,str_replace(['dbname='.$sourceDb.';',"'".$sourceDb."'"],['dbname='.$testDb.';',"'".$testDb."'"],file_get_contents($path))); }
+    mkdir($root.'/Templates',0700,true);copy(__DIR__.'/../../Templates/SAMPLE.xlsx',$root.'/Templates/SAMPLE.xlsx');
+    $exportPath=$root.'/Api/Accounting/export_client_billing.php';file_put_contents($exportPath,str_replace("__DIR__ . '/../../vendor/autoload.php'",var_export(realpath(__DIR__.'/../../vendor/autoload.php'),true),file_get_contents($exportPath)));
     require $root.'/Api/Helpers/attendance_pdo.php'; require $root.'/Api/Helpers/add_back.php'; require $root.'/Api/Helpers/add_back_payroll.php'; require $root.'/Api/Helpers/client_billing_helper.php'; require $root.'/Api/Helpers/geofence_helper.php';
-    $pdo=attendance_pdo(); ab_assert($pdo->query('SELECT DATABASE()')->fetchColumn()===$testDb,'PDO isolated');
+    $pdo=attendance_pdo($db); ab_assert($pdo->query('SELECT DATABASE()')->fetchColumn()===$testDb,'PDO isolated');
     $accounting=ab_insert($db,'users',['RoleID'=>3,'FullName'=>'TEST Accounting','Email'=>'ab-accounting@example.invalid','Password'=>'TEST-DISABLED']);
+    $rateAdmin=ab_insert($db,'users',['RoleID'=>1,'FullName'=>'TEST Rate Admin','Email'=>'ab-rates@example.invalid','Password'=>'TEST-DISABLED']);
+    $rateAdminSession=ab_session($root,$rateAdmin,'Admin');
     $lead=ab_insert($db,'users',['RoleID'=>4,'FullName'=>'TEST Lead','Email'=>'ab-lead@example.invalid','Password'=>'TEST-DISABLED']);
     $acctSession=ab_session($root,$accounting,'Accounting'); $leadSession=ab_session($root,$lead,'TeamLead');
     $socket=stream_socket_server('tcp://127.0.0.1:0',$errno,$error); $address=stream_socket_get_name($socket,false); fclose($socket);
@@ -47,7 +51,7 @@ try {
     $image=imagecreatetruecolor(4,4); imagepng($image,$root.'/uploads/attendance_photos/test.png'); imagedestroy($image);
     $todayPeriod=payroll_kinsenas_period(date('Y-m-d')); $date=date('Y-m-d',strtotime($todayPeriod['start'].' -11 days')); $workPeriod=payroll_kinsenas_period($date);
     $results=[]; $security=[];
-    foreach (['normal'=>250,'regular_holiday'=>500,'holiday_rest_day'=>650,'incomplete'=>null,'rejected'=>null,'missing_rate'=>null] as $case=>$expected) {
+    foreach (['normal'=>250,'regular_holiday'=>500,'holiday_rest_day'=>650,'incomplete'=>null,'rejected'=>null,'missing_rate'=>null,'unverified_rate'=>null,'changed_rate'=>225] as $case=>$expected) {
         $company=ab_insert($db,'clientcompany',['Name'=>'TEST '.$case,'UserID'=>$lead,'PayrollType'=>'B']);
         $site=ab_insert($db,'deployment_sites',['CompanyID'=>$company,'Name'=>'TEST site','Address'=>'TEST','TeamLeadID'=>$lead]);
         $employee=ab_insert($db,'employee',['FirstName'=>'TEST','LastName'=>$case,'Email'=>'ab-'.$case.'@example.invalid','EmployeeNumber'=>'AB-'.$case,'daily_rate'=>1000,'hourly_rate'=>125,'monthly_salary_credit'=>0]);
@@ -57,7 +61,11 @@ try {
         ab_insert($db,'daily_time_records',['employee_id'=>$employee,'date'=>$date,'time_in'=>$date.' 08:00:00','time_out'=>$case==='incomplete'?null:$date.' 15:00:00','total_hours_rendered'=>$case==='incomplete'?null:7,'status'=>$case==='incomplete'?'Clocked In':'Clocked Out']);
         $historical=ab_insert($db,'dtr_submissions',['EmployeeID'=>$employee,'DeploymentID'=>$dep,'SiteID'=>$site,'SiteSupervisorID'=>$lead,'CutoffStartDate'=>$workPeriod['start'],'CutoffEndDate'=>$workPeriod['end'],'TotalHours'=>6,'SubmittedBy'=>$lead,'ReviewedBy'=>$accounting,'ReviewDate'=>date('Y-m-d H:i:s'),'StatusID'=>7]);
         ab_insert($db,'payroll',['EmployeeID'=>$employee,'PayPeriodStart'=>$workPeriod['start'],'PayPeriodEnd'=>$workPeriod['end'],'GrossPay'=>750,'NetPay'=>750,'DTR_SubmissionID'=>$historical,'StatusID'=>9]);
-        if ($case!=='missing_rate') ab_insert($db,'salary_rates',['EmployeeID'=>$employee,'DeploymentID'=>$dep,'CompanyID'=>$company,'EffectiveDate'=>'2026-01-01','DailyRate'=>1000,'HourlyRate'=>125]);
+        if ($case!=='missing_rate') ab_insert($db,'salary_rates',['EmployeeID'=>$employee,'DeploymentID'=>$dep,'CompanyID'=>$company,'EffectiveDate'=>'2026-01-01','DailyRate'=>1000,'HourlyRate'=>125,'CreatedBy'=>$case==='unverified_rate'?$accounting:$rateAdmin]);
+        if($case==='changed_rate') {
+            $rateEnd=date('Y-m-d',strtotime($date.' -1 day'));$db->query("UPDATE salary_rates SET EndDate='$rateEnd' WHERE EmployeeID=$employee");
+            ab_insert($db,'salary_rates',['EmployeeID'=>$employee,'DeploymentID'=>$dep,'CompanyID'=>$company,'EffectiveDate'=>$date,'DailyRate'=>900,'HourlyRate'=>112.5,'CreatedBy'=>$rateAdmin]);
+        }
         $db->query('DELETE FROM holidays');
         if (str_contains($case,'holiday')) ab_insert($db,'holidays',['HolidayName'=>'TEST regular holiday','HolidayDate'=>$date,'HolidayType'=>'Regular Holiday','PayMultiplier'=>2,'Year'=>(int)substr($date,0,4)]);
         $original=$db->query("SELECT * FROM attendance WHERE AttendanceID=$a")->fetch_assoc(); $originalDtr=$db->query("SELECT * FROM dtr_submissions WHERE DTR_SubmissionID=$historical")->fetch_assoc();
@@ -80,7 +88,21 @@ try {
             ab_http($base.'/Api/Common/attendance_evidence.php?attendance_id='.$normalAttendance.'&type=clockin',$session,null,403);
             ab_http($api.'?request_id='.$normalRequest,$session,null,403); $security['cross_employee_evidence_and_request']='PASS';
         }
-        if ($case==='missing_rate') { ab_http($api,$acctSession,['request_id'=>$id,'decision'=>'approve'],422); ab_assert((int)$db->query("SELECT COUNT(*) n FROM payroll_adjustments WHERE AddBackRequestID=$id")->fetch_assoc()['n']===0,'No unverified historical rate payment'); $results[$case]='PASS approval blocked'; continue; }
+        if (in_array($case,['missing_rate','unverified_rate'],true)) {
+            ab_http($api,$acctSession,['request_id'=>$id,'decision'=>'approve'],422); ab_assert((int)$db->query("SELECT COUNT(*) n FROM payroll_adjustments WHERE AddBackRequestID=$id")->fetch_assoc()['n']===0,'No unverified historical rate payment');
+            if($case==='missing_rate') {
+                $rateApi=$base.'/Api/Common/add_back_salary_history.php';
+                ab_http($rateApi.'?request_id='.$id,$acctSession,null,403);
+                ab_http($rateApi.'?request_id='.$id,$rateAdminSession);
+                $record=['request_id'=>$id,'effective_date'=>'2026-01-01','daily_rate'=>1000,'reason'=>'TEST documented salary agreement'];
+                ab_http($rateApi,$rateAdminSession,$record);ab_http($rateApi,$rateAdminSession,$record,409);
+                $refreshed=ab_http($api.'?request_id='.$id,$acctSession);
+                ab_assert(empty($refreshed['request']['approval_blocked'])&&$refreshed['request']['quote']['daily_rate']==1000,'HR-recorded rate refresh enables approval');
+                ab_http($api,$acctSession,['request_id'=>$id,'decision'=>'approve']);ab_http($api,$acctSession,['request_id'=>$id,'decision'=>'approve'],409);
+                $results[$case]='PASS blocked until documented Admin correction, then approved once';
+            } else $results[$case]='PASS unverified rate blocked';
+            continue;
+        }
         if ($case==='rejected') { ab_http($api,$acctSession,['request_id'=>$id,'decision'=>'reject','remarks'=>'Evidence insufficient for requested duty']); ab_assert((int)$db->query("SELECT COUNT(*) n FROM payroll_adjustments WHERE AddBackRequestID=$id")->fetch_assoc()['n']===0,'Rejected no ledger'); $results[$case]='PASS no ledger'; continue; }
         $approved=ab_http($api,$acctSession,['request_id'=>$id,'decision'=>'approve','remarks'=>'TEST verified recorded evidence']);
         if ($expected!==null) ab_assert(abs($approved['amount']-$expected)<0.01,$case.' engine amount');
@@ -90,20 +112,24 @@ try {
         $r=ab_http($api.'?request_id='.$id,$session)['request']; $start=$r['TargetStart']; $end=$r['TargetEnd'];
         ab_assert($start===$todayPeriod['start'] && $end===$todayPeriod['end'],'Current open payment target');
         $newDtr=ab_insert($db,'dtr_submissions',['EmployeeID'=>$employee,'DeploymentID'=>$dep,'SiteID'=>$site,'SiteSupervisorID'=>$lead,'CutoffStartDate'=>$start,'CutoffEndDate'=>$end,'SubmittedBy'=>$lead,'ReviewedBy'=>$accounting,'ReviewDate'=>date('Y-m-d H:i:s'),'StatusID'=>7]);
-        $final=ab_http($base.'/Api/Accounting/finalize_payroll_batch.php',$acctSession,['tl_id'=>$lead,'cutoff_start'=>$start,'cutoff_end'=>$end]);
+        $computed=ab_http($base.'/Api/Accounting/compute_payroll_for_batch.php',$acctSession,['tl_id'=>$lead,'site_id'=>$site,'cutoff_start'=>$start,'cutoff_end'=>$end]);
+        $exported=ab_http($base.'/Api/Accounting/export_client_billing.php?run_id='.urlencode($computed['run_id']),$acctSession);ab_assert($exported['bytes']>1000,'Real billing export before finalization');
+        $exportId=(int)$db->query('SELECT MAX(ExportID) FROM payroll_billing_exports')->fetch_row()[0];
+        $finalBody=['tl_id'=>$lead,'site_id'=>$site,'cutoff_start'=>$start,'cutoff_end'=>$end,'export_id'=>$exportId,'billing_reviewed'=>true];
+        $final=ab_http($base.'/Api/Accounting/finalize_payroll_batch.php',$acctSession,$finalBody);
         $pay=$db->query("SELECT * FROM payroll WHERE EmployeeID=$employee AND PayPeriodStart='$start' AND PayPeriodEnd='$end'")->fetch_assoc();
         ab_assert(abs((float)$pay['GrossPay']-(float)$approved['amount'])<0.01,'Payroll gross includes once');
-        ab_http($base.'/Api/Accounting/finalize_payroll_batch.php',$acctSession,['tl_id'=>$lead,'cutoff_start'=>$start,'cutoff_end'=>$end]);
+        ab_http($base.'/Api/Accounting/finalize_payroll_batch.php',$acctSession,$finalBody);
         ab_assert((int)$db->query("SELECT COUNT(*) n FROM payroll_adjustments WHERE AddBackRequestID=$id")->fetch_assoc()['n']===1,'Exactly one adjustment');
         $slip=ab_http($base.'/Api/Employee/get_employee_payroll_history.php?payroll_id='.$pay['Payroll_ID'],$session);
         ab_assert(abs($slip['payslip']['earnings']['add_back']-$approved['amount'])<0.01,'Payslip separate line');
-        $run=client_billing_run_code($start,$end,$company); ab_insert($db,'payroll_runs',['RunCode'=>$run,'CompanyID'=>$company,'PeriodStart'=>$start,'PeriodEnd'=>$end,'SiteSupervisorID'=>$lead]);
+        $run=$computed['run_id'];
         $export=client_billing_build_export($db,$run); ab_assert(count($export['rows'])===1,'Export selected context'); ab_assert(abs($export['rows'][0]['addback']-$approved['amount'])<0.01,'Exporter Add Back amount');
         if ($case==='normal' && !in_array('--fast',$argv,true)) {
-            mkdir($root.'/Templates',0700,true); copy(__DIR__.'/../../Templates/SAMPLE.xlsx',$root.'/Templates/SAMPLE.xlsx');
+            if(!is_dir($root.'/Templates'))mkdir($root.'/Templates',0700,true); copy(__DIR__.'/../../Templates/SAMPLE.xlsx',$root.'/Templates/SAMPLE.xlsx');
             require __DIR__.'/../../vendor/autoload.php'; require $root.'/Api/Accounting/Lib/client_billing_spreadsheet.php';
-            $sheet=client_billing_render_spreadsheet($export)->getActiveSheet(); ab_assert(abs((float)$sheet->getCell('Q6')->getValue()-250)<0.01,'Workbook Q6 pesos');
-            ab_assert(abs((float)$sheet->getCell('AB6')->getValue()-(float)$pay['GrossPay'])<0.01,'Workbook gross matches payroll');
+            $billingBook=client_billing_render_spreadsheet($export);$sheet=$billingBook->getActiveSheet(); ab_assert(abs((float)$sheet->getCell('Q6')->getValue()-250)<0.01,'Workbook Q6 pesos');
+            ab_assert(abs((float)$billingBook->getSheetByName('Payroll Reconciliation')->getCell('C5')->getValue()-(float)$pay['GrossPay'])<0.01,'Reconciliation preserves authoritative gross');
             ab_assert(add_back_payroll_total($pdo,$employee,$dep+999,$start,$end)===0.0,'No cross deployment');
         }
         $results[$case]=['PASS'=>true,'requested_hours'=>$r['RequestedHours'],'approved_amount'=>$approved['amount'],'gross'=>$pay['GrossPay'],'payroll_id'=>$pay['Payroll_ID']];
@@ -140,11 +166,12 @@ try {
         $results['current_rate_snapshot']='PASS: no browser rate; completed duty accepted in Philippine time';
     }
     $boundary='AddBackTestBoundary'; $multipart="--$boundary\r\nContent-Disposition: form-data; name=\"proof\"; filename=\"invalid.txt\"\r\nContent-Type: text/plain\r\n\r\nTEST unsupported upload\r\n--$boundary--\r\n";
-    $context=stream_context_create(['http'=>['method'=>'POST','ignore_errors'=>true,'timeout'=>10,'header'=>"Cookie: PHPSESSID=$normalSession\r\nContent-Type: multipart/form-data; boundary=$boundary\r\n",'content'=>$multipart]]);
+    $context=stream_context_create(['http'=>['method'=>'POST','ignore_errors'=>true,'timeout'=>10,'header'=>"Cookie: PHPSESSID=$normalSession\r\nContent-Type: multipart/form-data; boundary=$boundary\r\nX-AddBack-CSRF: fixture-addback-token\r\nX-Payroll-CSRF: fixture-payroll-token\r\n",'content'=>$multipart]]);
     file_get_contents($api,false,$context); ab_assert(str_contains($http_response_header[0]??'','415'),'Unsupported additional upload rejected'); $security['unsupported_additional_upload']='PASS';
     ab_assert(saveBase64Selfie('data:image/jpeg;base64,'.base64_encode('<?php echo 1; ?>'),999,'clock_in')===null,'Unsupported selfie payload');
     try { evidence_file('uploads/attendance_photos/../../index.html'); throw new RuntimeException('Traversal accepted'); } catch (DomainException $e) { $security['storage_containment']='PASS'; }
     $security['unsupported_image']='PASS'; $security['duplicate_request_approval_payment']='PASS';
+    require __DIR__.'/upload_cases.php';
     $after=ab_snapshot($live); ab_assert($before===$after,'Production data unchanged');
     $result=['success'=>true,'results'=>$results,'security'=>$security,'production_unchanged'=>true,'fixture_directory'=>$root,'production_before'=>$before,'production_after'=>$after];
     if (in_array('--browser',$argv,true)) {
@@ -161,4 +188,5 @@ finally {
     if (is_resource($server)) { proc_terminate($server); proc_close($server); }
     if ($created && $testDb!==$sourceDb && preg_match('/^codex_addback_[a-f0-9]{12}$/D',$testDb)) { $live->query('DROP DATABASE `'.$testDb.'`'); $result['cleanup']='Disposable database removed'; }
 }
+file_put_contents(__DIR__.'/upload_results.json',json_encode($result,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
 echo json_encode($result,JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES); exit($result['success']?0:1);

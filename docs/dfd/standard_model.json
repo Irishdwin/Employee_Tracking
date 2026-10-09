@@ -1,0 +1,201 @@
+{
+  "rows": [
+    [
+      "1.0",
+      "Manage Accounts",
+      "All six portal roles",
+      "Credentials and account inputs",
+      "Session and account results",
+      "D1",
+      "Accounts and Security",
+      "Account identity and roles",
+      "Account changes"
+    ],
+    [
+      "2.0",
+      "Manage Recruitment",
+      "Applicant / HR / Team Lead",
+      "Profile, application and review inputs",
+      "Application and hiring results",
+      "D2",
+      "Recruitment Records",
+      "Applicant and job records",
+      "Applications and decisions"
+    ],
+    [
+      "3.0",
+      "Manage Staffing and Deployment",
+      "Admin / HR / Team Lead",
+      "Job orders, sites and assignments",
+      "Staffing and deployment results",
+      "D3",
+      "Staffing and Deployment Records",
+      "Clients, orders and sites",
+      "Orders and deployments"
+    ],
+    [
+      "4.0",
+      "Manage Employee Records",
+      "Employee / HR / Accounting / Admin",
+      "Profile, resignation and clearance inputs",
+      "Employee and final-pay results",
+      "D4",
+      "Employee Records",
+      "Employee and clearance records",
+      "Profile and separation changes"
+    ],
+    [
+      "5.0",
+      "Manage Work Time",
+      "Employee / Team Lead / Accounting",
+      "Clock evidence, schedules, OT and DTR inputs",
+      "Attendance, OT and DTR results",
+      "D5",
+      "Work Time Records",
+      "Schedules, attendance and DTR",
+      "Schedules, clock and review records"
+    ],
+    [
+      "6.0",
+      "Process Payroll and Billing",
+      "Accounting / Employee",
+      "Payroll review, revision and status inputs",
+      "Billing, payslip and payroll status",
+      "D6",
+      "Payroll and Billing Records",
+      "Runs, rates and billing snapshots",
+      "Finalized payroll and status"
+    ],
+    [
+      "7.0",
+      "Manage Communications",
+      "All six portal roles",
+      "Authorized messages and read inputs",
+      "Messages and notifications",
+      "D7",
+      "Communication Records",
+      "Messages and notifications",
+      "Messages and read states"
+    ],
+    [
+      "8.0",
+      "Produce Reports",
+      "Admin / HR / Accounting",
+      "Report filters and export selection",
+      "Audit, workforce and payroll summaries",
+      "D8",
+      "Audit and Reference Records",
+      "Audit and configuration records",
+      null
+    ]
+  ],
+  "dependencies": [
+    [
+      "D2",
+      "P3",
+      "Approved hiring record"
+    ],
+    [
+      "D3",
+      "P4",
+      "Deployment and worksite"
+    ],
+    [
+      "D5",
+      "P5",
+      "Verified DTR, schedule and overtime"
+    ],
+    [
+      "D4",
+      "P5",
+      "Employee rates"
+    ],
+    [
+      "D8",
+      "P5",
+      "Deduction rules"
+    ],
+    [
+      "D2",
+      "P7",
+      "Report records"
+    ],
+    [
+      "D3",
+      "P7",
+      "Report records"
+    ],
+    [
+      "D4",
+      "P7",
+      "Report records"
+    ],
+    [
+      "D5",
+      "P7",
+      "Report records"
+    ],
+    [
+      "D6",
+      "P7",
+      "Report records"
+    ],
+    [
+      "P0",
+      "D7",
+      "Event notifications"
+    ],
+    [
+      "P1",
+      "D7",
+      "Event notifications"
+    ],
+    [
+      "P2",
+      "D7",
+      "Event notifications"
+    ],
+    [
+      "P4",
+      "D7",
+      "Event notifications"
+    ],
+    [
+      "P5",
+      "D7",
+      "Event notifications"
+    ]
+  ],
+  "grouping": {
+    "1.0": [
+      "P1"
+    ],
+    "2.0": [
+      "P2"
+    ],
+    "3.0": [
+      "P3",
+      "P5"
+    ],
+    "4.0": [
+      "P4"
+    ],
+    "5.0": [
+      "P6",
+      "P7",
+      "P8",
+      "P14"
+    ],
+    "6.0": [
+      "P9",
+      "P10"
+    ],
+    "7.0": [
+      "P11",
+      "P12"
+    ],
+    "8.0": [
+      "P13"
+    ]
+  }
+}

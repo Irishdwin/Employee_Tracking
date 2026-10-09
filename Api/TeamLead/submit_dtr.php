@@ -135,6 +135,8 @@ try {
     foreach ($employeeIds as $employeeId) {
         // Shares the employee mutex with clock writes and Add Back review.
         site_query($conn,'SELECT EmployeeID FROM employee WHERE EmployeeID=? FOR UPDATE','i',[$employeeId]);
+        $unfinishedOt=site_query($conn,"SELECT ot.OvertimeID FROM overtime ot JOIN status st ON st.StatusID=ot.StatusID WHERE ot.EmployeeID=? AND ot.OvertimeDate BETWEEN ? AND ? AND ot.EmployeeResponseRequired=1 AND (st.Name IN ('Active','Completed') OR (st.Name='Accepted' AND TIMESTAMP(ot.OvertimeDate,ot.OTEndTime)>=NOW())) LIMIT 1",'iss',[$employeeId,$cutoffStart,$cutoffEnd])->fetch_assoc();
+        if($unfinishedOt)throw new DomainException('Complete and approve or reject outstanding overtime before submitting this employee’s DTR.',409);
         // 1) Ownership check — this employee must actually be on this TL's roster.
         $ownerRow=site_owned_employee($conn,$teamLeadUserId,$employeeId,$siteId);
         if(!$ownerRow)throw new DomainException('Site assignment changed. Reload before submitting.',403);
@@ -188,6 +190,8 @@ try {
             }
         }
 
+        $reviewMessage=null;
+        try {
         $periodTotals = payroll_compute_period(
             $conn,
             $pdo,
@@ -203,7 +207,11 @@ try {
             (int)$ownerRow['DeploymentID']
         );
 
-        $classification=dtr_classification_from_payroll($periodTotals);
+        } catch (InvalidArgumentException $e) {
+            if(!preg_match('/requires (Accounting review|review|confirmation)/',$e->getMessage()))throw $e;
+            $reviewMessage=$e->getMessage();
+        }
+        $classification=$reviewMessage===null ? dtr_classification_from_payroll($periodTotals) : ['requires_review'=>true,'review_message'=>$reviewMessage,'regular_hours'=>null,'ordinary_overtime_hours'=>null,'overtime_hours'=>null,'holiday_work_hours'=>null];
         $totalHours=$classification['regular_hours'];
         $overtimeHours=$classification['ordinary_overtime_hours'];
         $totalOvertimeHours=$classification['overtime_hours'];
@@ -256,6 +264,5 @@ try {
     echo json_encode([
         'success' => false,
         'message' => 'Failed to submit DTR.',
-        'error_details' => $e->getMessage(),
     ]);
 }

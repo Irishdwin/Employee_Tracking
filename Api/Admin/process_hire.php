@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 require __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/hire_applicant.php';
 require_once __DIR__ . '/../Helpers/AuditLogger.php';
+require_once __DIR__ . '/../Common/NotificationHelper.php';
 
 $input = json_decode(file_get_contents('php://input'), true);
 if (!is_array($input)) {
@@ -43,7 +44,8 @@ $result = hireApplicantFromApplication(
     $philhealthNumber,
     $pagibigNumber,
     is_numeric($dailyRate) ? (float)$dailyRate : 0,
-    is_numeric($allowance) ? (float)$allowance : 0
+    is_numeric($allowance) ? (float)$allowance : 0,
+    $input['sunday_duty_allowance'] ?? '0'
 );
 
 if (is_array($result) && !empty($result['success']) && !empty($result['employee_id'])) {
@@ -55,7 +57,7 @@ if (is_array($result) && !empty($result['success']) && !empty($result['employee_
     AuditLogger::log($conn, 'Employee', 'Hire', "Employee {$empName} was hired and converted successfully.", (string)$empId);
 
     $tlStmt = $conn->prepare("
-        SELECT d.SiteSuperVisorID AS UserID, e.FullName AS EmployeeName, c.Name AS CompanyName
+        SELECT d.SiteSuperVisorID AS UserID, CONCAT(e.FirstName, ' ', e.LastName) AS EmployeeName, c.Name AS CompanyName
         FROM deployment d
         INNER JOIN employee e ON d.EmployeeID = e.EmployeeID
         INNER JOIN clientcompany c ON d.CompanyID = c.CompanyID
@@ -72,15 +74,7 @@ if (is_array($result) && !empty($result['success']) && !empty($result['employee_
             $empName = $tlRow['EmployeeName'] ?? 'Employee';
             $compName = $tlRow['CompanyName'] ?? 'Company';
             $msgText = "New employee deployed under your team:\n" . $empName . "\nClient: " . $compName;
-            $hireNotifStmt = $conn->prepare("
-                INSERT INTO notifications (UserID, Title, Message, Type, ReferenceID, IsRead, CreatedAt)
-                VALUES (?, 'New Employee Deployed', ?, 'deployed_team', ?, 0, NOW())
-            ");
-            if ($hireNotifStmt) {
-                $hireNotifStmt->bind_param("isi", $tlUserId, $msgText, $empId);
-                $hireNotifStmt->execute();
-                $hireNotifStmt->close();
-            }
+            insert_system_notification($conn, $tlUserId, 'deployed_team', 'New Employee Deployed', $msgText, 'employee', $empId);
         }
     }
 }

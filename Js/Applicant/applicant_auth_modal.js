@@ -14,8 +14,8 @@
   };
 
   var PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-  var EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  var MOBILE_RULE = /^\+639\d{9}$/;
+  var EMAIL_RULE = /^[a-z0-9][a-z0-9._%+\-]*@gmail\.com$/i;
+  var MOBILE_RULE = PhMobile.rule;
 
   // Client-side mirror of Api/Helpers/password_policy.php::is_common_or_predictable_password().
   // UX hint only — register_applicant.php performs the authoritative check server-side (UT-102).
@@ -143,7 +143,7 @@
       err.textContent = message || '';
       err.classList.toggle('is-visible', !!message);
     }
-    if (input) input.classList.toggle('is-invalid', !!message);
+    if (input) {input.classList.toggle('is-invalid', !!message);if(message)input.classList.remove('is-valid');}
   }
 
   function checkEmailUniqueness(email) {
@@ -151,6 +151,7 @@
       state.emailExists = false;
       return Promise.resolve(false);
     }
+    var checkedEmail=email.toLowerCase();
     return fetch(cfg.checkEmailApi, {
       method: 'POST',
       credentials: 'same-origin',
@@ -159,6 +160,8 @@
     })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (res) {
+        if(checkedEmail!==(els.regEmail.value||'').trim().toLowerCase())return true;
+        if(!res || !res.success)throw new Error('Unable to check Gmail availability. Please try again.');
         if (res && res.success && res.exists) {
           state.emailExists = true;
           setRegisterFieldError('email', 'This Gmail address is already registered. Please use another Gmail.');
@@ -166,24 +169,23 @@
           return true;
         }
         state.emailExists = false;
+        setRegisterFieldError('email','');els.regEmail.classList.add('is-valid');
         if (els.btnSendRegCode && state.registerCooldown <= 0) {
           els.btnSendRegCode.disabled = false;
         }
         return false;
       })
       .catch(function () {
-        return false;
+        if(checkedEmail===(els.regEmail.value||'').trim().toLowerCase())setRegisterFieldError('email','Unable to check Gmail availability. Please try again.');
+        return true;
       });
   }
 
   function handleMobileInput() {
     if (!els.regMobile) return;
-    var val = els.regMobile.value;
-    if (!val.startsWith('+63')) {
-      val = '+63' + val.replace(/^\+?6?3?/, '');
-    }
+    var val = PhMobile.format(els.regMobile.value);
     var prefix = '+63';
-    var rest = val.slice(3).replace(/\D/g, '').slice(0, 10);
+    var rest = val.slice(3);
     els.regMobile.value = prefix + rest;
 
     if (rest.length > 0 && rest[0] !== '9') {
@@ -195,6 +197,7 @@
     } else {
       setRegisterFieldError('mobile_number', '');
     }
+    els.regMobile.classList.toggle('is-valid', MOBILE_RULE.test(els.regMobile.value));
   }
 
   function validateRegisterForm() {
@@ -221,7 +224,7 @@
       setRegisterFieldError('email', 'Email address is required.');
       valid = false;
     } else if (!EMAIL_RULE.test(email)) {
-      setRegisterFieldError('email', 'Please enter a valid email address.');
+      setRegisterFieldError('email', 'Please enter a valid Gmail address.');
       valid = false;
     } else if (state.emailExists) {
       setRegisterFieldError('email', 'This Gmail address is already registered. Please use another Gmail.');
@@ -385,6 +388,22 @@
     dispatchAuthSuccess(data);
   }
 
+  var loginCooldownTimer=null;
+  function showLoginCooldown(seconds) {
+    if(!els.loginForm)return;
+    var panel=$('applicantLoginCooldown');
+    if(!panel){panel=document.createElement('div');panel.id='applicantLoginCooldown';panel.className='alert alert-warning py-2 px-3 mt-2 mb-2 small';panel.setAttribute('role','status');els.btnLogin.before(panel);}
+    var until=Date.now()+Number(seconds)*1000;
+    clearInterval(loginCooldownTimer);
+    function update(){
+      var left=Math.max(0,Math.ceil((until-Date.now())/1000));
+      var time=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');
+      panel.innerHTML='<div class="d-flex align-items-center justify-content-between gap-2"><span>'+(left?'Try again in':'Cooldown finished')+'</span><span class="fw-bold" style="font-variant-numeric:tabular-nums">'+time+'</span></div>';
+      if(!left)clearInterval(loginCooldownTimer);
+    }
+    update();loginCooldownTimer=setInterval(update,1000);
+  }
+
   function submitEmailLogin(e) {
     if (e) e.preventDefault();
     var email = (els.loginEmail && els.loginEmail.value || '').trim();
@@ -410,6 +429,7 @@
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (res) {
         if (!res.ok || !res.data || !res.data.success) {
+          if(res.data && res.data.retry_after)showLoginCooldown(res.data.retry_after);
           showToast((res.data && res.data.message) || 'Sign in failed.', 'danger');
           return;
         }
@@ -456,7 +476,7 @@
       return;
     }
     if (!EMAIL_RULE.test(email)) {
-      setRegisterFieldError('email', 'Please enter a valid email address.');
+      setRegisterFieldError('email', 'Please enter a valid Gmail address.');
       if (els.regEmail) els.regEmail.focus();
       return;
     }
@@ -694,6 +714,9 @@
         showView('landing');
       });
     }
+    if(els.loginForm && !els.loginForm.querySelector('[data-password-reset]')){
+      var resetLink=document.createElement('a');resetLink.href='../../index.html?forgot=1';resetLink.textContent='Forgot Password?';resetLink.setAttribute('data-password-reset','');els.loginForm.appendChild(resetLink);
+    }
     if (els.loginForm) els.loginForm.addEventListener('submit', submitEmailLogin);
     if (els.registerForm) els.registerForm.addEventListener('submit', submitRegister);
     if (els.btnSendRegCode) els.btnSendRegCode.addEventListener('click', sendRegisterCode);
@@ -709,8 +732,12 @@
     }
 
     if (els.regEmail) {
+      var emailTimer;
       els.regEmail.addEventListener('input', function () {
-        setRegisterFieldError('email', '');
+        clearTimeout(emailTimer);state.emailExists=false;this.classList.remove('is-valid');state.registerCodeSent=false;
+        if(els.regOtp){els.regOtp.value='';els.regOtp.disabled=true;}
+        var email=this.value.trim();setRegisterFieldError('email',email && !EMAIL_RULE.test(email)?'Please enter a valid Gmail address.':'');
+        if(EMAIL_RULE.test(email))emailTimer=setTimeout(function(){checkEmailUniqueness(email);},350);
       });
       els.regEmail.addEventListener('blur', function () {
         var email = (els.regEmail.value || '').trim();
@@ -728,6 +755,17 @@
         }
       });
     }
+
+    function validatePasswords(){
+      var password=els.regPassword.value;
+      var checks=[password.length>=8,/[A-Z]/.test(password),/[a-z]/.test(password),/\d/.test(password),/[^A-Za-z0-9]/.test(password)];
+      document.querySelectorAll('#authRegPasswordRules li').forEach(function(li,i){li.style.color=password?(checks[i]?'#198754':'#dc3545'):'';});
+      var good=PASSWORD_RULE.test(password)&&!isCommonOrPredictablePassword(password);
+      setRegisterFieldError('password',password&&!good?'Choose a strong password meeting all requirements.':'');els.regPassword.classList.toggle('is-valid',good);
+      var confirm=els.regConfirm.value;setRegisterFieldError('confirm_password',confirm&&confirm!==password?'Passwords do not match.':'');els.regConfirm.classList.toggle('is-valid',!!confirm&&confirm===password&&good);
+    }
+    if(els.regPassword && els.regConfirm){els.regPassword.addEventListener('input',validatePasswords);els.regConfirm.addEventListener('input',validatePasswords);}
+    document.querySelectorAll('[data-auth-password-toggle]').forEach(function(button){button.addEventListener('click',function(){var input=$(button.dataset.authPasswordToggle);var visible=input.type==='password';input.type=visible?'text':'password';button.setAttribute('aria-label',visible?'Hide password':'Show password');button.setAttribute('aria-pressed',String(visible));button.innerHTML='<i class="bi '+(visible?'bi-eye-slash':'bi-eye')+'"></i>';});});
 
     if (els.regOtp) {
       els.regOtp.addEventListener('input', function () {

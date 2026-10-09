@@ -1,0 +1,11 @@
+{
+  "passed": 6,
+  "tests": [
+    "TeamLead 1366px: responsive layout, permitted actions, confirmation/success, CSRF",
+    "Accounting 1366px: responsive layout, permitted actions, confirmation/success, CSRF",
+    "Employee 1366px: responsive layout, permitted actions, confirmation/success, CSRF",
+    "TeamLead 390px: responsive layout, permitted actions, confirmation/success, CSRF",
+    "Accounting 390px: responsive layout, permitted actions, confirmation/success, CSRF",
+    "Employee 390px: responsive layout, permitted actions, confirmation/success, CSRF"
+  ]
+}

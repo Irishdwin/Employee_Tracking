@@ -199,7 +199,9 @@ function client_billing_map_run_row(mysqli $conn, array $row): array
         'status' => (string)$row['Status'],
         'current_status' => $currentStatus,
         'employee_count' => (int)$row['employee_count'],
-        'exportable' => (int)($row['site_count'] ?? 1)<=1,
+        'verified_employee_count'=>(int)($row['verified_employee_count']??0),
+        'exportable' => (int)($row['site_count'] ?? 1)<=1 && (int)($row['verified_employee_count']??0)>0,
+        'export_block_reason'=>(int)($row['site_count']??1)>1?'Choose a site-specific run.':'No verified DTRs for this cutoff.',
         'total_invoice' => $totalInvoice,
         'admin_overhead_pct' => (float)$row['AdminOverheadPct'],
         'vat_pct' => (float)$row['VatPct'],
@@ -328,6 +330,7 @@ function client_billing_update_run_status(mysqli $conn, string $runCode, string 
             if(count($members)!==count($frozen))throw new RuntimeException('The archived payroll roster no longer matches its verified DTRs.',409);
         }
         if (!$members) throw new InvalidArgumentException('No verified DTRs belong to this run.');
+        if($newStatus==='Payroll Released')payroll_status_require_finalized($conn,$members,$run['PeriodStart'],$run['PeriodEnd']);
         $unchanged=$locked['CurrentStatus']===$newStatus;
         foreach($members as $member)if((payroll_status_for_dtr($conn,(int)$member['DTR_SubmissionID'])['current']['status'] ?? '')!==$newStatus)$unchanged=false;
         if ($unchanged) {
@@ -496,6 +499,8 @@ function client_billing_list_runs_split(mysqli $conn): array
 
             $snapshotCount=payroll_query($conn,'SELECT COUNT(*) n FROM payroll_run_members WHERE PayrollRunID=?','i',[(int)$row['PayrollRunID']])->get_result()->fetch_assoc();
             if ((int)$snapshotCount['n']) $row['employee_count']=(int)$snapshotCount['n'];
+            $eligible=payroll_query($conn,'SELECT COUNT(DISTINCT ds.EmployeeID) n FROM dtr_submissions ds JOIN deployment dep ON dep.DeploymentID=ds.DeploymentID AND dep.EmployeeID=ds.EmployeeID WHERE dep.CompanyID=? AND dep.SiteID=ds.SiteID AND ds.SiteID IS NOT NULL AND ds.ReviewedBy IS NOT NULL AND ds.ReviewDate IS NOT NULL AND ds.CutoffStartDate=? AND ds.CutoffEndDate=? AND (?=0 OR ds.SiteID=?) AND (?=0 OR ds.SiteSupervisorID=?)','issiiii',[(int)$row['CompanyID'],$row['PeriodStart'],$row['PeriodEnd'],(int)$row['SiteID'],(int)$row['SiteID'],(int)$row['SiteSupervisorID'],(int)$row['SiteSupervisorID']])->get_result()->fetch_assoc();
+            $row['verified_employee_count']=max((int)$eligible['n'],(int)$snapshotCount['n']);
             $mapped = client_billing_map_run_row($conn, $row);
             $clients[$mapped['client_name']] = $mapped['client_name'];
 
@@ -630,11 +635,11 @@ function client_billing_fetch_employees_for_run(mysqli $conn, array $run, bool $
     $seen=[];$sites=[];
     foreach($employees as $employee) {
         $id=(int)$employee['EmployeeID'];
-        if(isset($seen[$id]))throw new RuntimeException('Duplicate verified DTRs exist for an employee in this cutoff. Resolve them before exporting.');
+        if(isset($seen[$id]))throw new RuntimeException('Duplicate verified DTRs exist for an employee in this cutoff. Resolve them before exporting.',409);
         $seen[$id]=true;$sites[(int)$employee['SiteID']]=true;
     }
     // Legacy payroll runs have no stable SiteID. Never silently combine branches.
-    if(count($sites)>1)throw new RuntimeException('This legacy payroll run contains multiple deployment sites. Site-specific payroll runs are required before export.');
+    if(count($sites)>1)throw new RuntimeException('This legacy payroll run contains multiple deployment sites. Site-specific payroll runs are required before export.',409);
     return $employees;
 }
 
@@ -645,7 +650,11 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
         throw new RuntimeException('Payroll run not found.');
     }
 
-    $pdo = attendance_pdo();
+    // Add Back payroll and archived billing retain the reviewed itemization.
+    $frozen=payroll_query($conn,'SELECT SnapshotJson FROM payroll_run_members WHERE PayrollRunID=? ORDER BY EmployeeID','i',[(int)$run['PayrollRunID']])->get_result()->fetch_all(MYSQLI_ASSOC);
+    if($frozen){$rows=array_map(static fn($m)=>json_decode($m['SnapshotJson'],true,512,JSON_THROW_ON_ERROR),$frozen);$totals=['grand_total'=>0.0,'net_salary'=>0.0,'gross_payroll'=>0.0,'labor_cost'=>0.0];foreach($rows as $row)foreach(['grand_total'=>'grand_total_invoice','net_salary'=>'net_salary','gross_payroll'=>'gross_payroll','labor_cost'=>'subtotal_labor_cost'] as $key=>$field)$totals[$key]=round($totals[$key]+(float)$row[$field],2);return ['run'=>$run,'client_name'=>$run['client_name'],'rows'=>$rows,'totals'=>$totals];}
+
+    $pdo = attendance_pdo($conn);
     attendance_ensure_table($pdo);
 
     $periodStart = (string)$run['PeriodStart'];
@@ -659,6 +668,7 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
     $clientName = (string)$run['client_name'];
 
     $employees = client_billing_fetch_employees_for_run($conn, $run);
+    if(!$employees)throw new RuntimeException('No verified DTRs belong to this billing reference. Verify and compute the selected site payroll first.',409);
     $gov = payroll_fetch_gov_rates($conn);
     $rows = [];
 
@@ -681,6 +691,25 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
 
     foreach ($employees as $emp) {
         $empId = (int)$emp['EmployeeID'];
+        $saved=payroll_query($conn,"SELECT p.* FROM payroll p JOIN status s ON s.StatusID=p.StatusID WHERE p.EmployeeID=? AND p.DTR_SubmissionID=? AND p.PayPeriodStart=? AND p.PayPeriodEnd=? AND s.Name='Finalized'",'iiss',[$empId,(int)$emp['DTR_SubmissionID'],$periodStart,$periodEnd])->get_result()->fetch_all(MYSQLI_ASSOC);
+        if(count($saved)>1)throw new RuntimeException('Duplicate finalized payroll records require Accounting review.',409);
+        if($saved){
+            $p=$saved[0];$days=(float)$p['TotalDaysWorked'];$recordedRate=$days>0?round((float)$p['BasicSalary']/$days,2):0.0;
+            if((float)$p['HolidayPay']!==0.0)throw new RuntimeException('This legacy finalized payroll has holiday pay without an archived billing breakdown. Accounting must recover its original holiday classification before exporting; payroll history has not been changed.',409);
+            $msc=$recordedRate*26;$sssEr=client_billing_lookup_sss_er($conn,$msc);
+            $erSss=$deductionFlags['sss']?round($sssEr['regular_ss_er']/2,2):0;$erMpf=$deductionFlags['sss']?round($sssEr['mpf_er']/2,2):0;$erEc=$deductionFlags['sss']?round($sssEr['ec_er']/2,2):0;
+            $erPhil=$deductionFlags['philhealth']?round($msc*($gov['philhealth_er_pct']/100)/2,2):0;$erPagibig=$deductionFlags['pagibig']?round($gov['pagibig_er_fixed']/2,2):0;$er=$erSss+$erMpf+$erEc+$erPhil+$erPagibig;
+            $gross=(float)$p['GrossPay'];$basic=(float)$p['BasicSalary'];$other=(float)$p['TotalDeductions']-(float)$p['SSSDeduction']-(float)$p['PhilHealthDeduction']-(float)$p['PagIBIGDeduction'];
+            if($gross<$basic||$other<0)throw new RuntimeException('Legacy payroll component totals require Accounting reconciliation before billing export. Stored payroll is preserved.',409);
+            $accrual=round($gross/12,2);$labor=round($gross+$er+$accrual,2);$admin=round($labor*$adminPct/100,2);$vat=round($admin*$vatPct/100,2);
+            $row=['employee_db_id'=>$empId,'employee_id'=>$emp['EmployeeNumber'],'employee_name'=>trim($emp['FirstName'].' '.$emp['LastName']),'designation'=>$emp['designation'],'area_site'=>$emp['area_site']?:$clientName,'dtr_submission_id'=>(int)$emp['DTR_SubmissionID'],'site_id'=>(int)$emp['SiteID'],'deployment_id'=>(int)$emp['DeploymentID'],'daily_rate'=>$recordedRate,'days_worked'=>$days,'basic_total'=>$basic,'gross_salary'=>$basic,'additional_pay'=>round($gross-$basic,2),'gross_before_lates'=>$gross,'gross_payroll'=>$gross,'total_ee_deductions'=>(float)$p['TotalDeductions'],'net_salary'=>(float)$p['NetPay'],'sss_ee'=>(float)$p['SSSDeduction'],'philhealth_ee'=>(float)$p['PhilHealthDeduction'],'pagibig_ee'=>(float)$p['PagIBIGDeduction'],'other_ee_deductions'=>round($other,2),'sss_er_regular'=>$erSss,'sss_er_mpf'=>$erMpf,'ec_er'=>$erEc,'philhealth_er'=>$erPhil,'pagibig_er'=>$erPagibig,'total_er_dues'=>$er,'thirteenth_month_accrual'=>$accrual,'subtotal_labor_cost'=>$labor,'admin_overhead_pct'=>$adminPct,'admin_overhead_amount'=>$admin,'vat_pct'=>$vatPct,'vat_on_overhead'=>$vat,'grand_total_invoice'=>round($labor+$admin+$vat,2),'legacy_recorded_payroll'=>true,'payroll_id'=>(int)$p['Payroll_ID'],'payroll_snapshot'=>$p,'legacy_note'=>'Recovered from stored finalized payroll. Additional pay is the recorded gross less basic pay; original overtime/rest-day/late itemization was not archived. Recorded aggregate overtime: PHP '.$p['OvertimePay'].' for '.$p['OvertimeHours'].' hours. Recorded allowance field: PHP '.$p['Allowances'].'. Payroll gross, deductions and net are preserved. Employer/accrual billing uses the existing billing settings and requires Accounting review.'];
+            foreach(['basic_total','gross_salary','additional_pay','gross_before_lates','gross_payroll','total_ee_deductions','net_salary'] as $key)$row['billing_overrides'][$key]=true;
+            foreach(['regular_ot_hours','regular_ot_amount','sunday_ot_hours','sunday_ot_amount','special_holiday_ot_hours','special_holiday_ot_amount','total_overtime','lates_minutes','lates_undertime','allowances','sil_accrual','holiday_duty','holiday_duty_hrs','holiday_ot_hrs','holiday_ot_amount','special_holiday_hrs','special_holiday_pay','night_differential','other_incentives','sunday_allowance','addback','additional_philhealth_ee','additional_pagibig_ee','other_pagibig_ee'] as $key)$row[$key]=0.0;
+            foreach(['sss_number'=>'SSSNumber','philhealth_number'=>'PhilHealthNumber','pagibig_number'=>'PagIBIGNumber','tin'=>'TINNumber'] as $key=>$column)$row[$key]=(string)($emp[$column]??'');
+            $row['pay_period']=$run['CutoffLabel']??($periodStart.' - '.$periodEnd);$row['run_id']=$runCode;$row['client_name']=$clientName;$row['status']=$run['Status'];
+            foreach(['grand_total'=>'grand_total_invoice','net_salary'=>'net_salary','gross_payroll'=>'gross_payroll','labor_cost'=>'subtotal_labor_cost'] as $total=>$key)$totals[$total]+=$row[$key];
+            $rows[]=$row;continue;
+        }
         $dailyRate = (float)($emp['daily_rate'] ?? 0);
         $hourlyRate = (float)($emp['hourly_rate'] ?? 0);
         $allowance = (float)($emp['allowance'] ?? 0);
@@ -776,11 +805,12 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
                 $specialHolidayOtPay += (float)($h['pay'] ?? 0);
             }
         }
+        $sundayAllowance=(float)($payroll['earnings']['sunday_allowance']??0);
         $totalOtPay = round($regOtPay + $sunOtPay + $regularHolidayOtPay + $specialHolidayOtPay, 2);
 
         $basicTotal = (float)($payroll['earnings']['basic_pay'] ?? 0);
         $latesUndertime = (float)($payroll['late_undertime_deduction'] ?? 0);
-        $grossSalary = round($basicTotal + $totalOtPay - $latesUndertime, 2);
+        $grossSalary = round($basicTotal + $totalOtPay + $sundayAllowance - $latesUndertime, 2);
         $allowanceHalf = (float)($payroll['earnings']['allowance'] ?? 0);
         $silAccrual = (float)($payroll['earnings']['sil_accrual'] ?? 0);
         $grossPayroll = (float)($payroll['gross_pay'] ?? 0);
@@ -792,7 +822,7 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
         $totalEeDed = (float)($payroll['total_deductions'] ?? 0);
         $netSalary = (float)($payroll['net_pay'] ?? 0);
 
-        $thirteenthAccrual = round($grossSalary / 12, 2);
+        $thirteenthAccrual = round(($grossSalary - $sundayAllowance) / 12, 2);
         $laborCost = round($grossPayroll + $totalErHalf + $thirteenthAccrual, 2);
         $adminOverhead = round($laborCost * ($adminPct / 100), 2);
         $vatOnOverhead = round($adminOverhead * ($vatPct / 100), 2);
@@ -820,7 +850,10 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
             'regular_ot_hours' => $regOtHours,
             'regular_ot_amount' => $regOtPay,
             'sunday_ot_hours' => $sunOtHours,
-            'sunday_ot_amount' => $sunOtPay,
+            'sunday_ot_amount' => round($sunOtPay+$sundayAllowance,2),
+            'sunday_allowance' => $sundayAllowance,
+            'sunday_duty_dates' => $payroll['earnings']['sunday_duty_dates']??[],
+            'sunday_allowance_rate' => $payroll['earnings']['sunday_allowance_rate']??0,
             'holiday_duty_hrs' => $regularHolidayHrs,
             'holiday_duty' => $regularHolidayPay,
             'holiday_ot_hrs' => $regularHolidayOtHours,
@@ -830,6 +863,7 @@ function client_billing_build_export(mysqli $conn, string $runCode): array
             'special_holiday_ot_hours' => $specialHolidayOtHours,
             'special_holiday_ot_amount' => $specialHolidayOtPay,
             'total_overtime' => $totalOtPay,
+            'lates_minutes' => (float)($payroll['late_undertime']['total_minutes'] ?? 0),
             'lates_undertime' => $latesUndertime,
             'gross_salary' => $grossSalary,
             'allowances' => $allowanceHalf,

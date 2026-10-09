@@ -1,0 +1,11 @@
+{
+    "success": true,
+    "checks": {
+        "stored rates": true,
+        "rounded hourly derivation": true,
+        "BasicSalary fallback overrides hourly as before": true,
+        "missing salary has no fallback": true,
+        "finalizer salary-credit behavior preserved": true,
+        "employee API salary-credit behavior preserved": true
+    }
+}

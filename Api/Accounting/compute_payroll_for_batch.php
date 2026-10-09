@@ -45,12 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 require_once __DIR__ . '/../Db_connection/db_connect.php';
 require_once __DIR__ . '/../Helpers/client_billing_helper.php';
+require_once __DIR__.'/../Helpers/payroll_finalization.php';
 
 $raw = file_get_contents('php://input');
 $json = json_decode($raw, true);
 $body = is_array($json) ? $json : $_POST;
 
 $tlId = (int)($body['tl_id'] ?? 0);
+$siteId = (int)($body['site_id'] ?? 0);
 $cutoffStart = trim((string)($body['cutoff_start'] ?? ''));
 $cutoffEnd = trim((string)($body['cutoff_end'] ?? ''));
 
@@ -61,16 +63,17 @@ if ($tlId <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $cutoffStart) || !preg_ma
 }
 
 try {
+    payroll_require_accounting($conn,true);
     // Resolve the company for this batch: every dtr_submissions row for this TL+cutoff
     // should share one CompanyID via its DeploymentID. Reject ambiguous batches rather
     // than guessing which company to compute for.
     $companyStmt = $conn->prepare("
-        SELECT DISTINCT d.CompanyID
+        SELECT DISTINCT d.CompanyID,ds.SiteID
         FROM dtr_submissions ds
         INNER JOIN deployment d ON d.DeploymentID = ds.DeploymentID
-        WHERE ds.SiteSupervisorID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ?
+        WHERE ds.SiteSupervisorID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ? AND (?=0 OR ds.SiteID=?)
     ");
-    $companyStmt->bind_param('iss', $tlId, $cutoffStart, $cutoffEnd);
+    $companyStmt->bind_param('issii', $tlId, $cutoffStart, $cutoffEnd,$siteId,$siteId);
     $companyStmt->execute();
     $companyRows = $companyStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $companyStmt->close();
@@ -86,6 +89,14 @@ try {
         exit();
     }
     $companyId = (int)$companyRows[0]['CompanyID'];
+    $siteId = (int)$companyRows[0]['SiteID'];
+
+    $lockedPayroll=payroll_query($conn,'SELECT p.Payroll_ID FROM payroll p JOIN dtr_submissions ds ON ds.EmployeeID=p.EmployeeID AND ds.CutoffStartDate=p.PayPeriodStart AND ds.CutoffEndDate=p.PayPeriodEnd WHERE ds.SiteSupervisorID=? AND ds.SiteID=? AND ds.CutoffStartDate=? AND ds.CutoffEndDate=? LIMIT 1','iiss',[$tlId,$siteId,$cutoffStart,$cutoffEnd])->get_result()->fetch_assoc();
+    if($lockedPayroll)throw new RuntimeException('This cutoff already has saved payroll. View its billing export and published payslips; do not recompute finalized payroll.',409);
+
+    require_once __DIR__.'/../Helpers/dtr_classification.php';
+    $pending=payroll_query($conn,'SELECT Remarks FROM dtr_submissions WHERE SiteSupervisorID=? AND SiteID=? AND CutoffStartDate=? AND CutoffEndDate=?','iiss',[$tlId,$siteId,$cutoffStart,$cutoffEnd])->get_result();
+    while($dtr=$pending->fetch_assoc()){if(!empty(dtr_classification_decode($dtr['Remarks'])['requires_review']))throw new InvalidArgumentException('Resolve and verify the submitted DTR Accounting review before computing payroll.');}
 
     // Ensure payroll_runs rows exist for every company/cutoff pair that currently has
     // DTR submissions (reuses the existing auto-sync — no duplicate creation logic).
@@ -95,14 +106,14 @@ try {
         SELECT COUNT(DISTINCT ds.EmployeeID) AS c
         FROM dtr_submissions ds
         INNER JOIN deployment d ON d.DeploymentID = ds.DeploymentID
-        WHERE ds.SiteSupervisorID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ?
+        WHERE ds.SiteSupervisorID = ? AND ds.CutoffStartDate = ? AND ds.CutoffEndDate = ? AND (?=0 OR ds.SiteID=?)
     ");
-    $employeeCountStmt->bind_param('iss', $tlId, $cutoffStart, $cutoffEnd);
+    $employeeCountStmt->bind_param('issii', $tlId, $cutoffStart, $cutoffEnd,$siteId,$siteId);
     $employeeCountStmt->execute();
     $employeeCount = (int)($employeeCountStmt->get_result()->fetch_assoc()['c'] ?? 0);
     $employeeCountStmt->close();
 
-    $runCode = client_billing_run_code($cutoffStart, $cutoffEnd, $companyId, $tlId);
+    $runCode = client_billing_run_code($cutoffStart, $cutoffEnd, $companyId, $tlId,$siteId);
     $run = client_billing_get_run($conn, $runCode);
 
     if (!$run) {
@@ -155,8 +166,14 @@ try {
         $tlStmt->close();
     }
 
+    payroll_query($conn,'UPDATE payroll_runs SET SiteID=? WHERE RunCode=?','is',[$siteId,$runCode]);
+    $preview=client_billing_build_export($conn,$runCode);
+    if(count($preview['rows'])!==$employeeCount)throw new RuntimeException('Verify every employee DTR before computing payroll.',409);
     $userId = (int)$_SESSION['user_id'];
     client_billing_update_run_status($conn, $runCode, 'Computed', 'Computed from DTR submission batch (Team Lead ID ' . $tlId . ').', null, $userId);
+
+    $exportBaseline=(int)(payroll_query($conn,'SELECT COALESCE(MAX(ExportID),0) id FROM payroll_billing_exports WHERE PayrollRunID=?','i',[(int)$run['PayrollRunID']])->get_result()->fetch_assoc()['id']);
+    payroll_query($conn,"INSERT INTO payroll_status_history(PayrollRunID,Status,Remarks,UpdatedBy) VALUES(?,'Payroll Computed',?,?)",'isi',[(int)$run['PayrollRunID'],'Computed from DTR submission batch; review billing export before finalizing; export_after_id='.$exportBaseline,$userId]);
 
     echo json_encode([
         'success' => true,
@@ -168,6 +185,5 @@ try {
     ]);
 } catch (Throwable $e) {
     error_log('compute_payroll_for_batch: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Failed to compute payroll.', 'error_details' => $e->getMessage()]);
+    payroll_api_error($e);
 }

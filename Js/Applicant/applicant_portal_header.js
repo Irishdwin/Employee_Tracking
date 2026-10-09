@@ -111,15 +111,17 @@
     if (btnOut) {
       btnOut.addEventListener('click', function () {
         closeMenu();
-        fetch('../../Api/Login/logout.php', {
+        window.showLogoutConfirm(function () {
+          fetch('../../Api/Login/logout.php', {
           method: 'GET',
           credentials: 'include',
           headers: { Accept: 'application/json' }
         })
           .catch(function () {})
           .then(function () {
-            window.location.href = '/Employee_Tracking/index.html';
+            window.location.href = 'applicant_landing.html';
           });
+        });
       });
     }
 

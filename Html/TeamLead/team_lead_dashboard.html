@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="workforce-ui teamlead-ui">
 <head>
     <script src="../../Js/Shared/onazul_dialogs.js"></script>
 
@@ -46,6 +46,9 @@
     </style>
 <script src="../../Js/Shared/client_review_reason.js"></script>
 <link rel="stylesheet" href="../../Css/employee_security.css"><link rel="stylesheet" href="../../Css/password_strength.css"><link rel="stylesheet" href="../../Css/applicant_searchable_select.css">
+<link rel="stylesheet" href="../../Css/workforce_workspace.css">
+<link rel="stylesheet" href="../../Css/app_dialog.css">
+<script src="../../Js/Shared/app_dialog.js"></script>
 </head>
 <body class="min-h-screen bg-brand-surface text-slate-800 antialiased">
 
@@ -119,6 +122,7 @@
         <span class="sidebar-label">Overtime</span>
       </button>
 
+<button type="button" data-nav="exit" class="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-left"><i class="bi bi-door-open"></i><span class="sidebar-label">Employee Clearance</span></button>
     </nav>
 
     <div class="sidebar-user-block border-t border-white/10">
@@ -169,8 +173,8 @@
           </svg>
         </button>
         <div id="header-profile-menu" class="invisible absolute right-0 top-full z-40 mt-2 w-48 rounded-lg border border-slate-200 bg-white opacity-0 shadow-lg transition" hidden>
+<a href="#section-profile" id="menuProfile" data-show-section="section-profile" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Profile</a>
 <button type="button" id="menuSettings" class="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">Settings <span id="employeeSettingsPasswordBadge" class="badge bg-danger" hidden>1</span></button>
-          <a href="#section-profile" id="menuProfile" data-show-section="section-profile" class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Profile</a>
           <a href="#" data-logout class="block px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50">Logout</a>
         </div>
       </div>
@@ -299,12 +303,13 @@
       <section id="view-schedule" class="view-panel hidden" data-view="schedule" aria-labelledby="team-schedule-title">
         <h1 id="team-schedule-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Team Schedule</h1>
         <p class="mt-1 text-sm text-slate-600">Assign expected work hours for your deployed employees. Actual attendance is recorded separately.</p>
-        <div id="tlScheduleMessage" class="alert d-none mt-4" role="status" aria-live="polite"></div>
+        <div class="alert alert-light border mt-3 mb-0"><strong>Current Duty</strong><div id="tlScheduleCurrentDuty" aria-live="polite">Select an employee and date.</div></div>
+          <div id="tlScheduleMessage" class="alert d-none mt-4" role="status" aria-live="polite"></div>
         <form id="tlScheduleForm" class="mt-6 rounded-2xl bg-white p-5 shadow-card ring-1 ring-slate-100">
           <div class="row g-3">
             <div class="col-12"><label for="tlScheduleSite" class="form-label">Deployment Site</label><select id="tlScheduleSite" class="form-select"><option value="">Select deployment site</option></select></div>
             <div class="col-md-6"><label for="tlScheduleEmployee" class="form-label">Employee</label><select id="tlScheduleEmployee" class="form-select" required><option value="">Select an employee</option></select></div>
-            <div class="col-md-3"><label for="tlScheduleType" class="form-label">Schedule Type</label><select id="tlScheduleType" class="form-select"><option>Fixed</option><option>Rotating</option><option>Flexible</option></select></div>
+            <div class="col-md-3"><label for="tlScheduleType" class="form-label">Schedule Type</label><select id="tlScheduleType" class="form-select"><option>Fixed</option><option value="Rotating">Date-specific duty</option><option>Flexible</option></select></div>
             <div class="col-md-3"><label for="tlScheduleDate" class="form-label">Date / Effective Date</label><input id="tlScheduleDate" type="date" class="form-control" required></div>
             <div class="col-md-3"><label for="tlScheduleTimeIn" class="form-label">Expected Time In</label><input id="tlScheduleTimeIn" type="time" class="form-control" required></div>
             <div class="col-md-3"><label for="tlScheduleTimeOut" class="form-label">Expected Time Out</label><input id="tlScheduleTimeOut" type="time" class="form-control" required></div>
@@ -338,7 +343,6 @@
         #job-requests-body { min-height: 0; max-height: 65vh; scrollbar-gutter: stable; }
         @media (min-width: 1024px) {
           #jor-request-list-card { min-height: 440px; }
-          #job-requests-body { flex: 1 1 0; height: 0; max-height: none; }
         }
       </style>
 
@@ -346,7 +350,7 @@
         <h1 id="jor-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Job Order Requests</h1>
         <p class="mt-1 text-sm text-slate-600">Create new requests and monitor HR approval status.</p>
 
-        <div class="mt-6 grid gap-6 lg:grid-cols-2">
+        <div class="mt-6 grid items-start gap-6 lg:grid-cols-2">
           <div class="rounded-xl border border-slate-100 bg-white p-5 shadow-card">
             <div class="mb-3">
               <h2 class="text-lg font-bold text-brand-sidebar">Create Job Order Request</h2>
@@ -362,13 +366,9 @@
 
               <div class="flex items-center justify-between gap-2 pt-1">
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Positions &amp; Deployments</p>
-                <button type="button" id="jor-add-row-btn" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-accent bg-brand-accent/10 px-3 py-1.5 text-xs font-bold text-brand-accent transition hover:bg-brand-accent/20 focus:outline-none focus:ring-2 focus:ring-brand-accent/30">
-                  <i class="bi bi-plus-lg" aria-hidden="true"></i>
-                  Add Position / Deployment
-                </button>
               </div>
 
-              <div id="jor-positions-container" class="max-h-[340px] space-y-3 overflow-y-auto pr-1">
+              <div id="jor-positions-container" class="space-y-3">
                 <!-- Dynamic position rows inserted by JavaScript -->
               </div>
 
@@ -437,6 +437,7 @@
         <h1 id="dtr-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">Timesheet Submission</h1>
         <div class="row g-3 mt-3"><div class="col-md-7"><label for="tlDtrSite" class="form-label">Deployment Site</label><select id="tlDtrSite" class="form-select"><option value="">Select deployment site</option></select></div><div class="col-md-5"><label for="tlDtrCutoffRef" class="form-label">Date within cutoff (optional)</label><input type="date" id="tlDtrCutoffRef" class="form-control"></div></div>
         <p class="mt-1 text-sm text-slate-600" id="dtr-cutoff-label">Reviewing Cutoff: —</p>
+        <div id="dtr-due-warning" class="hidden mt-3 alert alert-warning" role="status"></div>
 
         <div class="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950">
           <strong>Warning:</strong> Once submitted to Accounting, DTR records are locked and cannot be edited.
@@ -479,6 +480,17 @@
             <label for="overtime-date-picker" class="text-xs font-semibold uppercase text-slate-500">Date</label>
             <input type="date" id="overtime-date-picker" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm" />
           </div>
+        </div>
+
+        <div class="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-100">
+          <label for="overtimeSiteFilter" class="form-label fw-semibold">Company / deployment site</label>
+          <select id="overtimeSiteFilter" class="form-select"><option value="">All assigned sites</option></select>
+          <p class="mt-2 text-xs text-slate-500">Site options show accepted and active overtime sessions for the selected date.</p>
+        </div>
+        <div class="mt-4 rounded-xl bg-white p-4 ring-1 ring-slate-100">
+          <div class="flex flex-wrap justify-between gap-2"><h2 class="text-lg font-bold text-brand-navy">Accepted overtime employees</h2><span id="overtimeAcceptedCount" class="text-sm text-slate-500">0 employees</span></div>
+          <p class="mt-1 mb-3 text-sm text-slate-600">Employees who accepted their overtime request. Active means they have clocked in for overtime.</p>
+          <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Employee</th><th>Company / site</th><th>Overtime schedule</th><th>Status</th><th>Actual hours</th></tr></thead><tbody id="overtimeAcceptedBody"></tbody></table></div>
         </div>
 
         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -562,7 +574,7 @@
 
       <!-- VIEW: My Account (Profile) -->
     <section id="section-settings" class="view-panel hidden" data-view="settings">
-  <div class="d-flex justify-content-between align-items-center mb-4"><h1>Settings</h1><button class="btn btn-outline-secondary" onclick="showView('dashboard')">Back</button></div>
+  <div class="d-flex justify-content-between align-items-center mb-4"><h1>Settings</h1><button class="btn btn-outline-secondary" data-return-last-view>Back</button></div>
   <div class="security-card">
     <div class="security-heading"><span class="security-icon"><i class="bi bi-shield-lock"></i></span><div><h2>Account Security</h2><p class="text-muted small mb-0">Manage your password for email and password sign-in.</p></div></div>
     <div class="security-content">
@@ -579,14 +591,15 @@
   </div>
 </section>
 
+      <section class="view-panel hidden" data-view="exit"><h1 class="text-2xl font-bold">Employee clearance & AWOL alerts</h1><iframe title="Employee clearance" src="clearance.html?embedded=1" style="width:100%;height:80vh;border:0"></iframe></section>
       <section id="view-profile" class="view-panel hidden" data-view="profile" aria-labelledby="profile-title">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 id="profile-title" class="text-2xl font-bold text-brand-sidebar sm:text-3xl">My Account</h1>
             <p class="mt-1 text-sm text-slate-600">Your signed-in team lead profile and account details.</p>
           </div>
-          <button type="button" class="rounded-lg border border-brand-accent px-4 py-2 text-sm font-semibold text-brand-accent transition hover:bg-brand-accent/10" data-show-section="section-overview">
-            ← Back to Dashboard
+          <button type="button" class="rounded-lg border border-brand-accent px-4 py-2 text-sm font-semibold text-brand-accent transition hover:bg-brand-accent/10" data-return-last-view>
+            ← Back
           </button>
         </div>
         <div id="userProfileCard" class="mt-6 rounded-xl bg-white p-5 shadow-card ring-1 ring-slate-100">
@@ -698,7 +711,7 @@
             <h1 class="text-2xl font-bold text-brand-sidebar">Notifications</h1>
             <p class="mt-1 text-sm text-slate-600">System alerts and workflow updates.</p>
           </div>
-          <button type="button" class="rounded-lg border border-brand-accent px-4 py-2 text-sm font-semibold text-brand-accent" data-nav="dashboard">← Back</button>
+          <button type="button" class="rounded-lg border border-brand-accent px-4 py-2 text-sm font-semibold text-brand-accent" data-return-last-view>← Back</button>
         </div>
         <div class="flex flex-wrap gap-3 mb-4 text-sm">
           <label class="inline-flex items-center gap-2"><input type="checkbox" id="owChkUnread" class="rounded"> Unread only</label>
@@ -907,6 +920,9 @@
       if (typeof ProfileViewSwitch !== 'undefined') {
         showView = ProfileViewSwitch.initViewPanel({
           existingShowView: showView,
+          returnFromViews: ['notifications', 'profile', 'settings'],
+          returnButtonSelector: '[data-return-last-view]',
+          trackViewHash: true,
           activeNavClass: activeNavClass,
           inactiveNavClass: inactiveNavClass
         }) || showView;
@@ -970,12 +986,16 @@
         return selected ? (selected.getAttribute('data-location') || '') : '';
       }
 
-      function syncJorDeploymentAddresses() {
-        var address = selectedJorCompanyAddress();
-        document.querySelectorAll('#jor-positions-container .val-site').forEach(function(input) {
-          input.value = address;
-          input.title = address;
-        });
+      var jorSiteLoadSequence=0;
+      async function syncJorDeploymentAddresses(){
+        var company=document.getElementById('jor-company').value;
+        var seq=++jorSiteLoadSequence;
+        if(!company)return;
+        try{var r=await fetch(TL_DEPLOYMENTS_API+'?sites_only=1',{credentials:'include'});var data=await r.json();if(seq!==jorSiteLoadSequence)return;if(!r.ok||!data.success)throw new Error(data.message||'Unable to load assigned work sites.');
+          var sites=(data.sites||[]).filter(function(s){return String(s.CompanyID)===String(company);});
+          document.querySelectorAll('#jor-positions-container .val-site').forEach(function(input){var previous=input.value;input.replaceChildren(new Option('Select assigned deployment site',''));sites.forEach(function(site){var address=selectedJorCompanyAddress() || site.Address || site.Name;var label=sites.length>1?site.Name+' — '+address:address;var option=new Option(label+(site.registered_latitude==null?' — GPS registration required':''),site.SiteID);option.dataset.siteName=site.Name;option.dataset.registered=String(site.registered_latitude!=null && site.registered_longitude!=null);input.add(option);});input.value=previous;if(!input.value && sites.length===1)input.value=String(sites[0].SiteID);});
+          if(!sites.length)showAgreementBlockedPopup('No assigned work site is available. An active deployment site must be assigned to you before you can register its GPS location.');
+        }catch(error){showAgreementBlockedPopup(error.message);}
       }
 
       function addDeploymentRow(prefillSite) {
@@ -1007,7 +1027,7 @@
           '  </div>' +
           '  <div>' +
           '    <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Deployment Site</label>' +
-          '    <input type="text" class="val-site w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" placeholder="e.g. Carmen Campus" required />' +
+          '    <select class="val-site w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent/25" required><option value="">Select assigned deployment site</option></select>' +
           '  </div>' +
           '</div>' +
           '<div class="mt-3">' +
@@ -1036,7 +1056,7 @@
         if (window.OwJobCategories && typeof OwJobCategories.populate === 'function') {
           OwJobCategories.populate();
         }
-        syncJorRemoveButtons();
+        syncJorRemoveButtons();syncJorDeploymentAddresses();
       }
       window.addDeploymentRow = addDeploymentRow;
 
@@ -1066,7 +1086,9 @@
             classification_id: parseInt(hierarchy.classification_id,10)||0,
             sub_classification_id: parseInt(hierarchy.sub_classification_id,10)||0,
             workers_needed: workers,
-            deployment_site: String(site).trim(),
+            site_id: Number(site),
+            site_registered: row.querySelector('.val-site').selectedOptions[0]?.dataset.registered==='true',
+            deployment_site: row.querySelector('.val-site').selectedOptions[0]?.dataset.siteName||'',
             work_schedule: String(schedule).trim(),
             _row: idx + 1
           });
@@ -1104,6 +1126,7 @@
         var remarksEl = document.getElementById('jor-remarks');
         var companyId = companySelect ? parseInt(companySelect.value, 10) : 0;
         var positions = collectJorPositions();
+        if(positions.some(function(p){return !p.site_registered;})){showAgreementBlockedPopup('Please register an assigned work site before creating a job.');return;}
 
         for (var i = 0; i < positions.length; i++) {
           var p = positions[i];
@@ -1132,6 +1155,7 @@
               classification_id:p.classification_id,
               sub_classification_id:p.sub_classification_id,
               workers_needed: p.workers_needed,
+              site_id: p.site_id,
               deployment_site: p.deployment_site,
               work_schedule: p.work_schedule
             };
@@ -1158,7 +1182,7 @@
             if (resp.ok && data && data.success) {
               if (feedback) feedback.textContent = 'Request submitted successfully.';
               resetJorForm();
-              showToast('Job order request submitted');
+              bootstrap.Modal.getOrCreateInstance(document.getElementById('jorSubmittedModal')).show();
               loadJobOrderRequests();
               loadAssignedCompanies();
             } else {
@@ -1246,7 +1270,9 @@
       }
 
       window.loadDeployedPersonnel=loadDeployedPersonnel;
-      function openEmployeeAttendanceModal(employeeId, employeeName) {
+      var attendanceHistorySequence=0;
+      function openEmployeeAttendanceModal(employeeId, employeeName, month) {
+        var historyRequest=++attendanceHistorySequence;
         var modalEl = document.getElementById('tlAttendanceModal');
         var titleEl = document.getElementById('tlAttendanceModalTitle');
         var bodyEl = document.getElementById('tlAttendanceModalBody');
@@ -1258,9 +1284,10 @@
         var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         modal.show();
 
-        fetch('../../Api/TeamLead/get_employee_attendance_logs.php?employee_id=' + encodeURIComponent(employeeId), { credentials: 'include' })
+        fetch('../../Api/TeamLead/get_employee_attendance_logs.php?employee_id=' + encodeURIComponent(employeeId) + (month?'&month='+encodeURIComponent(month):'') + '&site_id=' + encodeURIComponent(document.getElementById('tlTeamSite').value), { credentials: 'include', cache: 'no-store' })
           .then(function (r) { return r.json(); })
           .then(function (res) {
+            if(historyRequest!==attendanceHistorySequence)return;
             if (!res || !res.success) {
               bodyEl.innerHTML = '<div class="alert alert-danger mb-0">' + escapeHtml((res && res.message) || 'Failed to load attendance history.') + '</div>';
               return;
@@ -1274,7 +1301,7 @@
               '<thead class="table-light text-uppercase fs-7 text-muted"><tr><th>Date</th><th>Time In</th><th>Break</th><th>Time Out</th><th>Hours</th><th>Status</th></tr></thead>' +
               '<tbody>' + logs.map(function (l) {
                 var badgeColor = 'bg-secondary';
-                var st = String(l.status || '').toLowerCase();
+                var st = String(l.attendance_status || l.status || '').toLowerCase();
                 if (st === 'present') badgeColor = 'bg-success';
                 else if (st === 'late') badgeColor = 'bg-warning text-dark';
                 else if (st === 'absent') badgeColor = 'bg-danger';
@@ -1285,13 +1312,14 @@
                   '<td>' + escapeHtml(l.break_time_display || l.break_time || '—') + '</td>' +
                   '<td>' + escapeHtml(l.time_out_display || l.time_out || '—') + '</td>' +
                   '<td><span class="badge bg-light text-dark border">' + (l.total_hours_rendered != null ? l.total_hours_rendered + ' hrs' : '—') + '</span></td>' +
-                  '<td><span class="badge ' + badgeColor + '">' + escapeHtml(l.status || 'Recorded') + '</span></td>' +
+                  '<td><span class="badge ' + badgeColor + '">' + escapeHtml(l.attendance_status || l.status || 'Recorded') + '</span></td>' +
                   '</tr>';
               }).join('') + '</tbody></table></div>' :
               '<div class="alert alert-light border text-center text-muted mb-0 py-4">No attendance records found for this employee yet.</div>';
 
             bodyEl.innerHTML =
               '<div class="space-y-4">' +
+              '<div class="d-flex flex-wrap gap-2 align-items-center"><label for="tlAttendanceHistoryMonth">Attendance month</label><input id="tlAttendanceHistoryMonth" type="month" class="form-control w-auto" value="'+escapeHtml(month||'')+'"><button id="tlAttendanceHistoryRefresh" class="btn btn-outline-primary btn-sm">Refresh</button></div>' +
               '  <div class="rounded-xl bg-slate-50 p-3.5 border border-slate-200">' +
               '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-primary"><i class="bi bi-person-badge me-1"></i> Employee Monitoring Summary</h6>' +
               '    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">' +
@@ -1305,8 +1333,11 @@
                    logsTable +
               '  </div>' +
               '</div>';
+            document.getElementById('tlAttendanceHistoryMonth').onchange=function(){openEmployeeAttendanceModal(employeeId,employeeName,this.value);};
+            document.getElementById('tlAttendanceHistoryRefresh').onclick=function(){openEmployeeAttendanceModal(employeeId,employeeName,document.getElementById('tlAttendanceHistoryMonth').value);};
           })
           .catch(function () {
+            if(historyRequest!==attendanceHistorySequence)return;
             bodyEl.innerHTML = '<div class="alert alert-danger mb-0">Network error while fetching attendance logs. Please try again.</div>';
           });
       }
@@ -1347,9 +1378,13 @@
         if (!tbody) return;
         tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">Loading DTR cutoff review...</td></tr>';
 
+        var dueWarning=document.getElementById('dtr-due-warning');
+        if(dueWarning){dueWarning.classList.add('hidden');dueWarning.textContent='';}
         var request=++dtrRequestSequence;dtrReviewState={period:null,employeesById:{}};
+        if(cutoffLabelEl)cutoffLabelEl.textContent='Reviewing Cutoff: —';
+        syncDtrSelectAllState();
         document.getElementById('btn-submit-dtr').disabled=true;
-        try { await window.TeamLeadSites.prepare(); } catch(e) {tbody.textContent=e.message;return;}
+        try { await window.TeamLeadSites.prepare(); } catch(e) {if(request===dtrRequestSequence){tbody.innerHTML='<tr><td colspan="6" class="px-4 py-6 text-center text-red-600">'+escapeHtml(e.message||'Unable to load deployment sites.')+'</td></tr>';}return;}
         if(request!==dtrRequestSequence)return;
         var siteId=document.getElementById('tlDtrSite').value;
         if(!siteId){tbody.innerHTML='<tr><td colspan="6" class="px-4 py-6 text-center text-slate-500">Select a deployment site first.</td></tr>';if(cutoffLabelEl)cutoffLabelEl.textContent='Reviewing Cutoff: —';syncDtrSelectAllState();return;}
@@ -1363,6 +1398,7 @@
               return;
             }
 
+            if(dueWarning && res.submission_warning && (res.employees||[]).some(function(e){return !e.is_submitted;})){dueWarning.textContent=res.submission_warning;dueWarning.classList.remove('hidden');}
             dtrReviewState.period = res.period || null;
             var employees = Array.isArray(res.employees) ? res.employees : [];
             dtrReviewState.employeesById = {};
@@ -1384,12 +1420,14 @@
                 ? '<input type="checkbox" disabled title="Already submitted" />'
                 : '<input type="checkbox" class="dtr-checkbox" value="' + e.employee_id + '" />';
               var statusBadge = isSubmitted
-                ? '<span class="badge bg-success">Submitted</span>'
-                : '<span class="badge bg-secondary">Pending Submission</span>';
+                ? '<span class="badge bg-success">Submitted</span>' + (e.requires_review?'<div class="text-xs text-amber-700 mt-1">Awaiting Accounting review: '+escapeHtml(e.review_message||'')+'</div>':'')
+                : e.requires_review ? '<span class="badge bg-warning text-dark">Accounting review required</span><div class="text-xs text-amber-700 mt-1">' + escapeHtml(e.review_message || '') + '</div>' : '<span class="badge bg-secondary">Pending Submission</span>' + (e.has_attendance === false ? '<div class="text-xs text-slate-500">No attendance records in this cutoff.</div>' : '');
               var isDifferentPeriod = res.period && (e.period_start !== res.period.start || e.period_end !== res.period.end);
               var cutoffNote = isDifferentPeriod
                 ? '<div class="text-xs text-amber-600">' + escapeHtml(e.payroll_type_label || '') + ' — ' + escapeHtml(e.cutoff_label || '') + '</div>'
                 : '';
+              var recorded = e.recorded_hours;
+              if (recorded) statusBadge += '<div class="text-xs text-slate-500 mt-1">Recorded duty, approved OT and worked holiday hours shown; payroll eligibility awaits Accounting review.</div>';
               return '<tr>' +
                 '<td class="px-3 py-3">' + checkbox + '</td>' +
                 '<td class="px-4 py-3">' +
@@ -1399,9 +1437,9 @@
                 '  <div class="text-xs text-slate-500">' + escapeHtml(e.position || '—') + '</div>' +
                 cutoffNote +
                 '</td>' +
-                '<td class="px-4 py-3">' + (e.total_regular_hours != null ? e.total_regular_hours + ' hrs' : '—') + '</td>' +
-                '<td class="px-4 py-3">' + (e.total_overtime_hours != null ? e.total_overtime_hours + ' hrs' : '—') + '</td>' +
-                '<td class="px-4 py-3">' + (e.holiday_pay_hours != null ? e.holiday_pay_hours + ' hrs' : '—') + '</td>' +
+                '<td class="px-4 py-3">' + (e.total_regular_hours != null ? e.total_regular_hours + ' hrs' : recorded ? recorded.duty_hours + ' hrs (recorded)' : '—') + '</td>' +
+                '<td class="px-4 py-3">' + (e.total_overtime_hours != null ? e.total_overtime_hours + ' hrs' : recorded ? recorded.approved_overtime_hours + ' hrs (approved)' : '—') + '</td>' +
+                '<td class="px-4 py-3">' + (e.holiday_pay_hours != null ? e.holiday_pay_hours + ' hrs' : recorded ? recorded.holiday_work_hours + ' hrs (worked)' : '—') + '</td>' +
                 '<td class="px-4 py-3">' + statusBadge + '</td>' +
                 '</tr>';
             }).join('');
@@ -1449,12 +1487,13 @@
 
         bodyEl.innerHTML =
           '<div class="space-y-4">' +
+          (emp.requires_review ? '<div class="alert alert-warning">'+escapeHtml(emp.review_message||'Accounting review is required before payroll computation.')+'</div>' : '') +
           '  <div class="rounded-xl bg-slate-50 p-3.5 border border-slate-200">' +
           '    <h6 class="font-bold text-slate-800 text-xs uppercase tracking-wider mb-2 text-primary"><i class="bi bi-person-badge me-1"></i> Employee DTR Summary</h6>' +
           '    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">' +
           '      <div><span class="text-slate-500 block text-xs">Position:</span> <strong class="text-slate-800">' + escapeHtml(emp.position || '—') + '</strong></div>' +
-          '      <div><span class="text-slate-500 block text-xs">Total Regular Hrs:</span> <strong class="text-slate-800">' + (emp.total_regular_hours != null ? emp.total_regular_hours : '—') + '</strong></div>' +
-          '      <div><span class="text-slate-500 block text-xs">Total OT Hrs:</span> <strong class="text-slate-800">' + (emp.total_overtime_hours != null ? emp.total_overtime_hours : '—') + '</strong></div>' +
+          '      <div><span class="text-slate-500 block text-xs">' + (emp.recorded_hours ? 'Recorded Duty Hrs:' : 'Total Regular Hrs:') + '</span> <strong class="text-slate-800">' + (emp.total_regular_hours != null ? emp.total_regular_hours : emp.recorded_hours ? emp.recorded_hours.duty_hours : '—') + '</strong></div>' +
+          '      <div><span class="text-slate-500 block text-xs">' + (emp.recorded_hours ? 'Approved OT Hrs:' : 'Total OT Hrs:') + '</span> <strong class="text-slate-800">' + (emp.total_overtime_hours != null ? emp.total_overtime_hours : emp.recorded_hours ? emp.recorded_hours.approved_overtime_hours : '—') + '</strong></div>' +
           '    </div>' +
           '  </div>' +
           '  <div>' +
@@ -1531,16 +1570,17 @@
       }
 
       function showAgreementBlockedPopup(message) {
-        var text = message || 'Please register your work site before creating a job order.';
+        var text = message || 'Please register an assigned work site before creating a job.';
+        if(text.toLowerCase().indexOf('register')>=0)text+=' You must register the GPS location of the selected assigned deployment work site before submitting a Job Order Request.';
         var overlay = document.createElement('div');
         overlay.className = 'fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/55 p-4';
         overlay.innerHTML =
           '<div class="w-full max-w-md rounded-xl bg-white p-5 shadow-2xl ring-1 ring-slate-200">' +
-          '  <h3 class="text-lg font-bold text-brand-sidebar">Action Required</h3>' +
+          '  <h3 class="text-lg font-bold text-brand-sidebar">'+(text.indexOf('No assigned')===0?'No Assigned Work Site':(text.toLowerCase().indexOf('register')>=0?'Location Registration Required':'Action Required'))+'</h3>' +
           '  <p class="mt-2 text-sm text-slate-600">' + escapeHtml(text) + '</p>' +
           '  <div class="mt-5 flex justify-end gap-2">' +
-          '    <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" id="popupClose">Close</button>' +
-          '    <button type="button" class="rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent-dark" id="popupRegister">Register Work Site</button>' +
+          '    <button type="button" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50" id="popupClose">Cancel</button>' +
+          '    <button type="button" class="rounded-lg bg-brand-accent px-4 py-2 text-sm font-semibold text-white hover:bg-brand-accent-dark" id="popupRegister">Go to Work Site Geofence</button>' +
           '  </div>' +
           '</div>';
         
@@ -1872,9 +1912,15 @@
             modal.show();
             return;
           }
-          showToast('Decision saved: ' + decision);
           loadEndorsedApplicants();
           pollRealtimeCounters();
+          if (decision === 'Approved') {
+            return AppDialog.alert('The applicant has been successfully approved for client placement. HR can now proceed with the next steps.', 'Applicant approved');
+          }
+          if (decision === 'Rejected') {
+            return AppDialog.alert('The endorsed applicant has been rejected successfully.', 'Applicant rejected successfully');
+          }
+          showToast('Decision saved: ' + decision);
         }).catch(function () {
           showToast('Network error while saving decision.', true);
           modal.show();
@@ -1956,7 +2002,7 @@
           if (c.checked) selectedIds.push(parseInt(c.value, 10));
         });
         if (!selectedIds.length) {
-          window.alert('Please select at least one DTR row to submit.');
+          AppDialog.alert('Please select at least one DTR row to submit.');
           return;
         }
 
@@ -1979,7 +2025,7 @@
         });
 
         if (!groupOrder.length) {
-          window.alert('DTR cutoff period is not loaded yet. Please try again.');
+          AppDialog.alert('DTR cutoff period is not loaded yet. Please try again.');
           return;
         }
 
@@ -2015,7 +2061,14 @@
           if (failed.length) {
             showToast((failed[0] && failed[0].message) || 'Some DTR submissions failed.', true);
           } else {
-            showToast(results.length === 1 ? (results[0].message || 'DTR submitted to Accounting.') : 'DTR submitted to Accounting for all selected cutoffs.');
+            var submittedCount = results.reduce(function (count, res) {
+              return count + (Array.isArray(res.submitted) ? res.submitted.length : 0);
+            }, 0);
+            if (submittedCount > 0) {
+              AppDialog.alert(submittedCount + ' DTR(s) successfully submitted to Accounting for review.', 'DTR submitted successfully');
+            } else {
+              AppDialog.alert('No new DTRs were submitted. Refresh the table to check their current status.', 'DTR submission status');
+            }
           }
           dtrSaving=false;loadDtrCutoffReview();
         })
@@ -2024,7 +2077,7 @@
         })
         .finally(function () {
           dtrSaving=false;document.getElementById('tlDtrSite').disabled=false;document.getElementById('tlDtrCutoffRef').disabled=false;
-          btn.disabled = false;
+          syncDtrSelectAllState();
           btn.textContent = originalText;
         });
       });
@@ -2088,6 +2141,23 @@
       }
 
       // Real-time Badge & Notification Poller
+      var lastLiveUnread = null;
+      document.addEventListener('onazul:realtime-counts', function (event) {
+        var counts = event.detail && event.detail.counts;
+        if (!counts || counts.notifications_unread == null) return;
+        var unread = Number(counts.notifications_unread);
+        var changed = lastLiveUnread !== null && unread !== lastLiveUnread;
+        lastLiveUnread = unread;
+        if (!changed) return;
+        var bell = document.getElementById('owNotifBellBtn');
+        if (bell && bell.getAttribute('aria-expanded') === 'true') loadBellNotificationsDropdown();
+        if (window.OwNotifications) OwNotifications.load();
+        var sites = document.getElementById('view-sites');
+        var team = document.getElementById('view-team');
+        if (sites && !sites.classList.contains('hidden') && window.TeamLeadSites) TeamLeadSites.load();
+        if (team && !team.classList.contains('hidden')) loadDeployedPersonnel();
+      });
+
       function loadBellNotificationsDropdown() {
         var listEl = document.getElementById('bellNotifDropdownList');
         if (!listEl) return;
@@ -2329,21 +2399,21 @@
     TeamLeadSidebarBadges.init('../../Api/Common/realtime_counters.php', 10000);
   }
   if (window.OwNotifications && window.profileShowView) {
-    OwNotifications.init({ sectionId: 'notifications', showSection: window.profileShowView });
+    OwNotifications.init({ sectionId: 'notifications', showSection: window.profileShowView, pollIntervalMs: 1000, pauseWhenHidden: true });
   }
 </script>
 
 <!-- WORK SITE LOCATION REGISTRATION MODAL -->
 <div class="modal fade" id="registerSiteModal" tabindex="-1" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content border-0 shadow-lg">
-          <div class="modal-header bg-dark text-white">
-              <h5 class="modal-title fw-bold"><i class="bi bi-geo-fill me-2"></i>Register Work Site Location</h5>
+          <div class="modal-header bg-primary text-white">
+              <h5 class="modal-title fw-bold text-white"><i class="bi bi-geo-fill me-2"></i>Register Work Site Location</h5>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body text-center p-4">
               <p class="text-muted small mb-3">You must physically be at the deployment work site to register its GPS coordinates.</p>
-              <p class="fw-bold small mb-3" id="tlRegisterSiteName"></p>
+              <div class="rounded border bg-light p-3 mb-3 text-start"><div class="small text-muted">Assigned company / deployment site</div><strong id="tlRegisterSiteName"></strong></div>
               
               <div class="p-3 bg-light rounded border mb-3">
                   <div class="fw-bold text-dark mb-1" id="tlCurrentGpsStatus">Acquiring current GPS location...</div>
@@ -2352,7 +2422,7 @@
                   <div class="small text-muted" id="tlGpsCurrentAccuracy">Current GPS accuracy: waiting</div>
                   <div class="small text-muted" id="tlGpsPolicyText">Loading registration accuracy policy…</div>
                   <div class="small fw-semibold mt-1" id="tlGpsCountdown" aria-live="polite"></div>
-                  <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="acquireTlLocation()">Retry GPS</button>
+
               </div>
 
               <!-- GEOFENCE RADIUS INPUT -->
@@ -2363,13 +2433,15 @@
                       <span class="input-group-text">Meters</span>
                   </div>
                   <div class="form-text text-muted" style="font-size: 11px;">
-                      <i class="bi bi-info-circle me-1"></i>Min: 30m (due to GPS drift) | Max: 1,000m (1 km).
+                      <i class="bi bi-info-circle me-1"></i>Min: 30m | Max: 1,000m. This radius is the permitted attendance distance; it does not change GPS accuracy.
                   </div>
               </div>
 
               <p class="small text-muted">These coordinates remain fixed for this work site after saving. Your subsequent movements do not move the geofence.</p>
 
-              <button type="button" class="btn btn-primary w-100 fw-bold py-2" id="btnConfirmRegisterSite" onclick="submitSiteRegistration()" disabled>
+          </div>
+          <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-outline-primary" onclick="acquireTlLocation()">Retry GPS</button>
+              <button type="button" class="btn btn-primary fw-bold" id="btnConfirmRegisterSite" onclick="submitSiteRegistration()" disabled>
                   <i class="bi bi-check-circle me-1"></i>Save Work Site Coordinates
               </button>
           </div>
@@ -2453,5 +2525,25 @@ document.getElementById('menuSettings').addEventListener('click',function(){Empl
 <script src="../../Js/Applicant/applicant_profile_cascades.js"></script>
 <script src="../../Js/Employee/employee_profile_edit.js"></script>
 <script src="../../Js/Employee/employee_security.js?v=20261008-teamlead"></script>
+<div class="modal fade" id="jorSubmittedModal" tabindex="-1" aria-labelledby="jorSubmittedTitle" aria-describedby="jorSubmittedMessage" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg" style="border-radius:16px;overflow:hidden;">
+      <div class="modal-header border-0 px-4 pt-4 pb-0">
+        <h5 class="modal-title fw-bold" id="jorSubmittedTitle" style="color:#102c54;">Request submitted</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body px-4 pt-4 pb-4">
+        <div class="d-flex align-items-start gap-3">
+          <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0" style="width:48px;height:48px;background:#e8f6ef;color:#198754;"><i class="bi bi-check-lg fs-4" aria-hidden="true"></i></span>
+          <div><p id="jorSubmittedMessage" class="mb-2 fw-semibold">Your job order request was successfully submitted to HR.</p><p class="text-muted small mb-0">HR will review your request. You can track its status under Your Job Order Requests.</p></div>
+        </div>
+      </div>
+      <div class="modal-footer border-top px-4 py-3">
+        <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__.'/../Common/session_init.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
     http_response_code(401);
@@ -103,7 +103,7 @@ while ($row = $docResult->fetch_assoc()) {
     $documents[] = [
         'doc_id' => (int)$row['DocID'],
         'doc_type' => $row['DocType'],
-        'file_path' => $row['FilePath'],
+        'file_path' => preg_match('/^(resume|cv|resume\s*\/\s*cv)$/i',$row['DocType']) ? '../../Api/Applicant/view_document.php?id='.(int)$row['DocID'] : $row['FilePath'],
         'original_filename' => $row['OriginalFileName'],
         'is_verified' => (bool)$row['IsVerified']
     ];

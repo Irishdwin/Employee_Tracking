@@ -1,0 +1,9 @@
+{
+  "passed": 4,
+  "results": [
+    "1366px: HR dashboard shell, active navigation, refresh/no duplicates, register/AWOL dialogs, approval confirmation/success and clearance dialog, filters/empty state, messenger/notifications/profile, history, legacy redirect: PASS",
+    "1024px: HR dashboard shell, active navigation, refresh/no duplicates, register/AWOL dialogs, approval confirmation/success and clearance dialog, filters/empty state, messenger/notifications/profile, history, legacy redirect: PASS",
+    "768px: HR dashboard shell, active navigation, refresh/no duplicates, register/AWOL dialogs, approval confirmation/success and clearance dialog, filters/empty state, messenger/notifications/profile, history, legacy redirect: PASS",
+    "390px: HR dashboard shell, active navigation, refresh/no duplicates, register/AWOL dialogs, approval confirmation/success and clearance dialog, filters/empty state, messenger/notifications/profile, history, legacy redirect: PASS"
+  ]
+}

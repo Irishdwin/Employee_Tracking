@@ -39,7 +39,7 @@
   }
 
   function fetchJson(url, options) {
-    return fetch(url, options || { credentials: 'same-origin' })
+    return fetch(url, options || { credentials: 'same-origin', cache: 'no-store' })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, data: d }; }); });
   }
 
@@ -150,7 +150,7 @@
         '<div class="table-responsive"><table class="table table-sm table-striped align-middle mb-0">' +
         '<thead><tr><th>Date</th><th>Status</th><th>Time In</th><th>Break</th><th>Time Out</th><th>Hours</th><th>View</th></tr></thead><tbody>' +
         logs.map(function (log, idx) {
-          return '<tr><td>' + esc(log.date) + '</td><td>' + statusBadgeHtml(log.status) + '</td>' +
+          return '<tr><td>' + esc(log.date) + '</td><td>' + statusBadgeHtml(log.attendance_status || log.status) + '</td>' +
             '<td>' + esc(log.time_in_display) + '</td><td>' + esc(log.break_time_display) + '</td>' +
             '<td>' + esc(log.time_out_display) + '</td><td>' +
             (log.total_hours_rendered != null ? esc(log.total_hours_rendered) : '—') + '</td>' +
@@ -191,7 +191,7 @@
       '  <div class="col-4"><div class="text-muted small">Break</div><div class="fw-bold">' + esc(log.break_time_display) + '</div></div>' +
       '  <div class="col-4"><div class="text-muted small">Time Out</div><div class="fw-bold">' + esc(log.time_out_display) + '</div></div>' +
       '</div>' +
-      '<div class="mb-2">' + statusBadgeHtml(log.status) +
+      '<div class="mb-2">' + statusBadgeHtml(log.attendance_status || log.status) +
       (log.total_hours_rendered != null ? ' <span class="text-muted small ms-2">' + esc(log.total_hours_rendered) + ' hrs</span>' : '') +
       (log.distance_from_site != null ? ' <span class="text-muted small ms-2">' + esc(log.distance_from_site) + 'm from site</span>' : '') +
       '</div>' +
@@ -304,6 +304,7 @@ function stopTlGpsCapture(){
 function updateTlRegistrationQuality() {
     var limit=tlRegistrationPolicy?tlRegistrationPolicy.max_accuracy_meters:null;
     var location = tlRegisteredLocation;
+    if(location && Date.now()-location.timestamp>30000){location=null;tlRegisteredLocation=null;}
     var valid = !!location && Number.isFinite(location.accuracy) && location.accuracy >= 0 && Number.isFinite(limit) && location.accuracy <= limit;
     var button = document.getElementById('btnConfirmRegisterSite');
     if (button) button.disabled = !valid || !tlWorkSiteCompanyId || tlLocationBusy || tlSiteSaving;
@@ -346,33 +347,35 @@ function acquireTlLocation() {
     var statusEl=document.getElementById('tlCurrentGpsStatus');
     var accuracyEl=document.getElementById('tlGpsAccuracyText');
     tlRegisteredLocation=null;tlLocationBusy=true;updateTlRegistrationQuality();
-    if(statusEl)statusEl.innerText='Getting fresh GPS at the selected work site...';
+    if(statusEl)statusEl.innerText='Requesting location permission / acquiring fresh GPS…';
     if(accuracyEl)accuracyEl.innerText='Best GPS accuracy: waiting';
     ['tlGpsCurrentReading','tlGpsCurrentAccuracy'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=id==='tlGpsCurrentReading'?'Current reading: waiting':'Current GPS accuracy: waiting';});
     if(!tlRegistrationPolicy){tlLocationBusy=false;if(statusEl)statusEl.innerText='Registration policy unavailable. Close this dialog and refresh sites.';return;}
     var duration=tlRegistrationPolicy.acquisition_seconds;
-    var deadline=Date.now()+duration*1000;
+    var startedAt=Date.now();var deadline=startedAt+duration*1000;
     var policyText=document.getElementById('tlGpsPolicyText');if(policyText)policyText.textContent='Registration requires GPS accuracy of ±'+tlRegistrationPolicy.max_accuracy_meters+' m or better. This does not change the geofence radius.';
     if(!navigator.geolocation){tlLocationBusy=false;if(statusEl)statusEl.innerText='Geolocation is not supported by your browser.';return;}
     var watching=typeof navigator.geolocation.watchPosition==='function';
     function guidance(){return 'Enable precise location in your device settings and allow this browser location access. If this computer only provides approximate location, use a GPS-enabled phone at the official site.';}
     function received(position){
         if(request!==tlLocationRequest)return;
+        if(!Number.isFinite(position.timestamp)||position.timestamp<startedAt-1000){if(statusEl)statusEl.innerText='Ignoring an old location; waiting for fresh GPS…';return;}
         var lat=position.coords.latitude,lng=position.coords.longitude,accuracy=position.coords.accuracy;
         if(!Number.isFinite(lat)||!Number.isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180||(lat===0&&lng===0)||!Number.isFinite(accuracy)||accuracy<0){if(statusEl)statusEl.innerText='The device returned an invalid location. Retry GPS.';return;}
         // Keep the best fresh observation while the device improves its fix.
-        if(!tlRegisteredLocation||accuracy<tlRegisteredLocation.accuracy)tlRegisteredLocation={latitude:lat,longitude:lng,accuracy:accuracy};
+        if(!tlRegisteredLocation||accuracy<tlRegisteredLocation.accuracy)tlRegisteredLocation={latitude:lat,longitude:lng,accuracy:accuracy,timestamp:position.timestamp};
         var current=document.getElementById('tlGpsCurrentReading');if(current)current.textContent='Current reading: '+lat.toFixed(6)+', '+lng.toFixed(6);
         var currentAccuracy=document.getElementById('tlGpsCurrentAccuracy');if(currentAccuracy)currentAccuracy.textContent='Current GPS accuracy: ±'+Math.round(accuracy)+' meters';
         var precise=tlRegisteredLocation.accuracy<=tlRegistrationPolicy.max_accuracy_meters;
         tlLocationBusy=watching&&!precise;
-        if(precise)stopTlGpsCapture();
+        if(precise){stopTlGpsCapture();++tlLocationRequest;}
         if(statusEl)statusEl.innerText=(precise?'Ready to register — best location: ':(watching?'Improving location accuracy — best location: ':'Location accuracy is still too low — best location: '))+tlRegisteredLocation.latitude.toFixed(6)+', '+tlRegisteredLocation.longitude.toFixed(6);
         updateTlRegistrationQuality();
         if(!precise&&accuracyEl)accuracyEl.innerText='Best GPS accuracy: ±'+Math.round(tlRegisteredLocation.accuracy)+' meters — Registration requires ±'+tlRegistrationPolicy.max_accuracy_meters+' m or better. '+(watching?'Collecting fresh readings. ':'')+guidance();
     }
     function failed(error){
         if(request!==tlLocationRequest)return;
+        if(watching && error.code!==1){if(statusEl)statusEl.innerText=error.code===3?'GPS request timed out; continuing to look for a fresh reading…':'Location unavailable; waiting for the device to recover…';return;}
         stopTlGpsCapture();++tlLocationRequest;tlLocationBusy=false;if(error.code===1)tlRegisteredLocation=null;updateTlRegistrationQuality();
         if(statusEl)statusEl.innerText=error.code===1?'Location permission is required.':(error.code===3?'Unable to obtain a sufficiently accurate location within the allowed time. Retry GPS.':'Location is currently unavailable.');
         if(accuracyEl)accuracyEl.innerText=(tlRegisteredLocation?'Best GPS accuracy: ±'+Math.round(tlRegisteredLocation.accuracy)+' meters. ':'')+guidance();
@@ -380,12 +383,13 @@ function acquireTlLocation() {
     var options={enableHighAccuracy:true,timeout:duration*1000,maximumAge:0};
     if(watching){
         tlGpsWatch=navigator.geolocation.watchPosition(received,failed,options);
-        function progress(){var el=document.getElementById('tlGpsCountdown');if(el)el.textContent='Improving GPS accuracy… '+Math.max(0,Math.ceil((deadline-Date.now())/1000))+' seconds remaining';}
+        navigator.geolocation.getCurrentPosition(received,function(error){if(error.code===1)failed(error);},{enableHighAccuracy:true,maximumAge:0,timeout:Math.min(8000,duration*1000)});
+        function progress(){var el=document.getElementById('tlGpsCountdown');if(el)el.textContent=(tlRegisteredLocation?'Improving GPS accuracy… ':'Acquiring fresh GPS… ')+Math.max(0,Math.ceil((deadline-Date.now())/1000))+' seconds remaining';}
         progress();tlGpsProgressTimer=setInterval(progress,1000);
         tlGpsTimer=setTimeout(function(){
             if(request!==tlLocationRequest)return;
             stopTlGpsCapture();++tlLocationRequest;tlLocationBusy=false;updateTlRegistrationQuality();
-            if(statusEl)statusEl.innerText='Location accuracy is still too low. Retry GPS or use a GPS-enabled device.';
+            if(statusEl)statusEl.innerText=tlRegisteredLocation?'GPS accuracy is above the required limit. Retry outdoors or use a GPS-enabled device.':'GPS acquisition timed out without a fresh reading. Retry GPS.';
             if(accuracyEl)accuracyEl.innerText=(tlRegisteredLocation?'Best accuracy: ±'+Math.round(tlRegisteredLocation.accuracy)+' meters. ':'')+guidance();
         },duration*1000);
     }else navigator.geolocation.getCurrentPosition(received,failed,options);
@@ -449,7 +453,7 @@ function submitSiteRegistration() {
       // Update the aggregate badge immediately, without waiting for OK or the poll timer.
       if (typeof window.pollRealtimeCounters === "function") window.pollRealtimeCounters();
       loadWorkSiteDetails();
-      showStatusModal("Success!", data.message, true, true);
+      showStatusModal("Work Site Location Registered", document.getElementById('tlRegisterSiteName').textContent+' — Latitude: '+payload.latitude.toFixed(6)+'; Longitude: '+payload.longitude.toFixed(6)+'; GPS Accuracy: ±'+Math.round(payload.accuracy)+' m; Geofence Radius: '+radiusVal+' m.', true, false);
   } else {
       showStatusModal("Registration Failed", data.message, false, false);
   }})
@@ -586,3 +590,5 @@ if (document.readyState === 'loading') {
 } else {
     loadWorkSiteDetails();
 }
+
+window.addEventListener("pagehide",function(){stopTlGpsCapture();++tlLocationRequest;});

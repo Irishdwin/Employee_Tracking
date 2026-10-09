@@ -105,7 +105,8 @@
           } else {
             loadCategories().then(function () { populateSelects(); });
           }
-          window.alert(data.message || 'Category saved successfully.');
+          if (global.AppDialog) global.AppDialog.alert(data.message || 'Category saved successfully.');
+          else window.alert(data.message || 'Category saved successfully.');
           if (input) input.value = '';
           var modalEl = document.getElementById('owAddCategoryModal');
           if (modalEl && global.bootstrap && bootstrap.Modal) {

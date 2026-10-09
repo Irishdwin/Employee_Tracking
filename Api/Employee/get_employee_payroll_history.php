@@ -189,13 +189,14 @@ try {
             'earnings' => [
                 'add_back' => $billingDetail ? (float)($billingDetail['addback']??0) : (float)($conn->query("SELECT COALESCE(SUM(Amount),0) amount FROM payroll_adjustments WHERE Payroll_ID=".(int)$row['Payroll_ID']." AND AdjustmentType='Add Back' AND IsAddition=1")->fetch_assoc()['amount'] ?? 0),
                 'basic_pay' => (float)($row['BasicSalary'] ?? 0),
-                'sunday_overtime' => $billingDetail ? (float)($billingDetail['sunday_ot_amount']??0) : 0.0, // not itemized separately in the persisted record; see note below
+                'sunday_overtime' => $billingDetail ? round((float)($billingDetail['sunday_ot_amount']??0)-(float)($billingDetail['sunday_allowance']??0),2) : 0.0, // not itemized separately in the persisted record; see note below
                 'regular_overtime' => $billingDetail ? (float)($billingDetail['regular_ot_amount']??0) : (float)($row['OvertimePay']??0),
                 'holiday_ot_pay' => $billingDetail ? (float)($billingDetail['holiday_ot_amount']??0)+(float)($billingDetail['special_holiday_ot_amount']??0) : 0.0,
-                'approved_overtime' => $billingDetail ? round((float)$row['OvertimePay']-(float)($billingDetail['regular_ot_amount']??0)-(float)($billingDetail['sunday_ot_amount']??0)-(float)($billingDetail['holiday_ot_amount']??0)-(float)($billingDetail['special_holiday_ot_amount']??0),2) : 0.0,
+                'approved_overtime' => $billingDetail ? round((float)$row['OvertimePay']-(float)($billingDetail['regular_ot_amount']??0)-(float)($billingDetail['sunday_ot_amount']??0)+(float)($billingDetail['sunday_allowance']??0)-(float)($billingDetail['holiday_ot_amount']??0)-(float)($billingDetail['special_holiday_ot_amount']??0),2) : 0.0,
                 'holiday_pay' => (float)($row['HolidayPay'] ?? 0),
                 'sil_accrual' => $billingDetail ? (float)($billingDetail['sil_accrual']??0) : null, // not stored historically — see file header note
-                'allowance' => (float)($row['Allowances'] ?? 0),
+                'allowance' => round((float)($row['Allowances']??0)-(float)($billingDetail['sunday_allowance']??0),2),
+                'sunday_allowance' => (float)($billingDetail['sunday_allowance']??0),
             ],
             'late_undertime' => [
                 'late_minutes' => $billingDetail['lates_minutes']??null,

@@ -76,6 +76,7 @@
         <select id="selScenario" class="form-select">
           <option value="custom">Custom (fill in manually below)</option>
           <optgroup label="Normal workday">
+            <option value="late">Late — set the employee’s late minutes</option>
             <option value="t1">TEST 1 — Normal workday, 8 regular hours, 0 OT</option>
             <option value="t2">TEST 2 — Normal workday, 8 regular hours + 2 OT hours</option>
           </optgroup>
@@ -127,6 +128,11 @@
           </div>
         </div>
         <div class="row g-3 mt-1">
+          <div class="col-md-4">
+            <label for="inpLateMinutes" class="form-label small fw-semibold">Late minutes (optional)</label>
+            <input type="number" id="inpLateMinutes" class="form-control" min="0" max="1439" step="1" placeholder="e.g. 30" aria-describedby="lateMinutesHelp">
+            <div id="lateMinutesHelp" class="form-text">Sets Time In this many minutes after the scheduled start. The employee's grace period still applies. Leave blank to enter Time In manually.</div>
+          </div>
           <div class="col-12">
             <label class="form-label small fw-semibold">Remarks (optional)</label>
             <input type="text" id="inpRemarks" class="form-control" placeholder="Created via Attendance Testing Tool (development only).">
@@ -144,6 +150,8 @@
     <div class="card shadow-sm mb-4" id="cardHoliday" style="display:none;">
       <div class="card-body">
         <h2 class="h6 fw-bold mb-3">4. Holiday Details <span class="text-muted fw-normal small">(from the existing Holidays table, for the Date above)</span></h2>
+        <div class="d-flex gap-2 mb-2"><select id="selRegisteredHoliday" class="form-select form-select-sm" aria-label="Admin registered holiday"><option value="">Select an Admin-registered holiday</option></select><button type="button" id="btnRefreshHolidays" class="btn btn-sm btn-outline-primary">Refresh</button></div>
+        <p id="registeredHolidayMessage" class="small text-muted">Select a holiday to use its registered date. Employee scope is checked below.</p>
         <div id="holidayInfo" class="alert alert-secondary small mb-2">Set a Date above to look up holiday information.</div>
         <div id="scheduleRestInfo" class="small text-muted"></div>
         <div id="cutoffInfo" class="small text-muted mt-1"></div>

@@ -1,5 +1,5 @@
 <?php
-session_start();
+require_once __DIR__.'/../Common/session_init.php';
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'Applicant') {
     header('Content-Type: application/json');
@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 applicant_doc_ensure_schema($conn);
 
+require_once __DIR__.'/../Helpers/application_endorsement.php';
+try{ae_authorize($conn,(int)$_SESSION['user_id'],['Applicant']);}catch(Throwable $e){http_response_code(403);echo json_encode(['success'=>false,'message'=>'Unauthorized']);exit;}
 $userId = (int)$_SESSION['user_id'];
 
 $stmt = $conn->prepare('SELECT ApplicantID FROM applicants WHERE UserID = ? LIMIT 1');
@@ -46,6 +48,7 @@ if ($docType === '') {
     exit();
 }
 
+if($applicationId>0){$owner=$conn->prepare('SELECT ApplicationID FROM job_applications WHERE ApplicationID=? AND ApplicantID=?');$owner->bind_param('ii',$applicationId,$applicantId);$owner->execute();if(!$owner->get_result()->fetch_assoc()){http_response_code(403);echo json_encode(['success'=>false,'message'=>'Unauthorized application.']);exit;}$owner->close();}
 if ($applicationId <= 0) {
     try {
         $colRes = $conn->query("SHOW COLUMNS FROM applicant_uploaded_docs LIKE 'ApplicationID'");
@@ -66,6 +69,9 @@ if (!isset($_FILES['document']) || $_FILES['document']['error'] !== UPLOAD_ERR_O
     exit();
 }
 
+require_once __DIR__.'/../Helpers/resume_upload.php';
+$isResume=resume_document_type($docType);
+if($isResume){try{resume_validate_file($_FILES['document']);}catch(InvalidArgumentException $e){http_response_code(422);echo json_encode(['success'=>false,'message'=>$e->getMessage()]);exit;}}
 $file = $_FILES['document'];
 $maxSize = 5 * 1024 * 1024;
 $allowedExts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
@@ -82,14 +88,14 @@ if (!in_array($fileExt, $allowedExts, true)) {
 }
 
 // Primary storage: Employee_Tracking/Uploads/Documents/
-$uploadDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'Uploads' . DIRECTORY_SEPARATOR . 'Documents' . DIRECTORY_SEPARATOR;
+$uploadDir = dirname(__DIR__, 2) . '/Uploads/Documents/' . ($isResume?'Resumes/':'');
 if (!is_dir($uploadDir)) {
     mkdir($uploadDir, 0755, true);
 }
 
-$fileName = 'doc_' . $applicantId . '_' . time() . '_' . uniqid('', true) . '.' . $fileExt;
+$fileName = 'doc_' . $applicantId . '_' . time() . '_' . bin2hex(random_bytes(16)) . '.' . $fileExt;
 $filePath = $uploadDir . $fileName;
-$relativePathForDb = '../../Uploads/Documents/' . $fileName;
+$relativePathForDb = '../../Uploads/Documents/' . ($isResume?'Resumes/':'') . $fileName;
 
 if (!move_uploaded_file($file['tmp_name'], $filePath)) {
     echo json_encode(['success' => false, 'message' => 'Failed to save file.']);
@@ -101,6 +107,7 @@ $fileSize = (int)$file['size'];
 $insertOk = false;
 $insertMsg = '';
 
+try {
 if ($applicationId > 0) {
     $insertStmt = $conn->prepare(
         'INSERT INTO applicant_uploaded_docs (ApplicationID, ApplicantID, DocType, DocCategory, FilePath, OriginalFileName, FileSize)
@@ -132,7 +139,6 @@ if ($applicationId > 0) {
     );
 }
 
-try {
     if ($insertStmt->execute()) {
         $insertStmt->close();
         $insertOk = true;
@@ -141,7 +147,7 @@ try {
         $insertMsg = $conn->error;
         $insertStmt->close();
     }
-} catch (mysqli_sql_exception $e) {
+} catch (Throwable $e) {
     unlink($filePath);
     if (isset($insertStmt)) {
         $insertStmt->close();
@@ -164,6 +170,6 @@ if ($insertOk) {
 } else {
     echo json_encode([
         'success' => false,
-        'message' => 'Failed to save document record: ' . ($insertMsg ?: 'unknown error'),
+        'message' => 'Failed to save document record.',
     ]);
 }

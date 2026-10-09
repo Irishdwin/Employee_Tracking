@@ -204,8 +204,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 showFpAlert('Please enter your email and the 6-digit code.', 'warning');
                 return;
             }
-            if (!/^\d{4}$/.test(code)) {
-                showFpAlert('Verification code must be 4 digits.', 'warning');
+            if (!/^\d{6}$/.test(code)) {
+                showFpAlert('Verification code must be 6 digits.', 'warning');
                 return;
             }
             const fd = new FormData();
@@ -288,13 +288,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (captchaInput) captchaInput.classList.remove('is-valid', 'is-invalid');
         if (captchaMessage) {
             captchaMessage.textContent = '';
-            captchaMessage.classList.remove('text-success', 'text-danger');
+            captchaMessage.classList.remove('text-success', 'text-danger', 'text-secondary');
         }
     };
   
     const captchaChallenge = document.getElementById('captchaChallengeId');
     let challengeGeneration = 0, validationGeneration = 0, validationTimer;
-    let captchaLoading = false, loginPending = false;
+    let captchaLoading = false, loginPending = false, captchaRefreshTimer, captchaRefreshAt = 0;
     const syncCaptchaControls = () => {
         if (refreshBtn) refreshBtn.disabled = captchaLoading || loginPending;
         if (captchaInput) captchaInput.disabled = captchaLoading || loginPending;
@@ -303,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const loadCaptcha = async () => {
         const generation = ++challengeGeneration;
+        clearTimeout(captchaRefreshTimer); captchaRefreshAt = 0;
         ++validationGeneration; clearTimeout(validationTimer);
         const previous = captchaChallenge ? captchaChallenge.value : '';
         if (captchaChallenge) captchaChallenge.value = '';
@@ -322,6 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok || !/^[a-f0-9]{64}$/.test(data.challenge_id)) throw new Error('Invalid challenge');
             captchaChallenge.value = data.challenge_id;
             captchaNumerator.value = data.numerator; captchaDenominator.value = data.denominator;
+            captchaRefreshAt = Date.now() + Math.max(1000, (Number(data.expires_in) || 600) * 1000 - 30000);
+            captchaRefreshTimer = setTimeout(() => { if (!loginPending && !document.hidden) loadCaptcha(); }, captchaRefreshAt - Date.now());
         } catch (error) {
             if (generation !== challengeGeneration) return;
             if (captchaMessage) {
@@ -332,6 +335,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (generation === challengeGeneration) { captchaLoading = false; syncCaptchaControls(); }
         }
     };
+    const refreshExpiredCaptcha = async () => {
+        await loadCaptcha();
+        if (captchaChallenge.value && captchaMessage) {
+            captchaMessage.textContent = 'Security check refreshed. Please answer the new question.';
+            captchaMessage.classList.add('text-secondary');
+            captchaInput.focus();
+        }
+    };
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !loginPending && !captchaLoading && captchaRefreshAt && Date.now() >= captchaRefreshAt) loadCaptcha();
+    });
     const validateCaptcha = () => {
         const generation = ++validationGeneration;
         clearTimeout(validationTimer); clearCaptchaState();
@@ -348,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 if (generation !== validationGeneration || challenge !== captchaChallenge.value || value !== captchaInput.value.trim() || loginPending) return;
                 if (!response.ok) throw new Error('Validation unavailable');
+                if (data.code === 'expired') { await refreshExpiredCaptcha(); return; }
                 captchaInput.classList.add(data.valid ? 'is-valid' : 'is-invalid');
                 captchaMessage.textContent = data.valid ? '' : data.message;
                 captchaMessage.classList.add(data.valid ? 'text-success' : 'text-danger');
@@ -364,6 +379,26 @@ document.addEventListener('DOMContentLoaded', () => {
     loadCaptcha();
     window.addEventListener('pageshow', (event) => { if (event.persisted) loadCaptcha(); });
   
+    function showLoginCooldown(seconds) {
+        const until=Date.now()+Number(seconds)*1000;
+        let el=document.getElementById('loginCooldown');
+        if(!el){
+            el=document.createElement('div');el.id='loginCooldown';el.className='alert alert-warning py-2 px-3 mt-2 mb-2 small';el.setAttribute('role','status');
+            document.getElementById('btnLogin').before(el);
+        }
+        let modalTimer=document.getElementById('loginModalCooldown');
+        if(!modalTimer){modalTimer=document.createElement('div');modalTimer.id='loginModalCooldown';modalTimer.className='alert alert-warning py-2 px-3 mt-2 mb-0 small';document.querySelector('#loginErrorModal .modal-body').appendChild(modalTimer);}
+        clearInterval(window.onazulLoginCooldown);
+        const update=()=>{
+            const left=Math.max(0,Math.ceil((until-Date.now())/1000));
+            const remaining=String(Math.floor(left/60)).padStart(2,'0')+':'+String(left%60).padStart(2,'0');
+            const content='<div class="d-flex align-items-center justify-content-between gap-2"><span>'+(left?'Try again in':'Cooldown finished')+'</span><span class="fw-bold" style="font-variant-numeric:tabular-nums">'+remaining+'</span></div>';
+            el.innerHTML=content;modalTimer.innerHTML=content;
+            if(!left)clearInterval(window.onazulLoginCooldown);
+        };
+        update();window.onazulLoginCooldown=setInterval(update,1000);
+    }
+    if(new URLSearchParams(location.search).get('forgot')==='1' && document.getElementById('forgotPasswordLink'))document.getElementById('forgotPasswordLink').click();
     // --- 4. AJAX Login Form Submission ---
     const loginForm = document.getElementById('loginForm');
     const btnLogin = document.getElementById('btnLogin');
@@ -372,6 +407,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
   
             if (loginPending || captchaLoading || !captchaChallenge || !captchaChallenge.value) return;
+            if (captchaRefreshAt && Date.now() >= captchaRefreshAt) { await refreshExpiredCaptcha(); return; }
             const captchaVal = (captchaInput && captchaInput.value) ? captchaInput.value.trim() : '';
             if (!captchaVal) {
                 if (captchaMessage) {
@@ -405,6 +441,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
   
+                if (data && data.code === 'captcha_expired') { await refreshExpiredCaptcha(); return; }
+                if(data && data.retry_after) showLoginCooldown(data.retry_after);
                 const msg = (data && data.message) ? data.message : 'Incorrect email / username or password.';
                 const modalEl = document.getElementById('loginErrorModal');
                 const modalMsg = document.getElementById('loginErrorModalMessage');

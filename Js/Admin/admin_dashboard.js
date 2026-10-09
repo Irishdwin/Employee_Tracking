@@ -263,6 +263,8 @@ document.addEventListener('DOMContentLoaded', function () {
     btnAddIndustry.addEventListener('click', function () {
       const input = document.getElementById('industryNameInput');
       if (input) input.value = '';
+      industryEditSelection=null;
+      document.querySelector('#modalAddIndustry .modal-title').textContent='Add Industry';
       modalAddIndustry.show();
       setTimeout(function () { if (input) input.focus(); }, 150);
     });
@@ -272,6 +274,8 @@ document.addEventListener('DOMContentLoaded', function () {
     btnAddIndustryEdit.addEventListener('click', function () {
       const input = document.getElementById('industryNameInput');
       if (input) input.value = '';
+      industryEditSelection=null;
+      document.querySelector('#modalAddIndustry .modal-title').textContent='Add Industry';
       modalAddIndustry.show();
       setTimeout(function () { if (input) input.focus(); }, 150);
     });
@@ -280,75 +284,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const btnSaveIndustry = document.getElementById('btnSaveIndustry');
   if (btnSaveIndustry) btnSaveIndustry.addEventListener('click', submitIndustry);
 
-  const addContactNumberInput = document.getElementById('addContactNumber');
-  if (addContactNumberInput) {
-    addContactNumberInput.addEventListener('input', function (e) {
-      let val = e.target.value;
-      if (!val.startsWith('+63')) {
-        val = '+63';
-      }
-      let digits = val.slice(3).replace(/\D/g, '');
-      if (digits.length > 0 && digits[0] !== '9') {
-        digits = '9' + digits.slice(1);
-      }
-      if (digits.length > 10) {
-        digits = digits.slice(0, 10);
-      }
-      e.target.value = '+63' + digits;
-    });
-    addContactNumberInput.addEventListener('keydown', function (e) {
-      if (addContactNumberInput.selectionStart <= 3 && (e.key === 'Backspace' || e.key === 'ArrowLeft')) {
-        e.preventDefault();
-      }
-    });
-  }
-
-  const addTlEmailInput = document.getElementById('addTlEmail');
-  if (addTlEmailInput) {
-    let emailTimer = null;
-    addTlEmailInput.addEventListener('input', function () {
-      clearTimeout(emailTimer);
-      const email = addTlEmailInput.value.trim();
-      const statusEl = document.getElementById('addTlEmailCheckStatus');
-      if (!email) {
-        if (statusEl) {
-          statusEl.className = 'text-muted d-block mt-1';
-          statusEl.textContent = 'Must be a valid Gmail address unique across the system.';
-        }
-        return;
-      }
-      if (!/^[A-Z0-9._%+\-]+@gmail\.com$/i.test(email)) {
-        if (statusEl) {
-          statusEl.className = 'text-danger d-block mt-1';
-          statusEl.textContent = 'Must be a valid Gmail address.';
-        }
-        return;
-      }
-      emailTimer = setTimeout(function () {
-        fetch(API.clients + '?check_email=' + encodeURIComponent(email), { credentials: 'include' })
-          .then(r => r.json())
-          .then(d => {
-            if (d && d.success && d.exists) {
-              if (statusEl) {
-                statusEl.className = 'text-danger d-block mt-1';
-                statusEl.textContent = 'This Gmail address is already registered. Please use another Gmail account.';
-              }
-            } else {
-              if (statusEl) {
-                statusEl.className = 'text-success d-block mt-1';
-                statusEl.textContent = 'Gmail is available.';
-              }
-            }
-          })
-          .catch(() => {});
-      }, 300);
-    });
-  }
-
-  const addTlPasswordInput = document.getElementById('addTlPassword');
-  if (addTlPasswordInput) addTlPasswordInput.addEventListener('input', updateTlPasswordValidationUI);
-  const addTlPasswordConfirmInput = document.getElementById('addTlPasswordConfirm');
-  if (addTlPasswordConfirmInput) addTlPasswordConfirmInput.addEventListener('input', updateTlPasswordValidationUI);
+  PhMobile.attach(document.getElementById('addContactNumber'),{profile:true});
+  ClientCompaniesUI.attachAccount(document.getElementById('formAddClient'),'addTl');
 
   const editTlPasswordInput = document.getElementById('editTlPassword');
   if (editTlPasswordInput) editTlPasswordInput.addEventListener('input', updateEditTlPasswordValidationUI);
@@ -357,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.querySelectorAll('[data-toggle-password]').forEach(function (btn) {
     btn.addEventListener('click', function () {
+      if(btn.dataset.accountToggleBound==='1')return;
       const targetId = btn.getAttribute('data-target');
       const input = targetId ? document.getElementById(targetId) : null;
       const icon = btn.querySelector('i');
@@ -569,26 +507,38 @@ function loadIndustries(selectedName, selectElId) {
       }
       const items = d.industries || [];
       sel.innerHTML = '<option value="">Select industry</option>' + items.map(i =>
-        '<option value="' + escapeHtml(i.name) + '">' + escapeHtml(i.name) + '</option>'
+        '<option data-industry-id="'+i.id+'" data-edit-token="'+escapeHtml(i.edit_token||'')+'" value="' + escapeHtml(i.name) + '">' + escapeHtml(i.name) + '</option>'
       ).join('');
       if (selectedName) sel.value = selectedName;
+      sel.dispatchEvent(new Event('change'));
     })
     .catch(() => {
       sel.innerHTML = '<option value="">Failed to load</option>';
     });
 }
 
+var industryEditSelection=null;
+function openIndustryEditor(selectId) {
+ const select=document.getElementById(selectId),option=select.selectedOptions[0];
+ if(!option || !option.dataset.industryId)return;
+ industryEditSelection={id:option.dataset.industryId,token:option.dataset.editToken};
+ document.getElementById('industryNameInput').value=option.value;
+ document.querySelector('#modalAddIndustry .modal-title').textContent='Edit Industry';
+ modalAddIndustry.show();
+}
 function submitIndustry() {
   const input = document.getElementById('industryNameInput');
+  if(input && !input.reportValidity())return;
   const name = input ? input.value.trim() : '';
   if (!name) {
     Swal.fire({ icon: 'warning', title: 'Required', text: 'Industry name is required.' });
     return;
   }
   const fd = new FormData();
-  fd.append('action', 'create');
+  fd.append('action',industryEditSelection?'update':'create');
+  if(industryEditSelection){fd.append('industry_id',industryEditSelection.id);fd.append('edit_token',industryEditSelection.token);}
   fd.append('name', name);
-  fetch(API.industries, { method: 'POST', body: fd, credentials: 'include' })
+  ClientCompaniesUI.request(API.industries, { method: 'POST', body: fd, credentials: 'include' })
     .then(r => r.json())
     .then(d => {
       if (d.success) {
@@ -596,6 +546,7 @@ function submitIndustry() {
         modalAddIndustry.hide();
         loadIndustries(name, 'industrySelect');
         loadIndustries(name, 'editIndustrySelect');
+        loadCompanies();
         Swal.fire({ icon: 'success', title: 'Saved', text: d.message || 'Industry added.' });
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: d.message || 'Failed to add industry.' });
@@ -612,7 +563,7 @@ function openAddClientModal() {
       if (el) el.value = '';
     });
     const contactInput = document.getElementById('addContactNumber');
-    if (contactInput) contactInput.value = '+63';
+    if (contactInput) {contactInput.value = '';contactInput.dispatchEvent(new Event('input'));}
     const statusSelect = document.getElementById('addAgreementStatus');
     if (statusSelect) statusSelect.value = 'Active';
     const emailStatus = document.getElementById('addTlEmailCheckStatus');
@@ -747,16 +698,17 @@ function validateStrongPassword(password) {
   return { isValid: formatOk && !commonOrPredictable, failed, commonOrPredictable };
 }
 
-function updateTlPasswordValidationUI() {
-  const pwdEl = document.getElementById('addTlPassword');
-  const confirmEl = document.getElementById('addTlPasswordConfirm');
-  const confirmHint = document.getElementById('addTlPasswordConfirmHint');
+function updateTlPasswordValidationUI(prefix) {
+  prefix=typeof prefix==='string'?prefix:'addTl';
+  const pwdEl = document.getElementById(prefix+'Password');
+  const confirmEl = document.getElementById(prefix+'PasswordConfirm');
+  const confirmHint = document.getElementById(prefix+'PasswordConfirmHint');
   const ruleMap = [
-    { id: 'addTlRuleLen', ok: (v) => v.length >= 8 },
-    { id: 'addTlRuleUpper', ok: (v) => /[A-Z]/.test(v) },
-    { id: 'addTlRuleLower', ok: (v) => /[a-z]/.test(v) },
-    { id: 'addTlRuleNumber', ok: (v) => /\d/.test(v) },
-    { id: 'addTlRuleSpecial', ok: (v) => /[^A-Za-z0-9]/.test(v) }
+    { id: prefix+'RuleLen', ok: (v) => v.length >= 8 },
+    { id: prefix+'RuleUpper', ok: (v) => /[A-Z]/.test(v) },
+    { id: prefix+'RuleLower', ok: (v) => /[a-z]/.test(v) },
+    { id: prefix+'RuleNumber', ok: (v) => /\d/.test(v) },
+    { id: prefix+'RuleSpecial', ok: (v) => /[^A-Za-z0-9]/.test(v) }
   ];
   if (!pwdEl || !confirmEl || !confirmHint) return;
 
@@ -1065,6 +1017,8 @@ function initSPA() {
           window.JobCategoriesAdmin.load();
         } else if (targetId === 'section-holidays' && window.HolidaysAdmin && typeof window.HolidaysAdmin.load === 'function') {
           window.HolidaysAdmin.load();
+        } else if (targetId === 'section-resignations' && window.EmployeeExit) {
+          window.EmployeeExit.load();
         } else if (targetId === 'section-settings' && window.AgencyContactSettings && typeof window.AgencyContactSettings.load === 'function') {
           window.AgencyContactSettings.load();
         }
@@ -1346,6 +1300,7 @@ function populateClientSelect() {
 
 function submitClient() {
   const form = document.getElementById('formAddClient');
+  if(!form.reportValidity())return;
   const name = form.name.value.trim();
   const contactNumber = (form.contact_number && form.contact_number.value) ? form.contact_number.value.trim() : '';
   const tlName = (form.tl_full_name && form.tl_full_name.value) ? form.tl_full_name.value.trim() : '';
@@ -1367,12 +1322,12 @@ function submitClient() {
     Swal.fire({ icon: 'warning', title: 'Required', text: 'Contact number is required.' });
     return;
   }
-  const phMobileRegex = /^\+639\d{9}$/;
+  const phMobileRegex = PhMobile.profileRule;
   if (!phMobileRegex.test(contactNumber)) {
     Swal.fire({
       icon: 'warning',
       title: 'Invalid Contact Number',
-      text: 'Please enter a valid Philippine mobile number starting with +63 followed by 10 digits starting with 9 (e.g., +639123456789).'
+      text: 'Please enter a valid Philippine mobile number.'
     });
     return;
   }
@@ -1381,7 +1336,7 @@ function submitClient() {
     Swal.fire({ icon: 'warning', title: 'Required', text: 'Team Lead full name, email, and password are required.' });
     return;
   }
-  if (!/^[A-Z0-9._%+\-]+@gmail\.com$/i.test(tlEmail)) {
+  if (ClientCompaniesUI.gmailMessage(tlEmail)) {
     Swal.fire({ icon: 'warning', title: 'Gmail required', text: 'Team Lead email must be a valid Gmail address.' });
     return;
   }
@@ -1427,7 +1382,7 @@ function submitClient() {
   fd.append('agreement_notes', agreementNotes);
   fd.append('signed_document', signedDocInput.files[0]);
 
-  fetch(API.clients, { method: 'POST', body: fd, credentials: 'include' })
+  ClientCompaniesUI.request(API.clients, { method: 'POST', body: fd, credentials: 'include' })
     .then(handleAuthExpired)
     .then(data => {
       if (data.success) {
@@ -1438,7 +1393,7 @@ function submitClient() {
         if (modalAddClient) modalAddClient.hide();
         form.reset();
         const contactInput = document.getElementById('addContactNumber');
-        if (contactInput) contactInput.value = '+63';
+        if (contactInput) contactInput.value = '';
         loadCompanies();
         loadAgreements();
         refreshAdminSidebarBadges();
@@ -1485,7 +1440,7 @@ function submitEditClient() {
       Swal.fire({ icon: 'warning', title: 'Required', text: 'Complete all Team Lead fields when creating a new account.' });
       return;
     }
-    if (!/^[A-Z0-9._%+\-]+@gmail\.com$/i.test(tlEmail)) {
+    if (ClientCompaniesUI.gmailMessage(tlEmail)) {
       Swal.fire({ icon: 'warning', title: 'Gmail required', text: 'Team Lead email must be a valid Gmail address.' });
       return;
     }
@@ -1519,7 +1474,7 @@ function submitEditClient() {
     fd.append('tl_password_confirm', tlPass2);
   }
 
-  fetch(API.clients, { method: 'POST', body: fd, credentials: 'include' })
+  ClientCompaniesUI.request(API.clients, { method: 'POST', body: fd, credentials: 'include' })
     .then(handleAuthExpired)
     .then(data => {
       if (!data.success) {

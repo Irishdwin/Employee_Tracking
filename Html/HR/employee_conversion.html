@@ -73,8 +73,14 @@
         body.embedded-mode .main-content .d-flex.justify-content-between.align-items-start.mb-4 { display: none; }
         body.embedded-mode .alert { margin-bottom: 1rem; }
         body.embedded-mode .card { min-height: 120px; }
+
+        #conversionModal .modal-content{background:#fff;border:1px solid #dce5f0;border-radius:16px;box-shadow:0 18px 50px #15375a26;max-height:calc(100dvh - 24px)}
+        #conversionModal .modal-header,#conversionModal .modal-footer{background:#f6f9fd}
+        #conversionModal .modal-body{overflow-y:auto}
     </style>
-    <script>window.REQUIRED_ROLES = 'Admin,HR';</script>
+    <script src="../../Js/Shared/pagination_ui.js"></script>
+<script src="../../Js/Shared/managed_list.js"></script>
+<script>window.REQUIRED_ROLES = 'Admin,HR';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
     <script>
         (function () {
@@ -92,6 +98,10 @@
             } catch (e) {}
         })();
     </script>
+<link rel="stylesheet" href="../../Css/admin_workspace.css">
+<script src="../../Js/Shared/app_dialog.js"></script>
+<link rel="stylesheet" href="../../Css/hr_workspace.css">
+<link rel="stylesheet" href="../../Css/hire_modal.css">
 </head>
 <body>
 <div class="layout-wrapper">
@@ -112,7 +122,7 @@
     <main class="main-content">
         <div class="d-flex justify-content-between align-items-start mb-4">
             <div>
-                <div class="page-header-title">Hire Applicants</div>
+                <div class="page-header-title">Employee Conversion</div>
                 <div class="page-header-subtitle">Hire (convert) client-approved applicants to employees after a contract is on file. Upload contracts in <strong>Applicant Contracts</strong>.</div>
             </div>
         </div>
@@ -152,8 +162,8 @@
 </div>
 
 <!-- Conversion Modal -->
-<div class="modal fade" id="conversionModal" tabindex="-1" data-bs-backdrop="false">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="conversionModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Complete Hire &amp; Salary Configuration</h5>
@@ -180,6 +190,9 @@
                     </div>
                     <hr class="my-2">
                     <h6 class="text-uppercase text-muted small fw-bold mb-3">Salary Configuration</h6>
+                    <div class="mb-3"><label class="form-label" for="conversionSundayAllowance">Sunday Duty Allowance (PHP)</label>
+                    <div class="input-group"><span class="input-group-text">₱</span><input type="number" id="conversionSundayAllowance" class="form-control" min="0" max="99999999.99" step="0.01" value="0"></div>
+                    <div class="form-text">Paid once per Sunday with completed, rendered duty. Separate from monthly allowance and premium pay.</div></div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label" for="conversionDailyRate">Daily Rate (PHP) *</label>
@@ -188,13 +201,6 @@
                                 <input type="number" id="conversionDailyRate" class="form-control" min="0.01" step="0.01" placeholder="0.00" required>
                             </div>
                             <div class="form-text">Hourly (÷8) and monthly credit (×26) are computed automatically.</div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label" for="conversionAllowance">Monthly Allowance (PHP)</label>
-                            <div class="input-group">
-                                <span class="input-group-text">₱</span>
-                                <input type="number" id="conversionAllowance" class="form-control" min="0" step="0.01" value="0" placeholder="0.00">
-                            </div>
                         </div>
                     </div>
                     <div class="row">
@@ -219,6 +225,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Use the dashboard viewport and its existing Bootstrap modal/body-lock handling.
+    var conversionModalElement = document.getElementById('conversionModal');
+    var conversionBootstrap = bootstrap;
+    if (window.parent !== window && window.parent.location.origin === location.origin && window.parent.bootstrap) {
+        window.parent.document.body.appendChild(conversionModalElement);
+        conversionBootstrap = window.parent.bootstrap;
+    }
+    function conversionElement(id) {
+        return id === 'conversionModal' ? conversionModalElement : conversionModalElement.querySelector('#' + id);
+    }
+    window.addEventListener('pagehide', function () {
+        var instance = conversionBootstrap.Modal.getInstance(conversionModalElement);
+        if (instance) { instance.hide(); instance.dispose(); }
+        if (conversionModalElement.ownerDocument !== document) conversionModalElement.remove();
+    });
     const API_BASE = '../../Api/HR/';
     let conversionAppsCache = [];
     let requestedApplicationId = null;
@@ -229,14 +250,20 @@
         if (qid) requestedApplicationId = qid;
     } catch (e) {}
 
+    window.managedConversion=ManagedList({body:'conversionList',search:'conversionSearchInput',label:'records',columns:6,filters:{company:'companies',position:'positions',conversion_state:'conversion readiness'},load:loadConversions});
+    window.addEventListener('focus',loadConversions);
+    window.addEventListener('message',function(e){if(e.origin===location.origin && e.data && e.data.type==='applicant-contract-updated')loadConversions();});
     function loadConversions() {
-        fetch(API_BASE + 'get_conversion_list.php', { credentials: 'same-origin' })
+        var sequence=managedConversion.begin();
+        fetch(API_BASE + 'get_conversion_list.php?'+managedConversion.query(), { credentials: 'same-origin',signal:managedConversion.signal() })
             .then(function (r) {
                 if (!r.ok) return r.json().then(function (j) { throw new Error((j && j.message) || ('HTTP ' + r.status)); });
                 return r.json();
             })
             .then(data => {
+                if(!managedConversion.current(sequence))return;
                 if (data.success) {
+                    managedConversion.finish(data.pagination);
                     conversionAppsCache = data.applications || [];
                     applyConversionFilter();
 
@@ -301,7 +328,7 @@
                 <td>
                     ${hasContract ? `
                         <button class="btn btn-sm btn-primary" onclick="openConversion(${app.application_id})">
-                            <i class="bi bi-check2 me-1"></i>Convert
+                            <i class="bi bi-check2 me-1"></i>Hire Applicant
                         </button>
                     ` : `
                         <span class="text-muted small">—</span>
@@ -318,9 +345,9 @@
     }
 
     function updateConversionSalaryPreview() {
-        var dailyEl = document.getElementById('conversionDailyRate');
-        var hourlyEl = document.getElementById('conversionHourlyPreview');
-        var monthlyEl = document.getElementById('conversionMonthlyPreview');
+        var dailyEl = conversionElement('conversionDailyRate');
+        var hourlyEl = conversionElement('conversionHourlyPreview');
+        var monthlyEl = conversionElement('conversionMonthlyPreview');
         if (!dailyEl || !hourlyEl || !monthlyEl) return;
         var daily = parseFloat(dailyEl.value);
         if (!isFinite(daily) || daily <= 0) {
@@ -333,28 +360,29 @@
     }
 
     function openConversion(appId) {
-        document.getElementById('convertApplicationId').value = appId;
-        document.getElementById('sssNumber').value = '';
-        document.getElementById('philhealthNumber').value = '';
-        document.getElementById('pagibigNumber').value = '';
-        var dailyEl = document.getElementById('conversionDailyRate');
-        var allowanceEl = document.getElementById('conversionAllowance');
+        conversionElement('convertApplicationId').value = appId;
+        conversionElement('sssNumber').value = '';
+        conversionElement('philhealthNumber').value = '';
+        conversionElement('pagibigNumber').value = '';
+        var dailyEl = conversionElement('conversionDailyRate');
         if (dailyEl) dailyEl.value = '';
-        if (allowanceEl) allowanceEl.value = '0';
+        conversionElement('conversionSundayAllowance').value='0';
         updateConversionSalaryPreview();
-        var alert = document.getElementById('conversionAlert');
+        var alert = conversionElement('conversionAlert');
         if (alert) alert.classList.add('d-none');
-        new bootstrap.Modal(document.getElementById('conversionModal')).show();
+        conversionBootstrap.Modal.getOrCreateInstance(conversionElement('conversionModal')).show();
     }
 
-    document.getElementById('btnConvert').onclick = () => {
-        const appId = document.getElementById('convertApplicationId').value;
-        const sss = document.getElementById('sssNumber').value.trim();
-        const philhealth = document.getElementById('philhealthNumber').value.trim();
-        const pagibig = document.getElementById('pagibigNumber').value.trim();
-        const dailyRate = parseFloat((document.getElementById('conversionDailyRate') || {}).value || '');
-        const allowance = parseFloat((document.getElementById('conversionAllowance') || {}).value || '0');
-        const alert = document.getElementById('conversionAlert');
+    let hirePending=false;
+    const hireDialogs=(window.parent!==window && window.parent.HRDialog) || window.AppDialog;
+    conversionElement('btnConvert').onclick = async () => {
+        if(hirePending)return;
+        const appId = conversionElement('convertApplicationId').value;
+        const sss = conversionElement('sssNumber').value.trim();
+        const philhealth = conversionElement('philhealthNumber').value.trim();
+        const pagibig = conversionElement('pagibigNumber').value.trim();
+        const dailyRate = parseFloat((conversionElement('conversionDailyRate') || {}).value || '');
+        const alert = conversionElement('conversionAlert');
 
         if (!sss || !philhealth || !pagibig) {
             alert.className = 'alert alert-danger';
@@ -368,13 +396,10 @@
             alert.classList.remove('d-none');
             return;
         }
-        if (!isFinite(allowance) || allowance < 0) {
-            alert.className = 'alert alert-danger';
-            alert.textContent = 'Monthly Allowance cannot be negative.';
-            alert.classList.remove('d-none');
-            return;
-        }
 
+        hirePending=true;
+        if(!await hireDialogs.confirm('Are you sure you want to hire this applicant?','Confirm hiring','Yes, hire applicant')){hirePending=false;return;}
+        const hireButton=conversionElement('btnConvert');hireButton.disabled=true;
         fetch(API_BASE + 'convert_to_employee.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -385,7 +410,8 @@
                 philhealth_number: philhealth,
                 pagibig_number: pagibig,
                 daily_rate: dailyRate,
-                allowance: isFinite(allowance) ? allowance : 0
+
+                sunday_duty_allowance: conversionElement('conversionSundayAllowance').value
             })
         })
         .then(r => r.json())
@@ -398,10 +424,9 @@
                 }
                 alert.textContent = msg;
                 alert.classList.remove('d-none');
-                setTimeout(() => {
-                    bootstrap.Modal.getInstance(document.getElementById('conversionModal')).hide();
-                    loadConversions();
-                }, 2000);
+                conversionBootstrap.Modal.getInstance(conversionElement('conversionModal')).hide();
+                loadConversions();
+                hireDialogs.alert('Applicant hired successfully. '+msg,'Applicant hired successfully');
             } else {
                 alert.className = 'alert alert-danger';
                 alert.textContent = data.message || 'Conversion failed.';
@@ -412,7 +437,7 @@
             alert.className = 'alert alert-danger';
             alert.textContent = 'Error converting applicant.';
             alert.classList.remove('d-none');
-        });
+        }).finally(()=>{hirePending=false;hireButton.disabled=false;});
     };
 
     function escapeHtml(text) {
@@ -422,7 +447,7 @@
     }
 
     document.getElementById('conversionSearchInput')?.addEventListener('input', applyConversionFilter);
-    var conversionDailyEl = document.getElementById('conversionDailyRate');
+    var conversionDailyEl = conversionElement('conversionDailyRate');
     if (conversionDailyEl) {
         conversionDailyEl.addEventListener('input', updateConversionSalaryPreview);
         conversionDailyEl.addEventListener('change', updateConversionSalaryPreview);

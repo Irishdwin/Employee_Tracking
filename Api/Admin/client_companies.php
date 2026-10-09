@@ -20,6 +20,12 @@ if ($_SESSION['role'] !== 'Admin') {
 }
 
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__.'/../Helpers/ph_mobile.php';
+require_once __DIR__.'/../Helpers/client_admin_security.php';
+try { client_admin_require($conn); } catch(Throwable $e) {
+    http_response_code(403);header('Content-Type: application/json');ob_clean();
+    echo json_encode(['success'=>false,'message'=>$e->getCode()===403?$e->getMessage():'Unable to verify Admin authorization.']);exit;
+}
 require_once __DIR__ . '/../Common/NotificationHelper.php';
 require_once __DIR__ . '/../Helpers/send_mail.php';
 require_once __DIR__ . '/../Helpers/client_company_status.php';
@@ -70,7 +76,7 @@ function client_company_notify_assigned_lead(mysqli $conn, int $leadId, string $
     $siteAssignment = $siteId !== null;
     $message = 'Admin assigned you as Team Lead for ' . $companyName;
     if ($siteName !== null && $siteName !== '') $message .= ' — ' . $siteName;
-    $message .= '. Open Deployment Sites to view your assignment.';
+    $message .= '. Open Deployment Sites to view your assignment and My Deployed Team to view your assigned employees.';
     if (!insert_system_notification($conn, $leadId,
         $siteAssignment ? 'team_lead_site_assigned' : 'team_lead_company_assigned',
         $siteAssignment ? 'New deployment site assignment' : 'New client company assignment',
@@ -81,11 +87,7 @@ function client_company_notify_assigned_lead(mysqli $conn, int $leadId, string $
 }
 
 function normalize_ph_contact_number(string $number): ?string {
-    $number = trim($number);
-    if (!preg_match('/^\+639\d{9}$/', $number)) {
-        return null;
-    }
-    return $number;
+    return ph_mobile_normalize($number);
 }
 
 function generate_next_contract_number(mysqli $conn): string {
@@ -111,22 +113,23 @@ function create_team_lead_user_account(mysqli $conn, string $tlFullName, string 
     $tlFullName = trim($tlFullName);
     $tlEmail = strtolower(trim($tlEmail));
     if ($tlFullName === '' || $tlEmail === '' || $tlPassword === '') {
-        json_response(['success' => false, 'message' => 'Team Lead full name, email, and password are required.'], 400);
+        throw new InvalidArgumentException('Team Lead full name, email, and password are required.');
     }
-    if (!preg_match('/^[A-Z0-9._%+\-]+@gmail\.com$/i', $tlEmail)) {
-        json_response(['success' => false, 'message' => 'Team Lead email must be a valid Gmail address.'], 400);
+    if(mb_strlen($tlFullName)>100)throw new InvalidArgumentException('Team Lead full name must be at most 100 characters.');
+    if (!filter_var($tlEmail,FILTER_VALIDATE_EMAIL) || !preg_match('/^[A-Z0-9._%+\-]+@gmail\.com$/i', $tlEmail)) {
+        throw new InvalidArgumentException('Team Lead email must be a valid Gmail address.');
     }
 
     if (check_global_email_exists($conn, $tlEmail)) {
-        json_response(['success' => false, 'message' => 'This Gmail address is already registered. Please use another Gmail account.'], 409);
+        throw new InvalidArgumentException('This Gmail address is already registered. Please use another Gmail account.');
     }
 
     if ($tlPassword !== $tlPasswordConfirm) {
-        json_response(['success' => false, 'message' => 'Team Lead passwords do not match.'], 400);
+        throw new InvalidArgumentException('Team Lead passwords do not match.');
     }
     $passwordPolicyError = validate_strong_password($tlPassword);
     if ($passwordPolicyError !== null) {
-        json_response(['success' => false, 'message' => $passwordPolicyError], 400);
+        throw new InvalidArgumentException($passwordPolicyError);
     }
 
     $roleStmt = $conn->prepare("SELECT RolesID FROM roles WHERE RoleName IN ('TeamLead', 'Team Lead') ORDER BY RolesID LIMIT 1");
@@ -134,7 +137,7 @@ function create_team_lead_user_account(mysqli $conn, string $tlFullName, string 
     $roleRow = $roleStmt->get_result()->fetch_assoc();
     $roleStmt->close();
     if (!$roleRow) {
-        json_response(['success' => false, 'message' => 'Team Lead role is not configured in the database.'], 500);
+        throw new RuntimeException('Team Lead role is not configured.');
     }
     $roleId = (int)$roleRow['RolesID'];
     $hashedPassword = password_hash($tlPassword, PASSWORD_DEFAULT);
@@ -144,7 +147,7 @@ function create_team_lead_user_account(mysqli $conn, string $tlFullName, string 
     if (!$userIns->execute()) {
         $err = $conn->error;
         $userIns->close();
-        json_response(['success' => false, 'message' => 'Could not create Team Lead account: ' . $err], 500);
+        throw new RuntimeException('Could not create Team Lead account.');
     }
     $newUserId = (int)$conn->insert_id;
     $userIns->close();
@@ -159,6 +162,7 @@ function create_team_lead_user_account(mysqli $conn, string $tlFullName, string 
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    if(($_GET['list']??'')==='context')json_response(['success'=>true,'csrf_token'=>payroll_csrf_token()]);
     if (($_GET['list'] ?? '') === 'sites') {
         $company=(int)($_GET['company_id']??0);
         $sites=site_query($conn,"SELECT s.*,u.FullName TeamLeadName,
@@ -361,9 +365,18 @@ if ($method === 'POST') {
             if(!$company || $siteName==='' || strlen($siteName)>150)throw new InvalidArgumentException('Company and site name (up to 150 characters) are required.');
             if(!site_query($conn,'SELECT CompanyID FROM clientcompany WHERE CompanyID=?','i',[$company])->num_rows)throw new InvalidArgumentException('Company not found.');
             $conn->begin_transaction();
+            // Lock/validate the actual target before creating any account.
+            if($siteId && !site_query($conn,'SELECT SiteID FROM deployment_sites WHERE SiteID=? AND CompanyID=? FOR UPDATE','ii',[$siteId,$company])->num_rows)
+                throw new InvalidArgumentException('Site does not belong to this company.');
+            if(!in_array($_POST['lead_mode']??'existing',['existing','new'],true))throw new InvalidArgumentException('Invalid account option.');
             $lead=(int)($_POST['team_lead_id']??0);
             if(($_POST['lead_mode']??'existing')==='new') {
+                $leadContact=ph_mobile_normalize((string)($_POST['tl_contact_number']??''));
+                if($leadContact===null)throw new InvalidArgumentException('Please enter a valid Philippine mobile number for the new Team Lead.');
                 [$lead,$leadName]=create_team_lead_user_account($conn,trim($_POST['tl_full_name']??''),trim($_POST['tl_email']??''),$_POST['tl_password']??'',$_POST['tl_password_confirm']??'');
+                $leadProfile=json_encode(['MobileNumber'=>$leadContact],JSON_THROW_ON_ERROR);
+                $profileSave=$conn->prepare('INSERT INTO teamlead_personal_profiles (UserID,ProfileJSON) VALUES (?,?)');
+                $profileSave->bind_param('is',$lead,$leadProfile);$profileSave->execute();$profileSave->close();
             }
             if($lead && !site_query($conn,"SELECT u.UsersID FROM users u JOIN roles r ON r.RolesID=u.RoleID WHERE u.UsersID=? AND u.IsActive=1 AND r.RoleName IN ('TeamLead','Team Lead')",'i',[$lead])->num_rows)throw new InvalidArgumentException('Choose an active Team Lead.');
             $lead=$lead?:null;$active=isset($_POST['is_active'])?(int)$_POST['is_active']:1;
@@ -380,6 +393,19 @@ if ($method === 'POST') {
                 $st->bind_param('issii',$company,$siteName,$siteAddress,$lead,$active);
             }
             $st->execute();if(!$siteId)$siteId=(int)$conn->insert_id;$st->close();
+            if ($lead) {
+                // The company contact reflects the lead selected by Admin; branch authority
+                // remains on each site so other branch assignments are not transferred.
+                $st=$conn->prepare('UPDATE clientcompany c JOIN users u ON u.UsersID=? SET c.UserID=u.UsersID,c.ContactPerson=u.FullName WHERE c.CompanyID=?');
+                $st->bind_param('ii',$lead,$company);$st->execute();$st->close();
+            }
+            // Recover legacy company deployments without a site only when the company
+            // has one active site. Multiple branches require an explicit assignment.
+            $activeSites=site_query($conn,'SELECT SiteID FROM deployment_sites WHERE CompanyID=? AND IsActive=1 FOR UPDATE','i',[$company])->fetch_all(MYSQLI_ASSOC);
+            if ($active && count($activeSites)===1 && (int)$activeSites[0]['SiteID']===$siteId) {
+                $st=$conn->prepare('UPDATE deployment d SET SiteID=? WHERE d.CompanyID=? AND d.SiteID IS NULL AND '.site_current_deployment_sql());
+                $st->bind_param('ii',$siteId,$company);$st->execute();$st->close();
+            }
             // Keep legacy consumers aligned on current rows only; historical supervisor snapshots remain.
             $st=$conn->prepare('UPDATE deployment d SET SiteSuperVisorID=? WHERE SiteID=? AND '.site_current_deployment_sql());
             $st->bind_param('ii',$lead,$siteId);$st->execute();$st->close();
@@ -439,7 +465,7 @@ if ($method === 'POST') {
             if (!in_array($ext, $allowed)) {
                 json_response(['success' => false, 'message' => 'Only PDF, JPG, and PNG files are allowed.'], 400);
             }
-            $filename = 'sa_client_' . time() . '.' . $ext;
+            $filename = 'sa_client_' . bin2hex(random_bytes(20)) . '.' . $ext;
             $targetPath = $baseUploadDir . $filename;
             if (move_uploaded_file($_FILES['signed_document']['tmp_name'], $targetPath)) {
                 $signedPath = 'uploads/service_agreements/' . $filename;
@@ -472,10 +498,6 @@ if ($method === 'POST') {
             }
             $companyId = (int)$conn->insert_id;
             $stmt->close();
-            $siteName=trim($_POST['site_name']??'')?:$name;
-            $siteAddress=trim($_POST['site_address']??'')?:$address;
-            $siteStmt=$conn->prepare('INSERT INTO deployment_sites (CompanyID,Name,Address,TeamLeadID,LegacyDefault) VALUES (?,?,?,?,1)');
-            $siteStmt->bind_param('issi',$companyId,$siteName,$siteAddress,$newUserId);$siteStmt->execute();$siteStmt->close();
 
             $contractNumber = generate_next_contract_number($conn);
             $adminUserId = (int)$_SESSION['user_id'];
@@ -490,7 +512,7 @@ if ($method === 'POST') {
             $saStmt->close();
 
             sync_client_company_active_status($conn, $companyId);
-            client_company_notify_assigned_lead($conn, $newUserId, $name, $companyId, $siteName);
+            client_company_notify_assigned_lead($conn, $newUserId, $name, $companyId);
 
             $conn->commit();
 
@@ -517,12 +539,12 @@ if ($method === 'POST') {
                 'notified_count' => $notifyResult['notified_count'],
                 'websocket_broadcast' => $notifyResult['websocket_broadcast'],
             ]);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $conn->rollback();
             if ($signedPath !== '' && file_exists(dirname(__DIR__, 2) . '/' . $signedPath)) {
                 @unlink(dirname(__DIR__, 2) . '/' . $signedPath);
             }
-            json_response(['success' => false, 'message' => $e->getMessage()], 500);
+            json_response(['success' => false, 'message' => $e instanceof InvalidArgumentException ? $e->getMessage() : 'Unable to register client company.'], $e instanceof InvalidArgumentException ? 422 : 500);
         }
     } elseif ($action === 'update') {
         $companyId = (int)($_POST['company_id'] ?? 0);

@@ -46,7 +46,7 @@ try {
     // Api/Employee/get_employee_payroll.php — not re-derived differently.
     $empStmt = $conn->prepare(
         "SELECT EmployeeID, EmployeeNumber, FirstName, LastName, daily_rate, hourly_rate, allowance, monthly_salary_credit, BasicSalary
-         FROM employee WHERE EmployeeID = ? AND IsActive = 1 LIMIT 1"
+         FROM employee WHERE EmployeeID = ? LIMIT 1"
     );
     $empStmt->bind_param('i', $employeeId);
     $empStmt->execute();
@@ -90,7 +90,7 @@ try {
     $period = payroll_type_period_for_company($conn, $companyId, $date);
     $deductionFlags = payroll_type_deductions($period['type'] ?? 'B', $period['half'] ?? '1st');
 
-    $pdo = attendance_pdo();
+    $pdo = attendance_pdo($conn);
 
     $payroll = payroll_compute_period(
         $conn,

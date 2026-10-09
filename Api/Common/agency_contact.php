@@ -22,6 +22,9 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
 }
 
 require __DIR__ . '/../Db_connection/db_connect.php';
+require_once __DIR__ . '/../Helpers/agency_landing_content.php';
+require_once __DIR__ . '/../Helpers/application_endorsement.php';
+if(empty($_SESSION['agency_contact_csrf']))$_SESSION['agency_contact_csrf']=bin2hex(random_bytes(32));
 
 const AGENCY_CONTACT_KEYS = [
     'name' => 'agency_contact_name',
@@ -93,7 +96,7 @@ try {
     if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         // Any authenticated role may VIEW the agency contact (Applicants
         // need this to render their own application details page).
-        echo json_encode(['success' => true, 'contact' => agency_contact_fetch($conn)]);
+        echo json_encode(['success' => true, 'contact' => agency_contact_fetch($conn), 'landing'=>agency_landing_read($conn), 'csrf_token'=>$_SESSION['agency_contact_csrf']]);
         exit();
     }
 
@@ -112,6 +115,17 @@ try {
             $input = $_POST;
         }
 
+        try { ae_authorize($conn,(int)$_SESSION['user_id'],['Admin','HR']); } catch(DomainException $e) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Forbidden']); exit; }
+        if (!is_string($input['csrf_token']??null) || !hash_equals($_SESSION['agency_contact_csrf'],$input['csrf_token'])) { http_response_code(403); echo json_encode(['success'=>false,'message'=>'Please reload settings before saving.']); exit; }
+        if(isset($input['landing']) && !is_array($input['landing'])) { http_response_code(422); echo json_encode(['success'=>false,'message'=>'Invalid landing page details.']); exit; }
+        try { $landing=agency_landing_validate($input['landing']??[]); } catch(DomainException $e) { http_response_code(422); echo json_encode(['success'=>false,'message'=>$e->getMessage()]); exit; }
+        foreach (['name', 'email', 'phone'] as $field) {
+            if (isset($input[$field]) && !is_string($input[$field])) {
+                http_response_code(422);
+                echo json_encode(['success' => false, 'message' => 'Agency contact fields must be text.']);
+                exit;
+            }
+        }
         $name = trim((string)($input['name'] ?? ''));
         $email = trim((string)($input['email'] ?? ''));
         $phone = trim((string)($input['phone'] ?? ''));
@@ -132,6 +146,7 @@ try {
             exit();
         }
 
+        $conn->begin_transaction();
         agency_contact_ensure_seeded($conn);
 
         $userId = (int)$_SESSION['user_id'];
@@ -147,13 +162,16 @@ try {
         }
         $stmt->close();
 
-        echo json_encode(['success' => true, 'message' => 'Agency Contact updated.', 'contact' => agency_contact_fetch($conn)]);
+        agency_landing_save($conn,$landing,$userId);
+        $conn->commit();
+        echo json_encode(['success' => true, 'message' => 'Agency contact and landing page updated.', 'contact' => agency_contact_fetch($conn), 'landing'=>agency_landing_read($conn), 'csrf_token'=>$_SESSION['agency_contact_csrf']]);
         exit();
     }
 
     http_response_code(405);
     echo json_encode(['success' => false, 'message' => 'Method not allowed.']);
 } catch (Throwable $e) {
+    if(isset($conn))$conn->rollback();
     error_log('[agency_contact] ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'message' => 'Failed to process Agency Contact settings.']);

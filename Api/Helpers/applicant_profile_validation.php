@@ -2,6 +2,7 @@
 /** Field errors only: existing authoritative hierarchy validation still runs before saving. */
 function applicant_profile_errors(array $input): array {
     $errors=[];
+    if(!isset($input['gender'])||!is_string($input['gender'])||!in_array($input['gender'],['Male','Female','Other','Prefer not to say'],true))$errors['gender']='Please select your sex.';
     $value=fn($key)=>isset($input[$key]) && is_scalar($input[$key]) ? trim((string)$input[$key]) : '';
     foreach(['first_name'=>'First Name','last_name'=>'Last Name','middle_name'=>'Middle Name'] as $key=>$label){
         $v=$value($key);

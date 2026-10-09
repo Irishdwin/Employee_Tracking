@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hr-ui">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,6 +23,8 @@
     </style>
     <script>window.REQUIRED_ROLE = 'HR';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
+<link rel="stylesheet" href="../../Css/hr_workspace.css">
+<script src="../../Js/Shared/hr_dialog.js"></script>
 </head>
 <body>
 <div class="layout-wrapper">
@@ -306,45 +308,52 @@ document.getElementById('hrJorDetailRejectBtn').onclick = () => {
     hrRejectJorModalInstance.show();
 };
 
-document.getElementById('hrRejectJorSubmitBtn').onclick = () => {
+let hrRejectionPending = false;
+document.getElementById('hrRejectJorSubmitBtn').onclick = async () => {
+    if(hrRejectionPending)return;
     const reason = document.getElementById('hrRejectJorReason').value.trim();
     if (!reason) {
         document.getElementById('hrRejectJorReasonError').classList.remove('d-none');
         return;
     }
-    rejectRequest(hrJorCurrentId, reason, () => {
+    const requestId=hrJorCurrentId;
+    hrRejectionPending=true;
+    if(!await HRDialog.confirm('Reject Job Order Request #'+requestId+'? The Team Lead will receive your rejection reason.')){hrRejectionPending=false;return;}
+    const button=document.getElementById('hrRejectJorSubmitBtn');button.disabled=true;
+    rejectRequest(requestId, reason, () => {
         hrRejectJorModalInstance.hide();
         if (hrJorDetailsModalInstance) hrJorDetailsModalInstance.hide();
-    });
+    }).finally(()=>{hrRejectionPending=false;button.disabled=false;});
 };
 
-function approveRequest(id) {
+async function approveRequest(id) {
     const review={action:'approve',request_id:id,placements:[]};let valid=true;
     document.querySelectorAll('#hrReviewHierarchy [data-detail-id]').forEach(root=>{const v=window.JobHierarchySelectors.values(root);if(!v.classification_id||!v.sub_classification_id)valid=false;v.detail_id=parseInt(root.dataset.detailId,10);if(v.detail_id)review.placements.push(v);else{review.category_id=v.category_id;review.classification_id=v.classification_id;review.sub_classification_id=v.sub_classification_id;}});
-    if(!valid){alert('Select the classification and sub-classification for each requested placement.');return;}
-    if (!confirm('Post this request as a Job Order?')) return;
+    if(!valid){HRDialog.alert('Select the classification and sub-classification for each requested placement.');return;}
+    if (!await HRDialog.confirm('Post this request as a Job Order?')) return;
     fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(review), credentials: 'same-origin' })
         .then(r => r.json()).then(d => {
             if (d.success) {
                 if (hrJorDetailsModalInstance) hrJorDetailsModalInstance.hide();
                 loadJobOrderRequests(); loadJobOrders();
+                HRDialog.alert('Job Order posted successfully.');
             } else {
                 var alertEl = document.getElementById('createJOAlert');
                 if (d.error_type === 'invalid_category' && alertEl) {
                     showAlert(alertEl, d.message, 'warning');
                 } else {
-                    alert(d.message || 'Error');
+                    HRDialog.alert(d.message || 'Error');
                 }
             }
         });
 }
 
 function rejectRequest(id, reason, onSuccess) {
-    fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', request_id: id, reason: reason }), credentials: 'same-origin' })
+    return fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'reject', request_id: id, reason: reason }), credentials: 'same-origin' })
         .then(r => r.json()).then(d => {
-            if (d.success) { if (onSuccess) onSuccess(); loadJobOrderRequests(); }
-            else alert(d.message || 'Error');
-        });
+            if (d.success) { if (onSuccess) onSuccess(); loadJobOrderRequests(); HRDialog.alert("Job Order Request rejected successfully."); }
+            else HRDialog.alert(d.message || 'Error');
+        }).catch(()=>HRDialog.alert('Unable to reject the request. Please try again.'));
 }
 
 document.getElementById('requestFilter').addEventListener('change', loadJobOrderRequests);

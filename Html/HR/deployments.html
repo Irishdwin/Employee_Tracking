@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="hr-ui">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,6 +22,8 @@
     </style>
     <script>window.REQUIRED_ROLE = 'HR';</script>
     <script src="../../Js/Shared/role_guard.js"></script>
+<link rel="stylesheet" href="../../Css/hr_workspace.css">
+<script src="../../Js/Shared/hr_dialog.js"></script>
 </head>
 <body>
 <div class="layout-wrapper">
@@ -168,15 +170,15 @@
         }).catch(() => { document.getElementById('deploymentsBody').innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Failed to load.</td></tr>'; });
     }
 
-    function endDeployment(id) {
-        const end = prompt('End date (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
+    async function endDeployment(id) {
+        const end = await HRDialog.prompt('End date (YYYY-MM-DD):', new Date().toISOString().slice(0,10));
         if (!end) return;
         const fd = new FormData();
         fd.append('action', 'end');
         fd.append('deployment_id', id);
         fd.append('end_date', end);
         fetch(API, { method: 'POST', body: fd }).then(r => r.json()).then(d => {
-            if (d.success) { loadDeployments(); } else { alert(d.message || 'Error'); }
+            if (d.success) { loadDeployments(); } else { HRDialog.alert(d.message || 'Error'); }
         });
     }
 

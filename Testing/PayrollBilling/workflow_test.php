@@ -47,7 +47,7 @@ try {
     $run=$db->query('SELECT * FROM payroll_runs WHERE PayrollRunID=1')->fetch_assoc();
     $db->begin_transaction();$snapshot=billing_prepare_snapshot($db,['rows'=>$rows,'run'=>$run,'client_name'=>'Synthetic Client']);$db->commit();
     check(count($snapshot['rows'])===2,'stable two-employee roster');
-    $book=client_billing_render_spreadsheet($snapshot);$snapshot['token']=str_repeat('a',64);$snapshot['sheet_title']=$book->getSheet(0)->getTitle();$snapshot['cells']=billing_capture_cells($book,$snapshot);billing_add_manifest($book,$snapshot,$snapshot['token']);
+    $book=client_billing_render_spreadsheet($snapshot);$snapshot['token']=str_repeat('a',64);$snapshot['sheet_title']=$book->getSheet(0)->getTitle();$snapshot['cells']=billing_capture_cells($book,$snapshot);$snapshot['column_values']=billing_capture_values($book,$snapshot);billing_add_manifest($book,$snapshot,$snapshot['token']);
     $manifest=json_decode($book->getSheetByName('_ONAZUL_EXPORT')->getCell('A1')->getValue(),true);
     check(billing_detect_changes($book,$snapshot,$manifest)===[],'unchanged workbook has zero changes');
     $tmp=tempnam(sys_get_temp_dir(),'billing_').'.xlsx';$files[]=$tmp;(new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($tmp);billing_validate_zip($tmp);

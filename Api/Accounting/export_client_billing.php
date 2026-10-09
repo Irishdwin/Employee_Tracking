@@ -6,6 +6,8 @@
  * Query: run_id=PR-2026-07B-C5  OR  ref=BR-2026-07B-C5
  */
 declare(strict_types=1);
+ob_start();
+ini_set('display_errors','0');
 
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
@@ -15,6 +17,7 @@ require_once __DIR__ . '/../Helpers/client_billing_helper.php';
 
 $autoload = __DIR__ . '/../../vendor/autoload.php';
 if (!is_file($autoload)) {
+    while(ob_get_level()>0)ob_end_clean();
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
     echo 'PhpSpreadsheet is not installed. Run: composer require phpoffice/phpspreadsheet';
@@ -53,9 +56,12 @@ if ($runId === '' && $billingRef !== '') {
 }
 
 try {
-    payroll_require_accounting($conn);
+    require_once __DIR__.'/../Helpers/accounting_profile_helper.php';
+    $actor=payroll_require_accounting($conn);
+    $preparedBy=accounting_profile_name($conn,$actor);
     $run=client_billing_get_run($conn,$runId);
     if(!$run) throw new InvalidArgumentException('Payroll run not found.');
+    if($billingRef!=='' && $runId!==client_billing_run_code_from_ref($billingRef) && $billingRef!==$run['BillingRefNo'])throw new InvalidArgumentException('Billing reference does not match this payroll run.');
     // History download is a stored artifact, never a fresh payroll calculation.
     if(($_GET['archive'] ?? '')==='1') {
         $latest=payroll_query($conn,'SELECT ExportID FROM payroll_billing_exports WHERE PayrollRunID=? ORDER BY ExportID DESC LIMIT 1','i',[(int)$run['PayrollRunID']])->get_result()->fetch_assoc();
@@ -71,6 +77,7 @@ try {
         $locked=payroll_query($conn,'SELECT * FROM payroll_runs WHERE PayrollRunID=? FOR UPDATE','i',[(int)$run['PayrollRunID']])->get_result()->fetch_assoc();
         if($locked['AdminOverheadPct']!==$run['AdminOverheadPct'] || $locked['VatPct']!==$run['VatPct'])throw new RuntimeException('Billing settings changed. Please retry export.',409);
         $export=billing_prepare_snapshot($conn,$export);
+        $export['prepared_by']=$preparedBy;
         $spreadsheet=client_billing_render_spreadsheet($export);
         $token=bin2hex(random_bytes(32));
         $snapshot=$export;$snapshot['token']=$token;$snapshot['sheet_title']=$spreadsheet->getSheet(0)->getTitle();
@@ -79,12 +86,18 @@ try {
         billing_add_manifest($spreadsheet,$snapshot,$token);
         $relative='uploads/payroll_billing/export_'.$token.'.xlsx';
         billing_storage();$path=dirname(__DIR__,2).'/'.$relative;
-        (new Xlsx($spreadsheet))->save($path);
+        $writer=new Xlsx($spreadsheet);
+        $writer->setPreCalculateFormulas(true)->setForceFullCalc(true);
+        $writer->save($path);
         payroll_query($conn,'INSERT INTO payroll_billing_exports (PayrollRunID,ExportToken,BaselineHash,SnapshotJson,FilePath,CreatedBy) VALUES(?,?,?,?,?,?)','issssi',[(int)$run['PayrollRunID'],$token,hash('sha256',billing_json($snapshot)),billing_json($snapshot),$relative,(int)$_SESSION['user_id']]);
-        client_billing_mark_exported($conn,$runId,(float)$export['totals']['grand_total']);
+        // The agency summary is the client invoice, independently of saved pay.
+        $agencyTotalRow=7+max(1,count($export['rows']));
+        $agencyGrandTotal=$spreadsheet->getSheet(0)->getCell('C'.($agencyTotalRow+28))->getCalculatedValue();
+        if(!is_numeric($agencyGrandTotal) || !is_finite((float)$agencyGrandTotal))throw new RuntimeException('Invalid agency billing grand total.');
+        client_billing_mark_exported($conn,$runId,(float)$agencyGrandTotal);
         $conn->commit();
     } catch(Throwable $e) {$conn->rollback();if($path)@unlink($path);throw $e;}
-    $filename='Client_Billing_'.client_billing_billing_ref($runId).'.xlsx';
+    $filename='Client_Billing_'.preg_replace('/[^A-Za-z0-9_.-]/','_',client_billing_billing_ref($runId)).'.xlsx';
 
     while (ob_get_level() > 0) {
         ob_end_clean();
@@ -101,7 +114,8 @@ try {
     exit();
 } catch (Throwable $e) {
     error_log('export_client_billing: ' . $e->getMessage());
-    http_response_code(500);
+    while(ob_get_level()>0)ob_end_clean();
+    http_response_code($e->getCode()===409?409:($e instanceof InvalidArgumentException?400:500));
     header('Content-Type: text/plain; charset=utf-8');
     echo $e instanceof InvalidArgumentException || $e->getCode()===409 ? $e->getMessage() : 'Failed to generate billing export. Contact Accounting support.';
 }

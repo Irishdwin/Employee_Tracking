@@ -38,6 +38,7 @@
     var subClassificationSelect = document.getElementById('subClassificationSelect');
 
     var uploadedDocsMap = {};
+    var pendingDocumentUploads = 0;
 
     function escapeHtml(s) {
         return String(s)
@@ -233,7 +234,7 @@
         } else {
             delete uploadedDocsMap[docType];
             if (statusSpan) {
-                if (docType === 'Resume') statusSpan.textContent = 'PDF, Word, or image';
+                if (docType === 'Resume') statusSpan.textContent = 'PDF only · Maximum 5 MB';
                 else if (docType === 'Government ID') statusSpan.textContent = 'Government-issued ID';
                 else if (docType === 'Certification') statusSpan.textContent = 'Licenses, diplomas, etc.';
             }
@@ -261,7 +262,7 @@
         if (!modalEl) return;
 
         var viewUrl = '../../Api/Applicant/view_document.php?id=' + encodeURIComponent(docId);
-        if (downloadBtn) downloadBtn.href = viewUrl;
+        if (downloadBtn) downloadBtn.href = viewUrl+"&download=1";
 
         if (frame) { frame.style.display = 'none'; frame.src = ''; }
         if (img) { img.style.display = 'none'; img.src = ''; }
@@ -269,6 +270,7 @@
 
         fetch(viewUrl, { method: 'HEAD', credentials: 'include' })
             .then(function (r) {
+                if(!r.ok){if(empty){empty.textContent='This document is missing or unavailable. Please upload a replacement.';empty.classList.remove('d-none');}bootstrap.Modal.getOrCreateInstance(modalEl).show();return;}
                 var contentType = r.headers.get('content-type') || '';
                 if (frame && (contentType.indexOf('pdf') !== -1 || r.url.indexOf('.pdf') !== -1)) {
                     frame.src = viewUrl;
@@ -316,11 +318,13 @@
                 fileInput.addEventListener('change', function () {
                     if (!this.files || !this.files[0]) return;
                     var file = this.files[0];
+                    if(docType==='Resume' && (!/\.pdf$/i.test(file.name) || (file.type && file.type!=='application/pdf') || file.size>5*1024*1024)){showError(file.size>5*1024*1024?'Resume/CV must not exceed 5 MB.':'Only PDF files are allowed for Resume/CV.');this.value='';return;}
                     var formData = new FormData();
                     formData.append('document', file);
                     formData.append('document_type', docType);
                     formData.append('document_category', docCategory);
 
+                    pendingDocumentUploads++;
                     fetch(UPLOAD_DOC_API, {
                         method: 'POST',
                         credentials: 'include',
@@ -347,7 +351,7 @@
                     })
                     .catch(function () {
                         alert('Network error while uploading document.');
-                    });
+                    }).finally(function () { pendingDocumentUploads--; });
                 });
             }
         });
@@ -370,6 +374,7 @@
             suffixSelect.value = '';
         }
 
+        if (document.getElementById('sexInput')) document.getElementById('sexInput').value=p.gender || '';
         if (birthDateInput && p.birth_date) birthDateInput.value = String(p.birth_date).slice(0, 10);
         if (streetAddressInput && p.street_address) streetAddressInput.value = p.street_address;
         if (postalCodeInput && p.postal_code) postalCodeInput.value = p.postal_code;
@@ -540,6 +545,7 @@
                 has_suffix: hasSuffix ? 1 : 0,
                 suffix: suffixVal,
                 birth_date: birthIso,
+                gender: document.getElementById('sexInput').value,
                 street_address: streetAddress,
                 region: region,
                 address_psgc: addressValues.address_psgc,
@@ -571,10 +577,23 @@
     }
     var profileValidation = form && window.ApplicantProfileValidation.create(form, errorBox, buildProfilePayload);
 
+    function checkRequiredDocuments() {
+        var missing=['Resume','Government ID'].filter(function(type){return !uploadedDocsMap[type];});
+        if(!pendingDocumentUploads && !missing.length)return true;
+        var names=missing.map(function(type){return type==='Resume'?'Résumé / CV':'Valid ID';});
+        var message=pendingDocumentUploads?'Please wait for your document uploads to finish before saving.':'Please upload '+names.join(' and ')+' before saving your profile. Both your résumé and valid ID are required. Certifications are optional.';
+        var modalEl=document.getElementById('requiredDocumentsModal');
+        if(modalEl && window.bootstrap){document.getElementById('requiredDocumentsTitle').textContent=pendingDocumentUploads?'Uploads in progress':'Required documents missing';document.getElementById('requiredDocumentsMessage').textContent=message;bootstrap.Modal.getOrCreateInstance(modalEl).show();}else showError(message);
+        return false;
+    }
+    if(btnSaveAndContinue)btnSaveAndContinue.addEventListener('click',function(event){if(!checkRequiredDocuments())event.preventDefault();});
+
     if (form) {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             hideError();
+
+            if (!checkRequiredDocuments()) return;
 
             var payload = buildProfilePayload();
             if (!profileValidation.check()) return;
@@ -602,7 +621,15 @@
                         }
                         return;
                     }
-                    window.location.href = (d.redirect) ? d.redirect : DASHBOARD;
+                    var destination = d.redirect || DASHBOARD;
+                    var savedModal = document.getElementById('profileSavedModal');
+                    if (savedModal && window.bootstrap) {
+                        document.getElementById('profileSavedContinue').onclick = function () { window.location.href = destination; };
+                        bootstrap.Modal.getOrCreateInstance(savedModal).show();
+                    } else {
+                        window.alert('Your applicant information has been saved successfully.');
+                        window.location.href = destination;
+                    }
                 })
                 .catch(function () {
                     showError('Network/server error. Please try again.');

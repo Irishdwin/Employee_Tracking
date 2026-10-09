@@ -122,6 +122,7 @@ function initSPA() {
       else if (targetId === 'section-messages') { loadMessageThreads().then(loadThreadMessages); }
       else if (targetId === 'section-notifications' && window.OwNotifications) OwNotifications.load();
       else if (targetId === 'section-deployments') loadDeployments();
+      else if (targetId === 'section-resignations' && window.EmployeeExit) window.EmployeeExit.load();
       else if (targetId === 'section-settings' && window.AgencyContactSettings) window.AgencyContactSettings.load();
     }
   });
@@ -280,14 +281,14 @@ function sendInboxMessage() {
     .then(function (r) { return r.json(); })
     .then(function (d) {
       if (!d.success) {
-        alert(d.message || 'Failed to send message.');
+        HRDialog.alert(d.message || 'Failed to send message.');
         return;
       }
       inboxState.activeThreadId = d.thread_id || inboxState.activeThreadId;
       input.value = '';
       loadMessageThreads().then(loadThreadMessages);
     })
-    .catch(function () { alert('Failed to send message.'); });
+    .catch(function () { HRDialog.alert('Failed to send message.'); });
 }
 
 function initLogout() {
@@ -464,11 +465,11 @@ function loadJobOrderRequests() {
     });
 }
 
-function approveJobOrderRequest(id) {
+async function approveJobOrderRequest(id) {
   var review = {action:'approve',request_id:id,placements:[]};
   var valid=true;
   document.querySelectorAll('[data-detail-id]').forEach(function(root){var values=window.JobHierarchySelectors.values(root);if(!values.classification_id||!values.sub_classification_id)valid=false;values.detail_id=parseInt(root.dataset.detailId,10);if(values.detail_id)review.placements.push(values);else{review.category_id=values.category_id;review.classification_id=values.classification_id;review.sub_classification_id=values.sub_classification_id;}});
-  if(!valid){window.alert('Select the classification and sub-classification for each requested placement.');return;}
+  if(!valid){HRDialog.alert('Select the classification and sub-classification for each requested placement.');return;}
   if (typeof Swal !== 'undefined') {
     Swal.fire({
       title: 'Post Job Order Request?',
@@ -492,10 +493,9 @@ function approveJobOrderRequest(id) {
               if(viewJorDetailsModalInstance)viewJorDetailsModalInstance.hide();
               Swal.fire({
                 icon: 'success',
-                title: 'Posted!',
+                title: 'Job Order Posted Successfully',
                 text: d.message || 'Job Order posted successfully.',
-                timer: 2000,
-                showConfirmButton: false
+                confirmButtonText: 'OK'
               });
               loadJobOrderRequests(); refreshJobRequestCounts();
               loadJobOrders();
@@ -518,17 +518,17 @@ function approveJobOrderRequest(id) {
     });
   } else {
     // Fallback if SweetAlert2 isn't loaded
-    if (!confirm('Post this request as a Job Order?')) return;
+    if (!await HRDialog.confirm('Post this request as a Job Order?')) return;
     fetch(REQ_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(review), credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (d.success) { if(viewJorDetailsModalInstance)viewJorDetailsModalInstance.hide(); loadJobOrderRequests(); refreshJobRequestCounts(); loadJobOrders(); }
-        else alert(d.message || 'Error');
+        if (d.success) { if(viewJorDetailsModalInstance)viewJorDetailsModalInstance.hide(); loadJobOrderRequests(); refreshJobRequestCounts(); loadJobOrders(); HRDialog.alert('Job Order posted successfully.'); }
+        else HRDialog.alert(d.message || 'Error');
       });
   }
 }
 
-// ST-503: reject now opens a reason modal instead of a plain confirm().
+// ST-503: reject now opens a reason modal instead of a plain await HRDialog.confirm().
 // Reused by both the View Details modal's Reject button and (if wired
 // elsewhere in the future) any other trigger — the reason is what actually
 // gets sent to the API and stored in RejectionReason.
@@ -550,7 +550,9 @@ function rejectJobOrderRequest(id) {
   rejectJorModalInstance.show();
 }
 
-function submitJobOrderRejection() {
+var rejectionPending = false;
+async function submitJobOrderRejection() {
+  if (rejectionPending) return;
   var reasonEl = document.getElementById('rejectJorReason');
   var alertEl = document.getElementById('rejectJorAlert');
   var reason = reasonEl ? reasonEl.value.trim() : '';
@@ -560,10 +562,15 @@ function submitJobOrderRejection() {
     return;
   }
 
+  var requestId = pendingRejectJorId;
+  rejectionPending = true;
+  if (!await HRDialog.confirm('Reject Job Order Request #' + requestId + '? The Team Lead will receive your rejection reason.')) { rejectionPending = false; return; }
+  var submitBtn = document.getElementById('rejectJorConfirmBtn');
+  if (submitBtn) submitBtn.disabled = true;
   fetch(REQ_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'reject', request_id: pendingRejectJorId, reason: reason }),
+    body: JSON.stringify({ action: 'reject', request_id: requestId, reason: reason }),
     credentials: 'same-origin'
   })
     .then(function (r) { return r.json(); })
@@ -574,10 +581,11 @@ function submitJobOrderRejection() {
       }
       if (rejectJorModalInstance) rejectJorModalInstance.hide();
       loadJobOrderRequests(); refreshJobRequestCounts();
+      HRDialog.alert("Job Order Request rejected successfully.");
     })
     .catch(function () {
       if (alertEl) { alertEl.textContent = 'Network error while rejecting the request.'; alertEl.classList.remove('d-none'); }
-    });
+    }).finally(function () { rejectionPending = false; if (submitBtn) submitBtn.disabled = false; });
 }
 
 function refreshJobRequestCounts() {
@@ -838,7 +846,7 @@ if (document.readyState === 'loading') {
 // ---- Applicant Review ----
 function initApplicantReview() {
   const filterStatus = document.getElementById('filterStatus');
-  if (filterStatus) filterStatus.addEventListener('change', loadApplications);
+  if (filterStatus) filterStatus.addEventListener('change', function(){window.adminApplicationList?.resetPage();loadApplications();});
   setInterval(function () {
     if (isDashboardSectionVisible('section-applicant-review')) loadApplications();
   }, 30000);
@@ -847,9 +855,10 @@ function initApplicantReview() {
 function loadApplications() {
   const filterEl = document.getElementById('filterStatus');
   const status = filterEl ? filterEl.value : '';
-  const url = API_BASE + 'applicant_review.php' + (status ? '?status=' + encodeURIComponent(status) : '');
+  const manager=window.adminApplicationList; const request=manager?manager.begin():null;
+  const url = API_BASE + 'applicant_review.php?' + (manager?manager.query().toString():new URLSearchParams(status?{status}:{}).toString());
 
-  fetch(url, { credentials: 'include' })
+  fetch(url, { credentials: 'include', signal:manager?manager.signal():undefined })
     .then(function (r) {
       return r.text().then(function (text) {
         var data = null;
@@ -864,9 +873,12 @@ function loadApplications() {
     .then(function (res) {
       const tbody = document.getElementById('applicationsBody');
       if (!tbody) return;
+      if(manager && !manager.current(request))return;
       const data = res.data || {};
+      if(manager && !(res.ok && data.success))manager.fail();
       if (res.ok && data.success) {
         renderApplications(data.applications || []);
+        if(manager)manager.finish(data.pagination);
       } else if (res.status === 401 || res.status === 403) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Session expired or access denied. Please sign in again.</td></tr>';
       } else {
@@ -875,6 +887,7 @@ function loadApplications() {
     })
     .catch(function () {
       const tbody = document.getElementById('applicationsBody');
+      if(manager && !manager.current(request))return; if(manager)manager.fail();
       if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-4">Error loading applications.</td></tr>';
     });
 }
@@ -942,13 +955,13 @@ function renderReviewModal(data, appId) {
     : '';
 
   content.innerHTML =
-    '<div class="mb-3">' +
+    '<div class="mb-3 review-personal">' +
       '<h6>Applicant Information</h6>' +
       '<p><strong>Name:</strong> ' + escapeHtml(data.applicant_name) + '</p>' +
       '<p><strong>Email:</strong> ' + escapeHtml(data.email) + '</p>' +
       '<p><strong>Mobile:</strong> ' + escapeHtml(data.mobile || 'N/A') + '</p>' +
     '</div>' +
-    '<div class="mb-3">' +
+    '<div class="mb-3 review-details">' +
       '<h6>Application Details</h6>' +
       '<p><strong>Position:</strong> ' + escapeHtml(data.position) + '</p>' +
       '<p><strong>Company:</strong> ' + escapeHtml(data.company_name) + '</p>' +
@@ -957,11 +970,11 @@ function renderReviewModal(data, appId) {
       (data.interview_date ? '<p><strong>Interview:</strong> ' + escapeHtml(data.interview_date) + '</p>' : '') +
       (data.endorsed_date ? '<p><strong>Endorsed:</strong> ' + escapeHtml(data.endorsed_date) + '</p>' : '') +
     '</div>' +
-    '<div class="mb-3">' +
+    '<div class="mb-3 review-documents">' +
       '<h6>Documents</h6>' +
       '<div id="documentsList">' + renderDocuments(data.documents || []) + '</div>' +
     '</div>' +
-    '<div class="mb-3">' +
+    '<div class="mb-3 review-actions">' +
       '<h6>Actions</h6>' +
       '<div class="d-flex gap-2 flex-wrap mb-3">' +
         '<button class="btn btn-info btn-sm btn-schedule" data-app-id="' + appId + '"><i class="bi bi-calendar"></i> Schedule Interview</button>' +
@@ -1100,9 +1113,8 @@ function openHireApplicantModal(appId, summaryText) {
   document.getElementById('hirePhilhealthNumber').value = '';
   document.getElementById('hirePagibigNumber').value = '';
   var dailyEl = document.getElementById('hireDailyRate');
-  var allowanceEl = document.getElementById('hireAllowance');
   if (dailyEl) dailyEl.value = '';
-  if (allowanceEl) allowanceEl.value = '0';
+  if(document.getElementById('hireSundayAllowance'))document.getElementById('hireSundayAllowance').value='0';
   updateHireSalaryPreview();
   var alertEl = document.getElementById('hireApplicantAlert');
   if (alertEl) alertEl.classList.add('d-none');
@@ -1113,13 +1125,14 @@ function openHireApplicantModal(appId, summaryText) {
   new bootstrap.Modal(hireModalEl).show();
 }
 
-function submitHireApplicant() {
+var hireConfirmationPending = false;
+async function submitHireApplicant() {
+  if(hireConfirmationPending)return;
   var appId = parseInt(document.getElementById('hireApplicationId').value, 10) || 0;
   var sss = (document.getElementById('hireSssNumber').value || '').trim();
   var phil = (document.getElementById('hirePhilhealthNumber').value || '').trim();
   var pag = (document.getElementById('hirePagibigNumber').value || '').trim();
   var dailyRate = parseFloat((document.getElementById('hireDailyRate') || {}).value || '');
-  var allowance = parseFloat((document.getElementById('hireAllowance') || {}).value || '0');
   var alertEl = document.getElementById('hireApplicantAlert');
   var btn = document.getElementById('btnSubmitHireApplicant');
 
@@ -1131,11 +1144,9 @@ function submitHireApplicant() {
     showAlert(alertEl, 'Daily Rate (PHP) is required and must be greater than zero.');
     return;
   }
-  if (!isFinite(allowance) || allowance < 0) {
-    showAlert(alertEl, 'Monthly Allowance cannot be negative.');
-    return;
-  }
 
+  hireConfirmationPending=true;
+  if(!await HRDialog.confirm('Are you sure you want to hire this applicant?')){hireConfirmationPending=false;return;}
   if (btn) btn.disabled = true;
   fetch(HIRE_API, {
     method: 'POST',
@@ -1147,7 +1158,8 @@ function submitHireApplicant() {
       philhealth_number: phil,
       pagibig_number: pag,
       daily_rate: dailyRate,
-      allowance: isFinite(allowance) ? allowance : 0
+
+      sunday_duty_allowance: (document.getElementById('hireSundayAllowance')||{}).value||'0'
     })
   })
     .then(function (r) { return r.json(); })
@@ -1168,13 +1180,12 @@ function submitHireApplicant() {
       if (typeof Swal !== 'undefined') {
         Swal.fire({
           icon: 'success',
-          title: 'Hired',
+          title: 'Applicant hired successfully',
           text: msg,
-          timer: 3500,
           showConfirmButton: true
         });
       } else {
-        alert(msg);
+        HRDialog.alert(msg);
       }
       removeApplicationRowFromTable(appId);
       loadApplications();
@@ -1186,6 +1197,7 @@ function submitHireApplicant() {
       showAlert(alertEl, 'Request failed. Please try again.');
     })
     .finally(function () {
+      hireConfirmationPending=false;
       if (btn) btn.disabled = false;
     });
 }
@@ -1397,11 +1409,11 @@ function updateStatus(appId, status) {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.success) {
-        alert('Status updated successfully!');
+        HRDialog.alert('Status updated successfully!');
         safeModalHide(document.getElementById('reviewModal'));
         loadApplications();
       } else {
-        alert(data.message || 'Failed to update status.');
+        HRDialog.alert(data.message || 'Failed to update status.');
       }
     });
 }
@@ -1577,8 +1589,8 @@ function endorseToClient(appId, appData) {
 
 }
 
-function simulateClientApproval(appId) {
-  if (!confirm('Simulate client company approval for this endorsed applicant?')) return;
+async function simulateClientApproval(appId) {
+  if (!await HRDialog.confirm('Simulate client company approval for this endorsed applicant?')) return;
   fetch(API_BASE + 'simulate_client_approval.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1588,11 +1600,11 @@ function simulateClientApproval(appId) {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (data.success) {
-        alert(data.message || 'Client approval recorded.');
+        HRDialog.alert(data.message || 'Client approval recorded.');
         openReview(appId);
         loadApplications();
       } else {
-        alert(data.message || 'Failed to simulate client approval.');
+        HRDialog.alert(data.message || 'Failed to simulate client approval.');
       }
     });
 }
@@ -1650,11 +1662,14 @@ function loadDeploymentSelects() {
 }
 
 function loadDeployments() {
-  fetch(DEPLOYMENTS_API, { credentials: 'same-origin' })
+  const manager=window.adminDeploymentList; const request=manager?manager.begin():null;
+  fetch(DEPLOYMENTS_API+(manager?'?'+manager.query():''), { credentials: 'same-origin', signal:manager?manager.signal():undefined })
     .then(function (r) { return r.json(); })
     .then(function (d) {
       const tbody = document.getElementById('deploymentsBody');
       if (!tbody) return;
+      if(manager && !manager.current(request))return;
+      if(manager)manager.finish(d.pagination);
       if (!d.success || !d.deployments || d.deployments.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No deployments yet.</td></tr>';
         return;
@@ -1673,12 +1688,13 @@ function loadDeployments() {
     })
     .catch(function () {
       const tbody = document.getElementById('deploymentsBody');
+      if(manager && !manager.current(request))return; if(manager)manager.fail();
       if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger py-4">Failed to load.</td></tr>';
     });
 }
 
-function endDeployment(id) {
-  var end = prompt('End date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+async function endDeployment(id) {
+  var end = await HRDialog.prompt('End date (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
   if (!end) return;
   var fd = new FormData();
   fd.append('action', 'end');
@@ -1688,7 +1704,7 @@ function endDeployment(id) {
     .then(function (r) { return r.json(); })
     .then(function (d) {
       if (d.success) loadDeployments();
-      else alert(d.message || 'Error');
+      else HRDialog.alert(d.message || 'Error');
     });
 }
 

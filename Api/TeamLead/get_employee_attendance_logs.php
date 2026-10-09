@@ -23,6 +23,7 @@
 require_once __DIR__ . '/../Common/session_init.php';
 date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
 
 if (!isset($_SESSION['user_id'], $_SESSION['role'])) {
     http_response_code(401);
@@ -68,6 +69,12 @@ $today = date('Y-m-d');
 $monthParam = (isset($_GET['month']) && preg_match('/^\d{4}-\d{2}$/', (string)$_GET['month']))
     ? (string)$_GET['month']
     : date('Y-m');
+if(isset($_GET['month'])) {
+    $parsedMonth=DateTimeImmutable::createFromFormat('!Y-m',(string)$_GET['month']);
+    if(!$parsedMonth || $parsedMonth->format('Y-m') !== (string)$_GET['month']) {
+        http_response_code(422);echo json_encode(['success'=>false,'message'=>'Enter a valid attendance month.']);exit;
+    }
+}
 $calendarRangeStart = $monthParam . '-01';
 $calendarRangeEnd = date('Y-m-t', strtotime($calendarRangeStart));
 
@@ -77,7 +84,7 @@ require_once __DIR__ . '/../Helpers/employee_deployment_context.php';
 require_once __DIR__ . '/../Helpers/employee_payroll_helper.php';
 
 try {
-    $pdo = attendance_pdo();
+    $pdo = attendance_pdo($conn);
     attendance_ensure_table($pdo);
 
     $empStmt = $pdo->prepare("
@@ -125,6 +132,7 @@ try {
             : ['time_in' => '08:00:00', 'time_out' => '17:00:00', 'break_duration' => 60, 'grace_period' => 5, 'working_days' => 'Mon-Fri', 'shift_name' => 'Regular Shift'];
         $schedule = [
             'working_days' => $dep['working_days'] ?? 'Mon-Fri',
+            'hired_date' => $dep['hired_date'] ?? null,
             'time_in' => $dep['time_in'] ?? '08:00:00',
             'grace_period' => (int)($dep['grace_period'] ?? 5),
             'break_minutes' => (int)($dep['break_duration'] ?? 60),
@@ -225,7 +233,7 @@ try {
                 ? payroll_timesheet_day_status(null, $isoDate, $schedule, $today)
                 : ['status' => 'No record', 'total_hours' => null, 'break_minutes' => 0, 'undertime_minutes' => null, 'is_late' => false];
             // Approved Leave takes priority over Rest Day / Scheduled / Absent.
-            $status = $onLeave ? 'On Leave' : ($meta['status'] ?? 'No record');
+            $status = ($meta['status'] ?? '') === 'Not Yet Hired' ? 'Not Yet Hired' : ($onLeave ? 'On Leave' : ($meta['status'] ?? 'No record'));
             return [
                 'date' => $isoDate,
                 'status' => $status,
@@ -272,7 +280,8 @@ try {
             'total_hours' => $meta['total_hours'] ?? $totalHours,
             'total_hours_rendered' => $meta['total_hours'] ?? $totalHours,
             'undertime_minutes' => $meta['undertime_minutes'] ?? null,
-            'is_late' => $meta['is_late'] ?? false,
+            'late_minutes' => $meta['late_minutes'] ?? 0,
+                'is_late' => $meta['is_late'] ?? false,
             'updated_at' => $row['updated_at'] ?? null,
             'on_leave' => $onLeave,
             'clockin_photo' => $photos['clockin_photo'] ?? null,
@@ -291,15 +300,11 @@ try {
     $todayPayload['break_time'] = $todayRow['break_time'] ?? null;
     $todayPayload['time_out'] = $todayRow['time_out'] ?? null;
 
-    $logStmt = $pdo->prepare("
-        SELECT id, date, time_in, break_time, time_out, total_hours_rendered, status, updated_at
-        FROM daily_time_records
-        WHERE employee_id = ?
-        ORDER BY date DESC, id DESC
-        LIMIT ?
-    ");
-    $logStmt->bindValue(1, $employeeId, PDO::PARAM_INT);
-    $logStmt->bindValue(2, $limit, PDO::PARAM_INT);
+    $filterMonth=isset($_GET['month']);
+    $logStmt = $pdo->prepare('SELECT id,date,time_in,break_time,time_out,total_hours_rendered,status,updated_at FROM daily_time_records WHERE employee_id=?'.($filterMonth?' AND date BETWEEN ? AND ?':'').' ORDER BY date DESC,id DESC LIMIT ?');
+    $logStmt->bindValue(1,$employeeId,PDO::PARAM_INT);
+    if($filterMonth){$logStmt->bindValue(2,$calendarRangeStart);$logStmt->bindValue(3,$calendarRangeEnd);$logStmt->bindValue(4,$limit,PDO::PARAM_INT);}
+    else $logStmt->bindValue(2,$limit,PDO::PARAM_INT);
     $logStmt->execute();
 
     $logs = [];

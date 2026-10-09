@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__.'/../Common/session_init.php';
 header('Content-Type: application/json; charset=utf-8');
-if(!isset($_SESSION['user_id']) || !in_array($_SESSION['role']??'',['Applicant','Employee'],true)){http_response_code(401);echo json_encode(['success'=>false,'message'=>'Login required.']);exit;}
+if(!isset($_SESSION['user_id'])){http_response_code(401);echo json_encode(['success'=>false,'message'=>'Login required.']);exit;}
+if(!in_array($_SESSION['role']??'',['Applicant','Employee','TeamLead','Team Lead'],true)){http_response_code(403);echo json_encode(['success'=>false,'message'=>'Profile address lookup is unavailable for this role.']);exit;}
 if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);echo json_encode(['success'=>false]);exit;}
 require_once __DIR__.'/../Helpers/psgc_address.php';
 try {

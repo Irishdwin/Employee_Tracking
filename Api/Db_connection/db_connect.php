@@ -20,6 +20,19 @@ try {
     }
     // Force MySQL session timezone to Philippine Standard Time (+08:00)
     $conn->query("SET time_zone = '+08:00'");
+    // Reject a revoked account on the next database-backed API request, including
+    // endpoints that still use their legacy session bootstrap.
+    if ($isApiRequest && !empty($_SESSION['user_id'])) {
+        $activeCheck=$conn->prepare('SELECT IsActive FROM users WHERE UsersID=?');
+        $activeUid=(int)$_SESSION['user_id'];$activeCheck->bind_param('i',$activeUid);$activeCheck->execute();
+        $activeAccount=$activeCheck->get_result()->fetch_assoc();$activeCheck->close();
+        if (!$activeAccount || !(int)$activeAccount['IsActive']) {
+            $_SESSION=[];
+            if(session_status()===PHP_SESSION_ACTIVE)session_destroy();
+            http_response_code(401);header('Content-Type: application/json');
+            echo json_encode(['success'=>false,'message'=>'Account is inactive. Contact HR for assistance.']);exit;
+        }
+    }
 } catch (Throwable $e) {
     error_log('db_connect: ' . $e->getMessage());
     if ($isApiRequest) {

@@ -69,6 +69,7 @@
   
         titleEl.textContent = opts.title || (opts.isPrompt ? 'Input Required' : 'Confirm');
         msgEl.innerHTML = escapeHtml(message || '');
+        msgEl.style.whiteSpace='pre-line';okBtn.textContent=opts.confirmText||'OK';
   
         if (opts.isPrompt) {
           inputEl.classList.remove('d-none');
@@ -113,8 +114,8 @@
     }
   
     window.OnazulDialogs = {
-      confirm: function (message) {
-        return showDialog(message, { isPrompt: false });
+      confirm: function (message, options) {
+        return showDialog(message, Object.assign({ isPrompt: false },options||{}));
       },
       prompt: function (message, defaultValue) {
         return showDialog(message, { isPrompt: true, defaultValue: defaultValue });

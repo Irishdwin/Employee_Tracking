@@ -83,6 +83,12 @@ foreach ($positions as $idx => $row) {
     $categoryName = trim((string)($row['job_category'] ?? $row['job_category_name'] ?? ''));
     $workers = (int)($row['workers_needed'] ?? $row['required_workers'] ?? 0);
     $site = trim((string)($row['deployment_site'] ?? $row['location'] ?? ''));
+    try {
+        $assignedSite=jorw_registered_site($conn,$userId,$companyId,$site,(int)($row['site_id']??0));
+        $site=$assignedSite['Name'];
+    } catch(DomainException $e) {
+        http_response_code(403);echo json_encode(['success'=>false,'error_code'=>'WORK_SITE_NOT_REGISTERED','message'=>$e->getMessage()]);exit;
+    }
     $schedule = trim((string)($row['work_schedule'] ?? ''));
 
     try {

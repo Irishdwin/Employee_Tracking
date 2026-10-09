@@ -1,0 +1,44 @@
+%% Gane & Sarson notation. DOT/SVG is the exact open-ended-store version.
+flowchart LR
+  classDef entity fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef process fill:#f4faf5,stroke:#43835b,color:#172b20,stroke-width:1px;
+  classDef store fill:#ffffff,stroke:#43835b,color:#172b20,stroke-width:1px;
+  linkStyle default stroke:#43835b;
+  C["Accounting Staff"]:::entity
+  P9("9.0 Compute and Finalize Payroll"):::process
+  E["Employee"]:::entity
+  P10("10.0 Manage Billing Revisions and Payroll Status"):::process
+  D8[["D8 - Attendance and DTR"]]:::store
+  D3[["D3 - Employees and Separation"]]:::store
+  D7[["D7 - Schedules and Holidays"]]:::store
+  D9[["D9 - Overtime and Existing Leave"]]:::store
+  D13[["D13 - Audit and Configuration"]]:::store
+  D10[["D10 - Payroll, Billing and Status History"]]:::store
+  D4[["D4 - Clients and Agreements"]]:::store
+  D15[["D15 - Uploaded Documents and Evidence Files"]]:::store
+  D11[["D11 - Notifications"]]:::store
+  C -->|"DTR verification, payroll computation and billing-reviewed finalization"| P9
+  P9 -->|"Verified DTR, computation preview and finalized payroll results"| C
+  E -->|"Payroll history or payslip selection"| P9
+  P9 -->|"Finalized payroll history and payslip details"| E
+  C -->|"Billing export selection, revised workbook, confirmation, status and proof"| P10
+  P10 -->|"Billing workbook, revision preview and payroll status timeline"| C
+  P10 -->|"Payroll status and authorized proof view"| E
+  D8 -->|"Submitted DTR and attendance"| P9
+  P9 -->|"DTR review decisions"| D8
+  D3 -->|"Employee salary configuration"| P9
+  D7 -->|"Effective shifts and holiday rules"| P9
+  D9 -->|"Approved overtime and existing leave"| P9
+  D13 -->|"Government deduction rate configuration"| P9
+  D10 -->|"Payroll runs, billing snapshots and adjustments"| P9
+  P9 -->|"Computed runs, finalized payroll and member snapshots"| D10
+  P9 -->|"Computed billing rows and finalized run membership"| P10
+  D4 -->|"Payroll type and service agreement billing terms"| P10
+  D10 -->|"Export baseline, finalized payroll and status history"| P10
+  P10 -->|"Billing exports, confirmed revisions, adjustments and status history"| D10
+  D15 -->|"Authorized document or evidence content"| P10
+  P10 -->|"Uploaded document, evidence or proof file"| D15
+  P9 -->|"Recorded compute and finalize payroll notification"| D11
+  P10 -->|"Recorded manage billing revisions and payroll status notification"| D11
+  P9 -->|"Actor and business audit event"| D13
+  P10 -->|"Actor and business audit event"| D13

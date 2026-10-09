@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/../Common/session_init.php';
+date_default_timezone_set('Asia/Manila');
 header('Content-Type: application/json; charset=utf-8');
 
 function team_schedule_response(array $data, int $status = 200): void
@@ -41,6 +42,9 @@ try {
                    ORDER BY d2.StartDate DESC, d2.DeploymentID DESC LIMIT 1)
              ORDER BY EmployeeName", 'ii', [$leadId,$siteId]);
         $employees = []; $entries = [];
+        $dutyDate=(string)($_GET['date']??date('Y-m-d'));
+        $parsedDate=DateTimeImmutable::createFromFormat('!Y-m-d',$dutyDate);
+        if(!$parsedDate || $parsedDate->format('Y-m-d')!==$dutyDate)throw new InvalidArgumentException('Select a valid duty date.');
         while ($d = $rows->fetch_assoc()) {
             $schedule = team_schedule_shape($d);
             $schedule['schedule_type'] = 'Fixed';
@@ -52,6 +56,7 @@ try {
                 'deployment_id' => (int)$d['DeploymentID'], 'employee_id' => (int)$d['EmployeeID'],
                 'name' => $d['EmployeeName'], 'company' => $d['CompanyName'],
                 'start_date' => $d['StartDate'], 'end_date' => $d['EndDate'], 'fixed' => $schedule,
+                'current_duty'=>team_schedule_public(team_schedule_resolve($conn,$d,$dutyDate),$dutyDate),
             ];
             $schedule['employee_name'] = $d['EmployeeName'];
             $schedule['status'] = 'Recurring'; $entries[] = $schedule;

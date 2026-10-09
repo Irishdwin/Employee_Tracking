@@ -91,17 +91,16 @@
     var request=++addressRequest;state.region=name;var row=rowFor('region',name);addressCodes.region=row?row.id:'';clearBelow('region');
     addressChanged();if(!row)return;
     try{var result=await loadAddress('provinces',row.id,request);if(!result)return;
-      var rows=result.data.slice();setAddressOptions('province',rows);
-      if(!rows.length)addressSelects.province.setValue('Not applicable',true);
-      // Region-only cities remain accessible without a synthetic province option.
-      if(result.has_direct_cities){var cities=await loadAddress('cities',row.id,request);if(cities)setAddressOptions('city',cities.data);}
+      var rows=result.data.slice();
+      if(result.has_direct_cities)rows.push({id:'__region_cities',name:'Not applicable — cities without a province'});
+      setAddressOptions('province',rows);
     }catch(e){if(request===addressRequest)addressStatus(e.message,function(){onRegionSelect(name);});}
     addressChanged();
   }
   async function onProvinceSelect(name) {
-    var request=++addressRequest;var row=rowFor('province',name);state.province=name;addressCodes.province=row?row.id:'';clearBelow('province');
+    var request=++addressRequest;var row=rowFor('province',name);state.province=row&&row.id==='__region_cities'?'':name;addressCodes.province=row&&row.id!=='__region_cities'?row.id:'';clearBelow('province');
     addressChanged();if(!row)return;
-    try{var result=await loadAddress('cities',row.id,request);if(result)setAddressOptions('city',result.data);}
+    try{var result=await loadAddress('cities',row.id==='__region_cities'?addressCodes.region:row.id,request);if(result)setAddressOptions('city',result.data);}
     catch(e){if(request===addressRequest)addressStatus(e.message,function(){onProvinceSelect(name);});}
     addressChanged();
   }
@@ -314,6 +313,7 @@
       var region=state.regionsData.find(function(r){return r.id===codes.region;});
       if(region){addressSelects.region.setValue(region.name,true);await onRegionSelect(region.name);
         var province=state.provincesData.find(function(r){return r.id===(profile.address_selector_province||codes.province||'');});
+        if(!province && !codes.province)province=state.provincesData.find(function(r){return r.id==='__region_cities';});
         if(province){addressSelects.province.setValue(province.name,true);await onProvinceSelect(province.name);}
           var city=state.citiesData.find(function(r){return r.id===codes.city;});
           if(city){addressSelects.city.setValue(city.name,true);await onCitySelect(city.name);

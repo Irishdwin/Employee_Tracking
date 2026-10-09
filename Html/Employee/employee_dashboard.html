@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="workforce-ui employee-ui">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -162,6 +162,9 @@
 <link rel="stylesheet" href="../../Css/password_strength.css">
 <link rel="stylesheet" href="../../Css/employee_security.css?v=20261007-reminder">
 <link rel="stylesheet" href="../../Css/applicant_searchable_select.css">
+<link rel="stylesheet" href="../../Css/workforce_workspace.css">
+<link rel="stylesheet" href="../../Css/app_dialog.css">
+<script src="../../Js/Shared/app_dialog.js"></script>
 </head>
 <body class="min-h-screen bg-brand-surface text-slate-800 antialiased">
 
@@ -244,8 +247,10 @@
                 </div>
                 <ul class="list-unstyled mb-0 py-1 small">
                   <li><a href="#section-profile" id="menu-profile-link" data-show-section="section-profile" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Profile</a></li>
+<li><a href="resignation_request.html" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Resignation progress</a></li>
                   <li><a href="employee_profile_documents.html" id="menu-documents-link" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Documents</a></li>
                   <li><a href="#section-settings" data-show-section="section-settings" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Settings <span id="employeeSettingsPasswordBadge" class="badge bg-danger ms-2" hidden aria-label="Password setup required">1</span></a></li>
+                  <li><a href="#" data-emp-tab="section-emp-leave" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Leave</a></li><li><a href="#" data-emp-tab="section-emp-overtime" class="d-block px-4 py-2 text-decoration-none text-dark" role="menuitem">Overtime</a></li>
                   <li class="border-top"><a href="#" data-logout class="d-block px-4 py-2 text-decoration-none text-danger fw-medium" role="menuitem">Logout</a></li>
                 </ul>
               </div>
@@ -277,19 +282,24 @@
 
     <!-- Section: Management modules (overview) -->
     <section class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3" aria-label="Management modules">
-      <article class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+      <article class="employee-overview-card rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+        <div class="employee-overview-content">
         <h2 class="text-lg font-bold text-brand-navy">Current Deployment Profile</h2>
         <dl class="mt-4 space-y-3 text-sm">
           <div><dt class="text-xs font-semibold uppercase text-slate-500">Client</dt><dd id="empDeploymentCompany" class="font-semibold">—</dd></div>
           <div><dt class="text-xs font-semibold uppercase text-slate-500">Site</dt><dd id="empDeploymentSite" class="font-semibold">—</dd></div>
           <div><dt class="text-xs font-semibold uppercase text-slate-500">Schedule</dt><dd id="empDeploymentSchedule" class="font-semibold">—</dd></div>
+          <div class="border-t border-slate-100 pt-3"><dt class="text-xs font-semibold uppercase text-slate-500">Team Lead</dt><dd id="empDeploymentTeamLead" class="font-semibold">—</dd></div>
+          <div><dt class="text-xs font-semibold uppercase text-slate-500">Contact number</dt><dd class="font-semibold"><a id="empDeploymentTeamLeadPhone" class="text-brand-navy">Not provided</a></dd></div>
         </dl>
-        <button type="button" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2">
+        </div>
+        <button type="button" id="empMessageTeamLead" class="employee-overview-action w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white">
           Message Team Lead
         </button>
       </article>
 
-      <article class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+      <article class="employee-overview-card rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+        <div class="employee-overview-content">
         <h2 class="text-lg font-bold text-brand-navy">Kinsenas Payroll</h2>
         <div class="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
           <p id="empPayrollNextPayday" class="text-sm font-bold text-brand-navy">Next Payday: —</p>
@@ -299,18 +309,19 @@
           <p class="text-xs font-semibold uppercase text-slate-500 mb-1">Payroll Status</p>
           <span id="empDashboardPayrollStatus" class="inline-block rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-700">Pending</span>
         </div>
-        <button type="button" id="btnGoPayrollTab" data-emp-tab="section-emp-payroll" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark">
+        </div>
+        <button type="button" id="btnGoPayrollTab" data-emp-tab="section-emp-payroll" class="employee-overview-action w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white">
           View Payroll &amp; Payslip
         </button>
       </article>
 
-      <article class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
-        <h2 class="text-lg font-bold text-brand-navy">Leave Management</h2>
-        <p id="empLeaveCredits" class="mt-4 text-4xl font-bold tabular-nums text-brand-navy">—</p>
-        <p class="text-xs font-semibold uppercase text-slate-500">Leave credits</p>
-        <button type="button" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2">
-          File Leave Request
-        </button>
+      <article class="employee-overview-card rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100" id="employeeOvertimeCard">
+        <div class="employee-overview-content">
+        <h2 class="text-lg font-bold text-brand-navy">Overtime</h2>
+        <p id="employeeOvertimeCount" class="mt-4 text-4xl font-bold tabular-nums text-brand-navy">—</p><p class="text-xs font-semibold uppercase text-slate-500">Pending requests</p>
+        <p id="employeeOvertimeSummary" class="mt-2 text-sm text-slate-600" role="status">Loading overtime…</p>
+        </div>
+        <button type="button" data-emp-tab="section-emp-overtime" class="employee-overview-action w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white">View Overtime Requests</button>
       </article>
 
       <article id="documents-card" class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100 lg:col-span-3">
@@ -323,17 +334,40 @@
         </ul>
       </article>
 
-      <article class="rounded-2xl border border-amber-200 bg-amber-50/80 p-6 shadow-card ring-1 ring-amber-100 lg:col-span-3">
-        <h2 class="text-lg font-bold text-brand-navy">Exit Portal</h2>
-        <p class="mt-2 text-sm font-medium text-amber-900">30 Working Days Notice Required</p>
-        <button type="button" class="mt-4 rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-950 shadow-sm transition hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2">
-          Initiate Formal Resignation
-        </button>
+      <article id="employeeCutoffOverview" class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100 lg:col-span-3">
+        <div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-lg font-bold text-brand-navy">Your Attendance This Cutoff</h2><p id="empOverviewCutoff" class="mt-1 text-sm text-slate-600">Loading cutoff information…</p></div><button type="button" data-emp-tab="section-emp-timesheet" class="btn btn-outline-primary">Review Timesheet</button></div>
+        <dl class="employee-cutoff-metrics">
+          <div><dt>Days worked</dt><dd id="empOverviewDays">—</dd></div>
+          <div><dt>Present</dt><dd id="empOverviewPresent">—</dd></div>
+          <div><dt>Late</dt><dd id="empOverviewLate">—</dd></div>
+          <div><dt>Absent</dt><dd id="empOverviewAbsent">—</dd></div>
+        </dl>
+        <div class="employee-payslip-availability"><p id="empOverviewPayslip" role="status">Loading payslip availability…</p><button type="button" data-emp-tab="section-emp-payroll-history" class="btn btn-outline-primary">View Payroll History</button></div>
       </article>
     </section>
     </div><!-- /section-emp-dashboard -->
 
     <!-- Timesheet Tab -->
+<div id="section-emp-overtime" class="emp-tab-panel hidden"><div class="flex flex-wrap items-center justify-between gap-3"><div><h1 class="text-2xl font-bold text-brand-navy">My Overtime</h1><p class="text-sm text-slate-600">Review requests from your Team Lead and record accepted overtime through Smart Calendar.</p></div><button type="button" data-emp-tab="section-emp-dashboard" class="btn btn-outline-primary">Back to Dashboard</button></div><div id="employeeOvertimeRequests" class="mt-6 space-y-4" role="status"></div></div>
+<div id="section-emp-leave" class="emp-tab-panel hidden">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <h1 class="text-2xl font-bold text-brand-navy">Leave</h1>
+    <button type="button" data-emp-tab="section-emp-dashboard" class="btn btn-outline-primary">Back to Dashboard</button>
+  </div>
+  <article class="rounded-2xl bg-white p-6 shadow-card ring-1 ring-slate-100">
+    <h2 class="text-lg font-bold text-brand-navy">Leave Management</h2>
+    <p id="empLeaveCredits" class="mt-4 text-4xl font-bold tabular-nums text-brand-navy">—</p>
+    <p class="text-xs uppercase text-slate-500">Leave credits</p>
+    <aside class="employee-leave-policy" aria-labelledby="employeeLeavePolicyTitle">
+      <h3 id="employeeLeavePolicyTitle">Service Incentive Leave</h3>
+      <p>Under the agency’s policy, employees become eligible for Service Incentive Leave after completing one year of active service.</p>
+      <p>Your Service Incentive Leave pay will be paid together with your 13th-month pay.</p>
+      <p>Leave filing is not available through this page.</p>
+    </aside>
+  </article>
+  <p class="mt-4 text-sm text-slate-600">Calendar leave information and your existing records remain available in Timesheet.</p>
+  <button type="button" data-emp-tab="section-emp-timesheet" class="btn btn-outline-primary mt-3">Open Timesheet</button>
+</div>
     <div id="section-emp-timesheet" class="emp-tab-panel hidden">
       <h1 class="text-2xl font-bold text-brand-navy sm:text-3xl">Timesheet</h1>
       <p class="mt-1 text-sm text-slate-600">Daily duty logs, attendance status, and calendar view.</p>
@@ -686,7 +720,8 @@
                   <div class="payslip-line"><span>Holiday Pay</span><span id="payslipHolidayPay" class="fw-semibold">—</span></div>
                   <div class="payslip-line"><span>Add Back</span><span id="payslipAddBack" class="fw-semibold">—</span></div>
                   <div class="payslip-line"><span>SIL Accrual (Daily × 5 ÷ 24)</span><span id="payslipSil" class="fw-semibold">—</span></div>
-                  <div class="payslip-line"><span>Allowance</span><span id="payslipAllowance" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Sunday Duty Allowance</span><span id="payslipSundayAllowance" class="fw-semibold">—</span></div>
+                  <div class="payslip-line"><span>Other Allowance</span><span id="payslipAllowance" class="fw-semibold">—</span></div>
                   <div class="payslip-line"><span>Late Minutes</span><span id="payslipLateMinutes" class="fw-semibold">—</span></div>
                   <div class="payslip-line"><span>Undertime Minutes</span><span id="payslipUndertimeMinutes" class="fw-semibold">—</span></div>
                   <div class="payslip-line text-danger"><span>Late/Undertime Deduction</span><span id="payslipLateUndertimeDeduction" class="fw-semibold">—</span></div>
@@ -866,7 +901,28 @@
         if (el) el.textContent = val != null && String(val).trim() !== '' ? String(val) : '—';
       }
 
+      var assignedTeamLeadUserId = null;
+      document.getElementById('empMessageTeamLead').addEventListener('click', async function () {
+        if (!assignedTeamLeadUserId) {
+          await AppDialog.alert('No Team Lead is assigned to your current deployment. Please contact HR.', 'Team Lead unavailable');
+          return;
+        }
+        if (!window.OwMessenger) {
+          await AppDialog.alert('Messenger is still loading. Please try again.', 'Messenger unavailable');
+          return;
+        }
+        try { await window.OwMessenger.openContact(assignedTeamLeadUserId); }
+        catch (error) { await AppDialog.alert('Unable to open your Team Lead conversation. Please try again.', 'Messenger unavailable'); }
+      });
       function applyProfile(profile) {
+        assignedTeamLeadUserId = profile && Number(profile.team_lead_user_id) > 0 ? Number(profile.team_lead_user_id) : null;
+
+        document.getElementById('empDeploymentTeamLead').textContent = profile && profile.team_lead_name || 'Not assigned';
+        var teamLeadPhone = document.getElementById('empDeploymentTeamLeadPhone');
+        var phone = String(profile && profile.team_lead_phone || '').trim();
+        teamLeadPhone.textContent = phone || 'Not provided';
+        teamLeadPhone.removeAttribute('href');
+        if (/^\+?[0-9 ()-]{7,20}$/.test(phone)) teamLeadPhone.href = 'tel:' + phone.replace(/[^+0-9]/g, '');
         if (!profile) return;
         var fullName = String(profile.full_name || '').trim() || 'Employee';
         var subtitle = String(profile.subtitle || profile.position || '').trim();
@@ -990,6 +1046,12 @@
         }
       }
       window.showEmpTab = showEmpTab;
+      if(location.hash==='#section-emp-overtime')showEmpTab('section-emp-overtime');
+      window.addEventListener('employee:overtime-calendar',function(event){
+        var iso=event.detail.date;var parts=iso.split('-'); viewYear=Number(parts[0]);viewMonth=Number(parts[1])-1;selectedIso=iso;
+        showEmpTab('section-emp-timesheet');buildCalendar();loadExpectedScheduleMonth();
+        var calendar=document.getElementById('calendar-grid'); if(calendar)calendar.scrollIntoView({behavior:'smooth',block:'center'});
+      });
       if (location.hash === '#section-emp-payroll') showEmpTab('section-emp-payroll');
       if (location.hash === '#section-emp-payroll-history') showEmpTab('section-emp-payroll-history');
 
@@ -998,6 +1060,8 @@
           e.preventDefault();
           var tabId = link.getAttribute('data-emp-tab');
           if (tabId) showEmpTab(tabId);
+          document.getElementById('profile-dropdown').hidden=true;
+          document.getElementById('profile-menu-btn').setAttribute('aria-expanded','false');
         });
       });
 
@@ -1015,6 +1079,7 @@
 
       function syncAttendancePayload(data) {
         if (!data) return;
+        if(data.range_start && data.range_end){Object.keys(logByDate).forEach(function(day){if(day>=data.range_start && day<=data.range_end)delete logByDate[day];});}
         logByDate = Object.assign({}, logByDate, data.log_by_date || {});
         if (!Object.keys(logByDate).length && Array.isArray(data.logs)) {
           data.logs.forEach(function (log) {
@@ -1178,17 +1243,23 @@
           detailPanel.innerHTML =
             '<h3 id="employeeTodayShiftTitle" class="text-base font-bold text-brand-navy mb-2">Today\'s Shift: ' + escHtml(companyLabel) + '</h3>' +
             '<p class="text-sm text-slate-600">Expected: ' + escHtml(expectedLabel) + '</p>' +
-            '<div id="employeeWorkSiteSummary" class="small text-slate-500 mt-2">Loading assigned work site...</div>' +
+            '<div id="employeeOvertimeSummary" class="rounded-lg border border-blue-100 bg-blue-50 p-2 small text-brand-navy mt-2" hidden></div>' +
+            '<details id="employeeAttendanceDetails" class="mt-3 rounded-xl border border-slate-200 bg-white p-3">' +
+              '<summary class="fw-semibold text-brand-navy" style="cursor:pointer"><i class="bi bi-info-circle me-1"></i>Attendance details</summary>' +
+              '<div class="mt-3 small text-slate-600"><strong class="d-block text-brand-navy mb-1">Photo evidence</strong>Clock In and Clock Out open your camera. Take a live photo and confirm to submit your duty log. Verify your work-site GPS first.</div>' +
+              '<div id="employeeWorkSiteSummary" class="small text-slate-500 mt-2">Loading assigned work site...</div>' +
+              '<div id="employeeAttendanceRules"></div>' +
+            '</details>' +
             '<div id="locationStatusContainer" class="p-3 my-3 bg-slate-50 rounded-xl border border-slate-200 text-center">' +
               '<span class="badge bg-secondary mb-1" id="geofenceBadge"><i class="bi bi-geo-alt me-1"></i>Checking GPS Location...</span>' +
               '<div class="small text-slate-500 text-xs mt-1" id="gpsDistanceText">Acquiring browser coordinates...</div>' +
             '</div>' +
             '<div class="d-flex justify-content-center gap-2 mt-3">' +
               '<button type="button" class="btn btn-success fw-bold flex-fill py-2" id="btnClockIn" onclick="openSelfieModal(\'clock_in\')" disabled>' +
-                '<i class="bi bi-box-arrow-in-right me-1"></i>Clock In' +
+                '<i class="bi bi-camera me-1"></i>Clock In &amp; Take Photo' +
               '</button>' +
               '<button type="button" class="btn btn-danger fw-bold flex-fill py-2" id="btnClockOut" onclick="openSelfieModal(\'clock_out\')" disabled>' +
-                '<i class="bi bi-box-arrow-right me-1"></i>Clock Out' +
+                '<i class="bi bi-camera me-1"></i>Clock Out &amp; Take Photo' +
               '</button>' +
             '</div>' +
             '<button type="button" id="btnRefreshEmployeeGps" class="btn btn-outline-primary w-100 mt-3 py-2 fw-semibold" onclick="refreshEmployeeGpsLocation()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh GPS Location</button>';
@@ -1241,17 +1312,24 @@
           return;
         }
 
+        var selectedDateLabel = new Date(iso + 'T12:00:00').toLocaleDateString('en-PH', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
         detailPanel.innerHTML =
           '<h3 class="text-base font-bold text-brand-navy">Scheduled Deployment</h3>' +
+          '<p class="mt-2 text-sm text-slate-600">' + escHtml(selectedDateLabel) + '</p>' +
+          '<dl class="mt-4 space-y-3 text-sm">' +
+          '<div><dt class="text-xs uppercase text-slate-500">Client</dt><dd class="font-semibold text-brand-navy">' + escHtml(companyLabel) + '</dd></div>' +
+          '<div><dt class="text-xs uppercase text-slate-500">Deployment site</dt><dd class="text-slate-700">' + escHtml(dashboardState.deployment.site_label || '—') + '</dd></div>' +
+          '<div><dt class="text-xs uppercase text-slate-500">Day type</dt><dd class="font-semibold text-brand-navy">' + escHtml(expected ? (expected.is_working_day ? 'Scheduled work day' : 'Rest day') : 'Schedule not available') + '</dd></div></dl>' +
           '<p class="mt-4 rounded-lg border border-slate-200 bg-white p-4 text-sm font-medium text-slate-800 shadow-sm">' + escHtml(shiftDisplay) + '</p>' +
-          '<button type="button" id="btn-file-leave-date" class="mt-5 w-full rounded-lg bg-brand-orange py-2.5 text-sm font-bold text-white shadow transition hover:bg-brand-orange-dark focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2">' +
-          'File Leave for this Date</button>';
-        var fl = document.getElementById('btn-file-leave-date');
-        if (fl) {
-          fl.addEventListener('click', function () {
-            window.alert('Leave filing for ' + iso + ' would open your HR workflow.');
-          });
-        }
+          '<p class="mt-4 text-xs text-slate-500">Attendance details will appear here after your duty log is recorded. Duty photo evidence is captured when you clock in or out on the current date.</p>' +
+          '<button type="button" id="employeeGoToTodayAttendance" class="btn btn-primary w-100 mt-3">Go to Today’s Attendance</button>';
+        document.getElementById('employeeGoToTodayAttendance').onclick = function () {
+          var today = new Date(); viewYear = today.getFullYear(); viewMonth = today.getMonth(); selectedIso = todayIso();
+          buildCalendar();
+          var todayButton = calendarGrid.querySelector('[data-iso="' + selectedIso + '"]');
+          if (todayButton) todayButton.click();
+        };
+
       }
 
       function buildCalendar() {
@@ -1337,6 +1415,7 @@
         if (calendarStatus) calendarStatus.textContent='Loading attendance, schedules and holidays…';
         var start = key + '-01';
         var end = isoDate(viewYear, viewMonth, new Date(viewYear, viewMonth + 1, 0).getDate());
+        if(window.EmployeeAttendanceSync)EmployeeAttendanceSync.setRange(start,end);
         try {
           var responses = await Promise.all([
             fetch('../../Api/Employee/get_employee_schedule.php?start=' + start + '&end=' + end, { credentials: 'include' }),
@@ -1347,6 +1426,7 @@
           if (!response.ok || !data.success) throw new Error(data.message || 'Unable to load schedules and holidays.');
           if (!responses[1].ok || !attendance.success) throw new Error(attendance.message || 'Unable to load calendar attendance.');
           if (key !== viewYear + '-' + pad2(viewMonth + 1)) return;
+          if(window.EmployeeAttendanceSync)EmployeeAttendanceSync.showLogs(attendance.logs||[]);
           expectedSchedules = data.schedules || {};
           holidaysByDate = data.holidays || {};
           Object.keys(logByDate).forEach(function(day) { if (day >= start && day <= end) delete logByDate[day]; });
@@ -1499,11 +1579,6 @@
     (function () {
       if (window.__empDashSyncAttendance) return;
       window.__empDashSyncAttendance = true;
-      document.addEventListener('employee-attendance-updated', function (ev) {
-        if (typeof window.__empDashOnAttendance === 'function') {
-          window.__empDashOnAttendance(ev.detail || null);
-        }
-      });
       if (window.EmployeeAttendanceSync && typeof EmployeeAttendanceSync.getLastPayload === 'function') {
         var initial = EmployeeAttendanceSync.getLastPayload();
         if (initial && typeof window.__empDashOnAttendance === 'function') {
@@ -1610,5 +1685,6 @@
     </div>
   </div>
 </div>
+<script src="../../Js/Employee/employee_overtime.js"></script>
 </body>
 </html>

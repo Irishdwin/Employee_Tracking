@@ -1,0 +1,58 @@
+.hr-feedback-dialog{width:min(460px,calc(100vw - 32px));border:1px solid #dfe7f1;border-radius:16px;padding:28px;color:#243b57;box-shadow:0 24px 70px #102c5433;max-height:85vh;overflow:auto}
+.hr-feedback-dialog::backdrop{background:rgba(12,30,54,.32)}
+.hr-feedback-dialog h2{font-size:1.2rem;font-weight:700;color:#102e56;margin:0 0 14px}
+.hr-feedback-dialog p{line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:22px}
+.hr-feedback-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.hr-feedback-dialog .btn{border-radius:8px;padding:9px 20px}
+html.hr-ui .dashboard-section{padding-bottom:24px}
+html.hr-ui .modal-content{border:1px solid #dfe7f1;border-radius:14px;box-shadow:0 18px 55px #102c5426}
+html.hr-ui .modal-header{padding:18px 22px;background:#f7faff;border-bottom:1px solid #e3ebf5}
+html.hr-ui .modal-title{color:#15365e;font-weight:650;font-size:1.15rem}
+html.hr-ui .modal-footer{background:#fbfcfe;border-top:1px solid #e3ebf5;padding:14px 22px;gap:8px}
+html.hr-ui .modal-backdrop{background:#102c54}
+html.hr-ui .table-responsive{border-radius:10px}
+html.hr-ui .dashboard-section>.d-flex{margin-bottom:20px!important}
+html.hr-ui .modal-dialog-scrollable .modal-body{overscroll-behavior:contain}
+@media(max-width:767px){html.hr-ui .modal-dialog{margin:12px}html.hr-ui .modal-header,html.hr-ui .modal-body{padding:16px}}
+
+/* Consistent Admin workspace surfaces; intentionally excludes modal contents and the sidebar. */
+html.hr-ui :is(.dashboard-section,.main-content) :is(.page-header-title,.topbar-title) { font-size:1.5rem; font-weight:700; color:#102c54; line-height:1.35; margin-bottom:5px; }
+html.hr-ui :is(.dashboard-section,.main-content) :is(.page-header-subtitle,.topbar-subtitle) { color:#6b7c93; font-size:.89rem; line-height:1.6; max-width:850px; }
+html.hr-ui :is(.dashboard-section,.main-content) > .d-flex { flex-wrap:wrap; gap:14px; }
+html.hr-ui :is(.dashboard-section,.main-content) .card { border:1px solid #e1e8f1; border-radius:12px; box-shadow:0 3px 14px rgba(16,44,84,.035); }
+html.hr-ui :is(.dashboard-section,.main-content) .card-header { background:#fff; color:#193b63; padding:17px 20px; border-bottom:1px solid #e7edf5; border-radius:12px 12px 0 0; }
+html.hr-ui :is(.dashboard-section,.main-content) .card-header h2 { font-size:.97rem; font-weight:600; }
+html.hr-ui :is(.dashboard-section,.main-content) .card-body:not(.p-0) { padding:20px; }
+html.hr-ui :is(.dashboard-section,.main-content) .table { font-size:.88rem; margin-bottom:0; }
+html.hr-ui :is(.dashboard-section,.main-content) .table thead th { background:#f7f9fc; color:#667b96; font-size:.7rem; letter-spacing:.04em; padding:13px 16px; border-bottom:1px solid #e6edf5; white-space:nowrap; }
+html.hr-ui :is(.dashboard-section,.main-content) .table td { padding:14px 16px; border-color:#edf1f6; color:#293d58; line-height:1.5; vertical-align:middle; }
+html.hr-ui :is(.dashboard-section,.main-content) .table td[colspan] { padding:28px 16px; }
+html.hr-ui :is(.dashboard-section,.main-content) .table td :is(.btn,.badge) { white-space:nowrap; }
+html.hr-ui :is(.dashboard-section,.main-content) .btn { border-radius:8px; font-size:.88rem; }
+html.hr-ui :is(.dashboard-section,.main-content) .btn-sm { font-size:.8rem; padding:6px 10px; }
+html.hr-ui :is(.dashboard-section,.main-content) .badge { border-radius:6px; padding:5px 8px; font-size:.73rem; }
+html.hr-ui :is(.dashboard-section,.main-content) :is(.form-control,.form-select,.input-group-text) { border-color:#dce4ef; font-size:.88rem; min-height:38px; }
+html.hr-ui :is(.dashboard-section,.main-content) .input-group-text { background:#fff; color:#6b809b; }
+html.hr-ui :is(.dashboard-section,.main-content) .form-label { font-size:.84rem; font-weight:500; color:#536b86; }
+html.hr-ui :is(.dashboard-section,.main-content) .form-control:focus,html.hr-ui :is(.dashboard-section,.main-content) .form-select:focus { border-color:#739bcf; box-shadow:0 0 0 3px rgba(29,100,188,.1); }
+html.hr-ui :is(.dashboard-section,.main-content) > .d-flex > .input-group { max-width:380px!important; flex:1 1 260px; }
+html.hr-ui :is(.dashboard-section,.main-content) .pagination { flex-wrap:wrap; gap:0; }
+html.hr-ui :is(.dashboard-section,.main-content) .pagination .page-link { font-size:.8rem; padding:7px 11px; }
+html.hr-ui #section-deployments .table td:nth-child(4) { min-width:190px; max-width:300px; overflow-wrap:anywhere; color:#6b7c93; }
+html.hr-ui #section-logs .table td { overflow-wrap:anywhere; }
+html.hr-ui #section-logs .table td:last-child { min-width:220px; max-width:420px; }
+html.hr-ui #govRatesForm .form-label { min-height:40px; display:flex; align-items:flex-end; }
+html.hr-ui #section-user-management > .card,html.hr-ui :is(#section-applicant-contracts,#section-employee-conversion) > .card { background:#f8fafc; border:0; box-shadow:none; }
+html.hr-ui[data-admin-module="contracts"] .main-content > .d-flex:first-child,html.hr-ui[data-admin-module="conversion"] .main-content > .d-flex:first-child { display:none!important; }
+html.hr-ui[data-admin-module="contracts"] .main-content,html.hr-ui[data-admin-module="conversion"] .main-content { padding:0!important; }
+html.hr-ui[data-admin-module="contracts"] .main-content > .card,html.hr-ui[data-admin-module="conversion"] .main-content > .card { margin:0; }
+@media(max-width:767px) {
+ html.hr-ui :is(.dashboard-section,.main-content) :is(.page-header-title,.topbar-title) { font-size:1.3rem; }
+ html.hr-ui :is(.dashboard-section,.main-content) .card-header,html.hr-ui :is(.dashboard-section,.main-content) .card-body:not(.p-0) { padding:16px; }
+ html.hr-ui :is(.dashboard-section,.main-content) > .d-flex > .input-group { max-width:100%!important; }
+ html.hr-ui :is(.dashboard-section,.main-content) > .d-flex > .d-flex { flex-wrap:wrap; width:100%; }
+ html.hr-ui :is(.dashboard-section,.main-content) .card-header.d-flex { flex-wrap:wrap; gap:12px; }
+ html.hr-ui #govRatesForm .form-label { min-height:0; }
+}
+
+@media(max-width:767px) { html.hr-ui :is(.dashboard-section,.main-content) .table td[colspan] { text-align:left!important; } }

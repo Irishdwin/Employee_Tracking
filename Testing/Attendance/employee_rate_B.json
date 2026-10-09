@@ -1,0 +1,571 @@
+{
+    "success": true,
+    "employee_context": {
+        "employee_id": 77,
+        "deployment_id": 47,
+        "company_id": 4,
+        "site_id": 4,
+        "team_lead_id": 56,
+        "payroll_type": "B",
+        "rates": {
+            "daily_rate": 700,
+            "hourly_rate": 87.5,
+            "allowance": 0,
+            "monthly_salary_credit": 18200,
+            "daily_rate_source": "employee.daily_rate",
+            "hourly_rate_source": "employee.hourly_rate",
+            "effective_dated": false,
+            "valid": true
+        },
+        "schedule": {
+            "time_in": "08:00:00",
+            "time_out": "17:00:00",
+            "break_duration": 60,
+            "break_minutes": 60,
+            "grace_period": 5,
+            "working_days": "Mon-Fri",
+            "shift_name": "Regular Shift",
+            "schedule_type": "Fixed",
+            "schedule_id": null,
+            "deployment_id": 47
+        },
+        "period": {
+            "start": "2026-09-26",
+            "end": "2026-10-10",
+            "payday": "2026-10-15",
+            "payday_display": "Oct 15, 2026",
+            "label": "Sep 26, 2026 \u2013 Oct 10, 2026",
+            "half": "2nd",
+            "type": "B",
+            "company_id": 4
+        }
+    },
+    "mode": "selected_employee",
+    "source": "Current production PHP helpers and HTTP endpoints; disposable schema only",
+    "fixture_database": "codex_holiday_eb3f6df061e9",
+    "fixture_directory": "C:\\Users\\IRISHD~1\\AppData\\Local\\Temp/onazul-holiday-de40603e7881ee3f",
+    "scenario_date": "2026-10-06",
+    "cutoff": [
+        "2026-09-26",
+        "2026-10-10"
+    ],
+    "selection_checks": [],
+    "production_unchanged": true,
+    "production_before": {
+        "holidays": "2905175276",
+        "employee": "918052064",
+        "attendance": "3828318813",
+        "daily_time_records": "3105386712",
+        "overtime": "3671013785",
+        "dtr_submissions": "2145068532",
+        "payroll": "0",
+        "payroll_runs": "1234303335"
+    },
+    "production_after": {
+        "holidays": "2905175276",
+        "employee": "918052064",
+        "attendance": "3828318813",
+        "daily_time_records": "3105386712",
+        "overtime": "3671013785",
+        "dtr_submissions": "2145068532",
+        "payroll": "0",
+        "payroll_runs": "1234303335"
+    },
+    "results": [
+        {
+            "id": "B",
+            "scenario": "Regular Holiday 8h",
+            "holiday_type": "Regular Holiday",
+            "daily_rate": 700,
+            "hourly_rate": 87.5,
+            "reference_earnings": {
+                "basic_pay": 700,
+                "holiday_pay": 700,
+                "holiday_ot_pay": 0
+            },
+            "hours_worked": 8,
+            "holiday_ot_hours": 0,
+            "rest_day": false,
+            "eligibility": null,
+            "expected": 1400,
+            "actual": 1400,
+            "difference": 0,
+            "status": "PASS",
+            "checks": {
+                "economic_total": true,
+                "holiday_hours": true,
+                "holiday_ot_hours": true,
+                "ordinary_ot_not_duplicated": true,
+                "team_lead_hours": true,
+                "accounting_snapshot": true,
+                "accounting_verified": true,
+                "accounting_rate": true,
+                "accounting_basic": true,
+                "accounting_holiday": true,
+                "accounting_holiday_ot": true,
+                "accounting_economic_total": true,
+                "basic_component": true,
+                "holiday_component": true,
+                "holiday_ot_component": true,
+                "holiday_type": true,
+                "rest_day_context": true,
+                "attendance_holiday_metadata": true,
+                "finalized_payroll": true,
+                "stored_gross": true,
+                "stored_holiday": true,
+                "stored_overtime": true,
+                "employee_payroll_when_cutoff_matches": true,
+                "double_counting": true
+            },
+            "earnings": {
+                "basic_pay": 700,
+                "sunday_overtime": 0,
+                "regular_overtime": 0,
+                "approved_overtime": 0,
+                "holiday_pay": 700,
+                "holiday_ot_pay": 0,
+                "sil_accrual": 145.83,
+                "allowance": 0
+            },
+            "classification": {
+                "regular_hours": 8,
+                "ordinary_overtime_hours": 0,
+                "overtime_hours": 0,
+                "holiday_work_hours": 8,
+                "holiday_overtime_hours": 0,
+                "approved_overtime_breakdown": [],
+                "holiday_breakdown": [
+                    {
+                        "date": "2026-10-06",
+                        "holiday_id": 24,
+                        "name": "TEST B holiday",
+                        "type": "Regular Holiday",
+                        "pay_multiplier": 2,
+                        "pay": 700,
+                        "is_rest_day": false,
+                        "worked": true,
+                        "duty_hours": 8,
+                        "is_double_holiday": false,
+                        "holiday_ids": [
+                            24
+                        ]
+                    }
+                ],
+                "holiday_ot_breakdown": []
+            },
+            "attendance": {
+                "HolidayID": "24",
+                "IsHolidayWork": "1",
+                "HolidayPayRate": "2.00",
+                "TotalHours": "8.00",
+                "IsRestDay": "0"
+            },
+            "team_lead": {
+                "employee_id": 79,
+                "employee_number": "TEST-HOL-B",
+                "employee_name": "TEST Holiday B",
+                "position": "TEST",
+                "company_id": 31,
+                "company_name": "TEST Holiday Company B",
+                "deployment_id": 49,
+                "payroll_type": "B",
+                "payroll_type_label": "Type B",
+                "period_start": "2026-09-26",
+                "period_end": "2026-10-10",
+                "cutoff_label": "Sep 26, 2026 \u2013 Oct 10, 2026",
+                "release_date": "2026-10-15",
+                "release_date_display": "Oct 15, 2026",
+                "scheduled_deductions": [
+                    "PhilHealth",
+                    "Pag-IBIG"
+                ],
+                "total_regular_hours": 8,
+                "total_overtime_hours": 0,
+                "holiday_pay_hours": 8,
+                "classification": {
+                    "regular_hours": 8,
+                    "ordinary_overtime_hours": 0,
+                    "overtime_hours": 0,
+                    "holiday_work_hours": 8,
+                    "holiday_overtime_hours": 0,
+                    "approved_overtime_breakdown": [],
+                    "holiday_breakdown": [
+                        {
+                            "date": "2026-10-06",
+                            "holiday_id": 24,
+                            "name": "TEST B holiday",
+                            "type": "Regular Holiday",
+                            "pay_multiplier": 2,
+                            "pay": 700,
+                            "is_rest_day": false,
+                            "worked": true,
+                            "duty_hours": 8,
+                            "is_double_holiday": false,
+                            "holiday_ids": [
+                                24
+                            ]
+                        }
+                    ],
+                    "holiday_ot_breakdown": []
+                },
+                "attendance_summary": {
+                    "present": 1,
+                    "late": 0,
+                    "absent": 6
+                },
+                "daily_breakdown": [
+                    {
+                        "date": "2026-09-26",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Rest Day",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-09-27",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Rest Day",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-09-28",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Absent",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-09-29",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Absent",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-09-30",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Absent",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-01",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Absent",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-02",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Absent",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-03",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Rest Day",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-04",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Rest Day",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-05",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Absent",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-06",
+                        "time_in": "2026-10-06 08:00:00",
+                        "time_out": "2026-10-06 17:00:00",
+                        "rendered_hours": 8,
+                        "late_minutes": 0,
+                        "undertime_minutes": 0,
+                        "status": "Present",
+                        "is_holiday": true,
+                        "holiday_classification": [
+                            {
+                                "date": "2026-10-06",
+                                "holiday_id": 24,
+                                "name": "TEST B holiday",
+                                "type": "Regular Holiday",
+                                "pay_multiplier": 2,
+                                "pay": 700,
+                                "is_rest_day": false,
+                                "worked": true,
+                                "duty_hours": 8,
+                                "is_double_holiday": false,
+                                "holiday_ids": [
+                                    24
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "date": "2026-10-07",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Scheduled",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-08",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Scheduled",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-09",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Scheduled",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    },
+                    {
+                        "date": "2026-10-10",
+                        "time_in": null,
+                        "time_out": null,
+                        "rendered_hours": null,
+                        "late_minutes": 0,
+                        "undertime_minutes": null,
+                        "status": "Rest Day",
+                        "is_holiday": false,
+                        "holiday_classification": []
+                    }
+                ],
+                "is_submitted": false,
+                "dtr_submission_id": null,
+                "submitted_at": null
+            },
+            "accounting_submission": {
+                "dtr_submission_id": 9,
+                "employee_id": 79,
+                "employee_name": "TEST Holiday B",
+                "employee_number": "TEST-HOL-B",
+                "position": "TEST",
+                "site_supervisor_id": 117,
+                "team_lead_name": "TEST Holiday Lead B",
+                "company_name": "TEST Holiday Company B",
+                "cutoff_period": "Sep 26, 2026 \u2013 Oct 10, 2026",
+                "cutoff_start": "2026-09-26",
+                "cutoff_end": "2026-10-10",
+                "total_hours": 8,
+                "overtime_hours": 0,
+                "total_overtime_hours": 0,
+                "classification": {
+                    "regular_hours": 8,
+                    "ordinary_overtime_hours": 0,
+                    "overtime_hours": 0,
+                    "holiday_work_hours": 8,
+                    "holiday_overtime_hours": 0,
+                    "approved_overtime_breakdown": [],
+                    "holiday_breakdown": [
+                        {
+                            "date": "2026-10-06",
+                            "holiday_id": 24,
+                            "name": "TEST B holiday",
+                            "type": "Regular Holiday",
+                            "pay_multiplier": 2,
+                            "pay": 700,
+                            "is_rest_day": false,
+                            "worked": true,
+                            "duty_hours": 8,
+                            "is_double_holiday": false,
+                            "holiday_ids": [
+                                24
+                            ]
+                        }
+                    ],
+                    "holiday_ot_breakdown": []
+                },
+                "submitted_at": "2026-10-06 16:05:35",
+                "status": "Submitted"
+            },
+            "accounting_payroll": {
+                "employee_id": "TEST-HOL-B",
+                "employee_name": "TEST Holiday B",
+                "designation": "TEST",
+                "area_site": "TEST Holiday Company B",
+                "daily_rate": 700,
+                "days_worked": 1,
+                "basic_total": 700,
+                "regular_ot_hours": 0,
+                "regular_ot_amount": 0,
+                "sunday_ot_hours": 0,
+                "sunday_ot_amount": 0,
+                "holiday_duty_hrs": 8,
+                "holiday_duty": 700,
+                "holiday_ot_hrs": 0,
+                "holiday_ot_amount": 0,
+                "special_holiday_hrs": 0,
+                "special_holiday_pay": 0,
+                "special_holiday_ot_hours": 0,
+                "special_holiday_ot_amount": 0,
+                "total_overtime": 0,
+                "lates_undertime": 0,
+                "gross_salary": 700,
+                "allowances": 0,
+                "sil_accrual": 145.83,
+                "night_differential": 0,
+                "other_incentives": 0,
+                "gross_payroll": 1400,
+                "sss_ee": 0,
+                "philhealth_ee": 227.5,
+                "pagibig_ee": 100,
+                "other_ee_deductions": 0,
+                "total_ee_deductions": 327.5,
+                "net_salary": 1072.5,
+                "sss_er_regular": 0,
+                "sss_er_mpf": 0,
+                "ec_er": 0,
+                "philhealth_er": 227.5,
+                "pagibig_er": 100,
+                "total_er_dues": 327.5,
+                "thirteenth_month_accrual": 58.33,
+                "subtotal_labor_cost": 1785.83,
+                "admin_overhead_pct": 10,
+                "admin_overhead_amount": 178.58,
+                "vat_pct": 12,
+                "vat_on_overhead": 21.43,
+                "grand_total_invoice": 1985.84,
+                "sss_number": "",
+                "philhealth_number": "",
+                "pagibig_number": "",
+                "tin": "",
+                "pay_period": "Sep 26, 2026 \u2013 Oct 10, 2026",
+                "run_id": "PR-20260926-20261010-C31",
+                "client_name": "TEST Holiday Company B",
+                "status": "Draft"
+            },
+            "stored_payroll": {
+                "BasicSalary": "700.00",
+                "HolidayPay": "700.00",
+                "OvertimePay": "0.00",
+                "GrossPay": "1400.00"
+            },
+            "payslip_status": "VERIFIED current cutoff",
+            "payslip": {
+                "employee_name": "TEST Holiday B",
+                "employee_number": "TEST-HOL-B",
+                "designation": "TEST",
+                "assigned_site": "TEST Holiday Company B",
+                "company": "TEST Holiday Company B",
+                "period_label": "Sep 26, 2026 \u2013 Oct 10, 2026",
+                "is_finalized": true,
+                "status_label": "Computed",
+                "days_worked": 1,
+                "daily_rate": 700,
+                "earnings": {
+                    "basic_pay": 700,
+                    "sunday_overtime": 0,
+                    "regular_overtime": 0,
+                    "approved_overtime": 0,
+                    "holiday_pay": 700,
+                    "holiday_ot_pay": 0,
+                    "sil_accrual": 145.83,
+                    "allowance": 0
+                },
+                "late_undertime": {
+                    "late_minutes": 0,
+                    "undertime_minutes": 0,
+                    "total_minutes": 0,
+                    "per_minute_rate": 1.4583,
+                    "amount": 0
+                },
+                "deductions": {
+                    "sss_ee": 0,
+                    "sss_regular_ee": 0,
+                    "sss_mpf_ee": 0,
+                    "philhealth_ee": 227.5,
+                    "pagibig_ee": 100,
+                    "applied": {
+                        "sss": false,
+                        "philhealth": true,
+                        "pagibig": true
+                    }
+                },
+                "gross_pay": 1400,
+                "total_deductions": 327.5,
+                "net_pay": 1072.5,
+                "message": ""
+            },
+            "run": {
+                "success": true,
+                "message": "Payroll computed for 1 employee(s).",
+                "run_id": "PR-20260926-20261010-C31",
+                "billing_ref_no": "BR-20260926-20261010-C31",
+                "employee_count": 1,
+                "company_id": 31
+            }
+        }
+    ],
+    "production_files_sha256": {
+        "employee_payroll_helper.php": "2258105ee991b01bcea4ca188901f7da9217b9ef7ac46a8a4ac5e265634af59f",
+        "submit_dtr.php": "721c7dac27a1ac36cc02ece522132646c5debb727b005a797c419b646d4beb82",
+        "compute_payroll_for_batch.php": "e0b77249fd7290bc5793a8edad330d0692e6e2a7c13d3b467938bd77df6bad6e"
+    },
+    "cleanup": "PASS: disposable database removed; no test records remain"
+}
